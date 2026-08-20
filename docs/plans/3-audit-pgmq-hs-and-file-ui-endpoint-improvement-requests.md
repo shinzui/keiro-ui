@@ -27,15 +27,34 @@ Terms used throughout: an **OKF bundle** is a directory of Markdown files with Y
 
 ## Progress
 
-- [ ] Milestone 1: audit re-confirmed against the current pgmq-hs working tree; deltas (if any) recorded in Surprises & Discoveries.
-- [ ] Milestone 2: `docs/improvement-requests/` bundle bootstrapped in pgmq-hs (profile.dhall frozen and type-checked, index.md, log.md), registered in `mori.dhall`, wired into `just docs-check`, and validating.
-- [ ] Milestone 3: improvement requests authored, filed, validating, and their `IR-N` handles recorded back into this plan and the MasterPlan registry notes.
-- [ ] Living sections of this plan finalized; MasterPlan updated (registry status, Progress, Surprises & Discoveries).
+- [x] Milestone 1: audit re-confirmed against the current pgmq-hs working tree; deltas (if any) recorded in Surprises & Discoveries. (2026-08-19: tree at exactly the audited HEAD `9ee9a2f`, clean; all four verification greps silent — no web deps, no executables, no JSON instances on the listed records, no `docs/improvement-requests/`; `Justfile` `docs-check` and `mori.dhall` `okfBundles` shaped as described. No deltas.)
+- [x] Milestone 2: `docs/improvement-requests/` bundle bootstrapped in pgmq-hs (profile.dhall frozen and type-checked, index.md, log.md), registered in `mori.dhall`, wired into `just docs-check`, and validating. (2026-08-19: pgmq-hs commit `32b3c1e`; required an unplanned `mori.dhall` schema migration first — see Surprises & Discoveries.)
+- [x] Milestone 3: improvement requests authored, filed, validating, and their `IR-N` handles recorded back into this plan and the MasterPlan registry notes. (2026-08-19: pgmq-hs commit `590a46f`; `just docs-check` validates both bundles, "OK: 3 concepts".)
+- [x] Living sections of this plan finalized; MasterPlan updated (registry status, Progress, Surprises & Discoveries). (2026-08-19)
+
+Allocated handles (pgmq-hs bundle, all `status: proposed`, `origin: mori://shinzui/keiro-ui`):
+
+- IR-1 — Expose non-destructive queue inspection reads (`expose-non-destructive-queue-inspection-reads.md`)
+- IR-2 — Provide JSON codecs for inspection-facing records (`provide-json-codecs-for-inspection-facing-records.md`)
+- IR-3 — Add a pgmq-metrics sister package with HTTP and WebSocket inspection endpoints (`add-a-pgmq-metrics-sister-package-with-http-and-websocket-inspection-endpoints.md`)
+
+Canonical handles for cross-repo citation: `mori://shinzui/pgmq-hs/okf/improvement-requests/concepts/IR-1` through `IR-3`.
 
 
 ## Surprises & Discoveries
 
-(None yet.)
+- Milestone 2 (2026-08-19): `mori validate` failed on pgmq-hs's **pristine** `mori.dhall` — the file pinned mori-schema commit `0274037…` while the installed mori binary embeds `e4899c15…`, and the new schema's `Dependency.WithAugmentation` argument requires a `versionConstraint` field the old helper record lacked. Evidence:
+
+  ```text
+  Error: failed to parse config:
+  note: this file pins mori-schema commit 027403783777 but this binary embeds e4899c15b6a7; ...
+  Error: Wrong type of function argument
+  { - versionConstraint : …, … }
+  18│         Schema.Dependency.WithAugmentation
+  ```
+
+  Resolution: ran the tool's own remediation (`mori schema migrate --apply --file mori.dhall`, which bumped the pin) and added `versionConstraint = None Text` to the local `augDefault` helper, imitating kiroku's equivalent migration (kiroku commit `c2d0328`, "refactor(mori): migrate dependencies to typed package-grained refs"). Without this, `just docs-check` could not run at all, so the repair was in-scope for making the plan's acceptance checkable. Included in pgmq-hs commit `32b3c1e`.
+- The v0.10.0 profile's optional `targetPlan` field means "the implementation plan" (repository-relative path or Mori URI), not the filing plan, so it was omitted; the filing plan is cited in each request's Status prose instead.
 
 
 ## Decision Log
@@ -56,10 +75,22 @@ Terms used throughout: an **OKF bundle** is a directory of Markdown files with Y
   Rationale: The capabilities bundle uses `okf graph` because its records cross-link (`requires:`); improvement requests here are flat and independent. Validation without `--strict` mirrors the repo's existing capabilities invocation and avoids demanding fabricated `reviews:` provenance on machine-authored records.
   Date: 2026-08-19
 
+- Decision: Repair pgmq-hs's `mori.dhall` schema skew inside this plan (tool-driven migration plus the one-line `versionConstraint` helper fix) rather than stopping or filing it as separate maintenance.
+  Rationale: The pristine file already failed `mori validate` with the installed binary, so the plan's acceptance (`just docs-check` exits 0) was unreachable without it; the fix is mechanical, recommended by the tool itself, and has a working precedent in kiroku's tree. Recorded with evidence in Surprises & Discoveries.
+  Date: 2026-08-19
+
+- Decision: `generated.by` is `anthropic/claude-fable-5` on all three requests; `targetPlan` is omitted.
+  Rationale: The actor follows the profile's `<producer>/<version>` form (precedent: kiroku IR-7's `anthropic/claude-opus-5`); `targetPlan` denotes the future implementation plan, which does not exist yet.
+  Date: 2026-08-19
+
 
 ## Outcomes & Retrospective
 
-(To be filled during and after implementation.)
+Completed 2026-08-19, all milestones in one session. pgmq-hs now carries its first improvement-requests bundle (pinned and frozen at okf-profiles v0.10.0, registered in `mori.dhall`, wired into `just docs-check` — commit `32b3c1e`) and its first three requests (commit `590a46f`): IR-1 non-destructive inspection reads, IR-2 JSON codecs, IR-3 the `pgmq-metrics` sister package. All are `proposed` with `origin: mori://shinzui/keiro-ui`, validate under `--profile-enforce --log-enforce`, and use the v0.10.0 `generated` frontmatter family as EP-1's discovery predicted.
+
+The audit re-confirmation found zero drift (tree at the audited HEAD `9ee9a2f`). The one genuine surprise was pre-existing repository breakage, not audit drift: `mori validate` failed on the pristine `mori.dhall` from schema version skew, and the plan's own acceptance forced the repair (see Surprises & Discoveries). Lesson for EP-4/EP-5: run the target repo's own validation recipe once *before* touching anything — it distinguishes "my change broke it" from "it was already broken" in seconds and surfaces required maintenance early.
+
+For EP-5's composition/non-duplication work: the pgmq-hs handle set to cite is `mori://shinzui/pgmq-hs/okf/improvement-requests/concepts/IR-1`..`IR-3`. Registry-dependent acceptance (resolving the new concepts via `mori registry concepts`) awaits the next registry refresh; the handles and files are committed and validating, which is this plan's deliverable. No keiro-ui ADR change was needed — the requests apply decisions already recorded as ADR-1..ADR-4.
 
 
 ## Context and Orientation

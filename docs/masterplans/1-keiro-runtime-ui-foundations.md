@@ -59,7 +59,7 @@ ADR context. This repository has no `docs/adr/` and no OKF bundles; **no local A
 |---|-------|------|-----------|-----------|--------|
 | 1 | Define cross-project inspection API and WebSocket conventions | docs/plans/1-define-cross-project-inspection-api-and-websocket-conventions.md | None | None | Complete |
 | 2 | Audit kiroku and file UI endpoint improvement requests | docs/plans/2-audit-kiroku-and-file-ui-endpoint-improvement-requests.md | None | EP-1 | Complete |
-| 3 | Audit pgmq-hs and file UI endpoint improvement requests | docs/plans/3-audit-pgmq-hs-and-file-ui-endpoint-improvement-requests.md | None | EP-1 | Not Started |
+| 3 | Audit pgmq-hs and file UI endpoint improvement requests | docs/plans/3-audit-pgmq-hs-and-file-ui-endpoint-improvement-requests.md | None | EP-1 | Complete |
 | 4 | Audit shibuya and file UI endpoint improvement requests | docs/plans/4-audit-shibuya-and-file-ui-endpoint-improvement-requests.md | None | EP-1 | Not Started |
 | 5 | Audit keiro and file UI endpoint improvement requests | docs/plans/5-audit-keiro-and-file-ui-endpoint-improvement-requests.md | None | EP-1, EP-2, EP-3, EP-4 | Not Started |
 | 6 | Set the general direction for the keiro runtime UI | docs/plans/6-set-the-general-direction-for-the-keiro-runtime-ui.md | EP-1 | EP-2, EP-3, EP-4, EP-5 | Not Started |
@@ -99,8 +99,8 @@ Candidate ADRs this MasterPlan expects to produce (in keiro-ui unless noted): th
 - [x] EP-1: keiro-ui `docs/adr/` bundle seeded, registered in `mori.dhall`, and validating; initial ADRs recorded (2026-08-19: ADR-1..ADR-4, strict validation and `mori validate` pass)
 - [x] EP-2: kiroku audit confirmed against working tree; endpoint gap list finalized (2026-08-19: tree at the audited commit c2d0328, gap list held verbatim)
 - [x] EP-2: kiroku improvement requests filed and validating in kiroku's bundle (2026-08-19: IR-8..IR-13, kiroku commit 8f03c19, profile+log enforcement pass)
-- [ ] EP-3: pgmq-hs improvement-requests bundle bootstrapped and validating
-- [ ] EP-3: pgmq-hs improvement requests filed and validating
+- [x] EP-3: pgmq-hs improvement-requests bundle bootstrapped and validating (2026-08-19: pgmq-hs commit 32b3c1e, pinned+frozen at okf-profiles v0.10.0, wired into `just docs-check`)
+- [x] EP-3: pgmq-hs improvement requests filed and validating (2026-08-19: IR-1..IR-3, pgmq-hs commit 590a46f)
 - [ ] EP-4: shibuya audit confirmed; improvement requests filed and validating in shibuya's bundle
 - [ ] EP-4: shibuya-pgmq-adapter improvement requests filed and validating
 - [ ] EP-5: keiro audit confirmed; improvement requests filed and validating in keiro's bundle
@@ -114,6 +114,7 @@ Candidate ADRs this MasterPlan expects to produce (in keiro-ui unless noted): th
 
 - EP-1 (2026-08-19): confirmed concretely that the okf-profiles v0.10.0 ADR profile rejects the `timestamp` frontmatter field under strict validation and requires the `generated` object (`generated.by` required, actor format such as `human:nadeem`; `generated.at` recommended, RFC3339 UTC). Consequence for EP-3: the pgmq-hs improvement-requests bundle it bootstraps at v0.10.0 must author records with `generated`, not `timestamp`. EP-2/EP-4/EP-5 are unaffected — their repositories' v0.5.0-era pins still use the `timestamp` family. Evidence and the authoritative doc pointers are in EP-1's Surprises & Discoveries (docs/plans/1-define-cross-project-inspection-api-and-websocket-conventions.md).
 - EP-2 (2026-08-19): kiroku's filed handle set is **IR-8..IR-13** (`mori://shinzui/kiroku/okf/improvement-requests/concepts/IR-8` REST browsing read API; IR-9 dead-letter reads; IR-10 durable checkpoints over HTTP; IR-11 CORS; IR-12 WebSocket convergence; IR-13 wire-format ADR) — the handles EP-5's composition/non-duplication sections must cite. kiroku IR-2 turned out to be `completed` (the checkpoint inventory shipped in kiroku-store 0.4.0.0), so IR-10 requests only the HTTP surface — a pattern worth reusing: audits should check whether a needed library primitive already shipped under an old IR before requesting it.
+- EP-3 (2026-08-19): pgmq-hs's filed handle set is **IR-1..IR-3** (`mori://shinzui/pgmq-hs/okf/improvement-requests/concepts/IR-1` non-destructive inspection reads; IR-2 JSON codecs; IR-3 the pgmq-metrics sister package) — for EP-5's cross-linking. Unplanned but necessary: pgmq-hs's `mori.dhall` pinned a mori-schema commit the installed mori binary can no longer parse, so `just docs-check` was broken on the pristine tree; EP-3 repaired it via `mori schema migrate --apply` plus the `versionConstraint` helper field (details in that plan's Surprises & Discoveries). Lesson for EP-4/EP-5: run the target repo's own validation recipe before touching anything — kiroku showed a milder form of the same skew (a hash warning), and other repos may need the same migration.
 
 
 ## Decision Log

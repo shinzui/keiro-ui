@@ -25,14 +25,27 @@ After this plan is complete, kiroku's own `docs/improvement-requests/` bundle co
 
 ## Progress
 
-- [ ] Milestone 1: Audit re-confirmed against the current kiroku working tree; gap list finalized in this plan.
-- [ ] Milestone 2: All six request documents drafted locally and reviewed against the pinned profile's frontmatter contract.
-- [ ] Milestone 3: IDs allocated with `okf id next`, files placed in the bundle, `index.md` and `log.md` updated, `okf validate` and `mori validate` passing, changes committed in the kiroku repository, allocated handles recorded back here and in the MasterPlan.
+- [x] Milestone 1: Audit re-confirmed against the current kiroku working tree; gap list finalized in this plan. (2026-08-19: tree is at exactly the audited commit c2d0328 and clean, so the gap list holds verbatim — no CORS hits, no listStreams/listCategories/eventById in Read.hs or SQL.hs, dead-letter reads still SQL-module-only with no Store-effect read op, bundle still IR-1..IR-7 with `okf id next` reporting IR-8, no new wire-format ADR among 0001–0007.)
+- [x] Milestone 2: All six request documents drafted locally and reviewed against the pinned profile's frontmatter contract. (2026-08-19: drafted directly in the bundle, one at a time, each `requestId` filled from `okf id next` immediately before writing; frontmatter imitates IR-7, the newest record, with `generated.by: anthropic/claude-fable-5`.)
+- [x] Milestone 3: IDs allocated with `okf id next`, files placed in the bundle, `index.md` and `log.md` updated, `okf validate` and `mori validate` passing, changes committed in the kiroku repository, allocated handles recorded back here and in the MasterPlan. (2026-08-19: kiroku commit `8f03c19`; `okf validate --profile-enforce --log-enforce` reports "OK: 13 concepts"; `okf id list` shows IR-1..IR-13 contiguous.)
+
+Allocated handles (kiroku bundle, all `status: proposed`, `origin: mori://shinzui/keiro-ui`):
+
+- IR-8 — Expose a REST read API for browsing streams, categories, and events (`expose-a-rest-read-api-for-browsing-streams-categories-and-events.md`)
+- IR-9 — Expose a public dead-letter read API (`expose-a-public-dead-letter-read-api.md`)
+- IR-10 — Serve durable subscription checkpoints over HTTP (`serve-durable-subscription-checkpoints-over-http.md`)
+- IR-11 — Add configurable CORS support to kiroku-metrics (`add-configurable-cors-support-to-kiroku-metrics.md`)
+- IR-12 — Converge the WebSocket protocol with the cross-project convention (`converge-the-websocket-protocol-with-the-cross-project-convention.md`)
+- IR-13 — Record HTTP and WebSocket wire-format stability in an ADR (`record-http-and-websocket-wire-format-stability-in-an-adr.md`)
+
+Canonical handles for cross-repo citation: `mori://shinzui/kiroku/okf/improvement-requests/concepts/IR-8` through `IR-13`.
 
 
 ## Surprises & Discoveries
 
-(None yet.)
+- Milestone 1 (2026-08-19): kiroku's working tree is at exactly the audit commit `c2d0328` with a clean status, so re-verification confirmed the gap list without corrections. Two useful refinements surfaced: kiroku IR-2 ("Expose a durable subscription checkpoint inventory") is `completed` — `subscriptionCheckpointInventory` shipped in kiroku-store 0.4.0.0 — so the durable-checkpoints-over-HTTP request cites `mori://shinzui/kiroku/okf/improvement-requests/concepts/IR-2` as the shipped library precursor rather than asking for any library work; and the only `Store`-effect touch of dead letters is an internal delete (`deleteDeadLettersForOrphanedEventsStmt` in `Effect.hs`), confirming the read gap precisely.
+- EP-1 completed before this plan ran, so the filed requests cite the keiro-ui ADRs by their real handles (`mori://shinzui/keiro-ui/okf/adrs/concepts/ADR-1`..`ADR-4`) and the conventions document as `mori://shinzui/keiro-ui` + `docs/architecture/inspection-api-conventions.md` (artifact-level URI pending); the "if EP-1 has not completed" fallback in Context and Orientation was not needed.
+- Filing time (2026-08-19): `mori validate` in kiroku passes but emits a pre-existing warning — kiroku's `mori.dhall` records a schema hash (`sha256:d29ca032…`) that differs from the binary's embedded schema hash (`sha256:f33943bf…`); mori ignores it but external Dhall tooling would reject the import. Not caused by, and not fixed under, this plan; kiroku can repair it with `mori schema upgrade`. Also, kiroku runs a `treefmt` pre-commit hook, which passed unchanged on the six new files.
 
 
 ## Decision Log
@@ -53,10 +66,22 @@ After this plan is complete, kiroku's own `docs/improvement-requests/` bundle co
   Rationale: The profile requires `origin` to be the Mori URI of the project raising the request; this initiative is raised by keiro-ui, not by keiro.
   Date: 2026-08-19
 
+- Decision: The durable-checkpoints request (IR-10) asks only for the HTTP surface and cites completed kiroku IR-2 as the shipped library precursor, requesting no library work.
+  Rationale: Milestone 1 found IR-2 `completed` (`subscriptionCheckpointInventory` public since kiroku-store 0.4.0.0); restating a shipped capability would duplicate a closed request.
+  Date: 2026-08-19
+
+- Decision: `generated.by` is `anthropic/claude-fable-5` on all six requests, and drafts were written directly into the bundle (IDs allocated one at a time before each write) rather than staged in a scratch directory.
+  Rationale: The actor follows the profile's `<producer>/<version>` form, imitating IR-7's `anthropic/claude-opus-5`; direct placement with sequential allocation is exactly what the allocator (max+1 of on-disk records) is designed for, and validation runs only at the end of filing.
+  Date: 2026-08-19
+
 
 ## Outcomes & Retrospective
 
-(To be filled during and after implementation.)
+Completed 2026-08-19, all three milestones in one session. Six improvement requests filed in kiroku's bundle as IR-8..IR-13 (kiroku commit `8f03c19`), all `proposed` with `origin: mori://shinzui/keiro-ui`: the browsing REST read API (IR-8, including the missing kiroku-store primitives and the ADR-1 name-resolution constraint), public dead-letter reads (IR-9), durable checkpoints over HTTP (IR-10, HTTP-only thanks to completed IR-2), configurable CORS (IR-11), additive WebSocket convergence (IR-12), and the wire-format stability ADR (IR-13). Bundle validation (`--profile-enforce --log-enforce`) and `mori validate` pass; index and log are updated; handles are contiguous after IR-7 with no duplicates.
+
+The audit re-confirmation was trivial because kiroku's tree sat at exactly the audited commit — but it still paid for itself: it surfaced IR-2's `completed` status, which reshaped IR-10 from "add an inventory and serve it" to "serve the shipped inventory", a materially smaller and more acceptable request.
+
+Nothing here changed keiro-ui's durable context — the requests are kiroku artifacts and the boundary decisions they cite were already recorded as keiro-ui ADR-1..ADR-4 under EP-1 — so no new ADR was created in this repository. For EP-5's composition/non-duplication work: the kiroku handle set to cite is `mori://shinzui/kiroku/okf/improvement-requests/concepts/IR-8`..`IR-13`.
 
 
 ## Context and Orientation

@@ -34,12 +34,19 @@ ExecPlan: docs/plans/1-define-cross-project-inspection-api-and-websocket-convent
 
 - [x] Milestone 1: `docs/architecture/inspection-api-conventions.md` written, covering all ten convention areas listed in Plan of Work. (2026-08-19: 11 `##` sections — the ten areas plus the citation section; `subscribe_events`, `subscribe_all`, and `store_position` all present per acceptance greps.)
 - [x] Milestone 2: `docs/adr/` bootstrapped as a profiled OKF bundle (`profile.dhall` pinned and frozen, `index.md`, `log.md`) and registered in `mori.dhall`; `mori validate` passes. (2026-08-19: `dhall freeze` recorded sha256:c6882a5…; `okf validate --strict --profile-enforce --log-enforce` passes on the empty bundle; `okf id next` reports ADR-1; the `Schema.OkfBundle` constructor was accepted as written in the plan.)
-- [ ] Milestone 3: Four initial ADRs written with handles allocated by `okf id next`; strict profile validation and log enforcement pass.
+- [x] Milestone 3: Four initial ADRs written with handles allocated by `okf id next`; strict profile validation and log enforcement pass. (2026-08-19: `okf id list` shows exactly ADR-1..ADR-4 mapped to the four record files; `okf validate --strict --profile-enforce --log-enforce` reports "OK: 4 concepts"; `log.md` carries four dated Addition entries under 2026-08-19.)
 
 
 ## Surprises & Discoveries
 
-(None yet.)
+- The plan's frontmatter skeleton (`timestamp: <...>Z` for the last meaningful revision) is the v0.1 field family; the profile pinned at okf-profiles v0.10.0 rejects it under strict validation and requires the `generated` object instead. Evidence from the first validation run:
+
+  ```text
+  0001-inspection-endpoints-live-in-the-owning-project: legacy v0.1 field in a bundle declaring okf_version 0.2 or later: timestamp (use generated)
+  profile: 0001-...: missing profile-required field: generated (§5.2. Who produced this decision record's current content, and when.)
+  ```
+
+  Per the plan's own escape hatch, the pinned profile's generated docs (`okf-profiles/docs/profiles/architecture-decisions/types/architecture-decision-record.md`) are authoritative: `generated` is a required object with `by` (required, actor format `human:<id>` / `process:<id>` / `<producer>/<version>`) and `at` (recommended, RFC3339 UTC). All four records use `generated.by: human:nadeem` with `generated.at`, matching the valid fixture in `okf-profiles/fixtures/architecture-decisions/`. This matters downstream: EP-3 bootstraps pgmq-hs's bundle at the same v0.10.0 pin, so its records must use `generated` too, while EP-2/EP-4/EP-5 file against older v0.5.0-era pins that still use `timestamp`.
 
 
 ## Decision Log
@@ -60,10 +67,20 @@ ExecPlan: docs/plans/1-define-cross-project-inspection-api-and-websocket-convent
   Rationale: Both existing WebSocket dialects already use snake_case `type` tags and message names (`subscribe_all`, `event_stream_started`, `from_position`); kiroku's WS envelope keys are snake_case. The one deviation (camelCase field names inside kiroku's event payload objects) is published and therefore frozen.
   Date: 2026-08-19
 
+- Decision: ADR frontmatter uses the v0.10.0 `generated` family (`generated.by: human:nadeem`, `generated.at: <RFC3339 UTC>`) instead of the plan skeleton's `timestamp`, and `status: Accepted` (capitalized) rather than the skeleton's `accepted`.
+  Rationale: Strict validation against the pinned profile rejected `timestamp` as a legacy v0.1 field and requires the `generated` object (see Surprises & Discoveries). The profile allows any `status` value, so the choice follows the okf-profiles fixture and the keiro/kiroku ADR corpora, which all use `Accepted`. `human:nadeem` matches the fixture convention and the repository's committer identity.
+  Date: 2026-08-19
+
 
 ## Outcomes & Retrospective
 
-(To be filled during and after implementation.)
+Completed 2026-08-19, all three milestones in one session. Delivered: `docs/architecture/inspection-api-conventions.md` (ten convention areas plus the cross-repo citation rule, 11 `##` sections); `docs/adr/` as a profiled OKF bundle pinned and frozen at okf-profiles v0.10.0, registered as the `adrs` bundle in `mori.dhall`; and four ADRs (ADR-1 owning-project endpoints, ADR-2 WebSocket protocol convention, ADR-3 push-is-a-hint/poll-is-truth, ADR-4 sister packages) allocated via `okf id next`, indexed, logged, and passing `okf validate --strict --profile-enforce --log-enforce`.
+
+All six Validation and Acceptance checks pass. The only deviation from the plan text was the ADR frontmatter shape: the v0.10.0 profile requires the `generated` object, not the skeleton's `timestamp` (recorded in Surprises & Discoveries and the Decision Log; the plan's own escape hatch anticipated exactly this). No additional ADR beyond the four planned ones was warranted — the frontmatter correction is okf-profiles' contract, not a keiro-ui decision.
+
+Lesson for the sibling plans (docs/plans/2 through 5): when a plan embeds a frontmatter skeleton for another repository's pinned profile, treat it as a sketch and let `okf validate --strict --profile-enforce` plus the pinned profile's generated docs be the authority; the field families genuinely differ across pin versions (`timestamp` at v0.5.0-era pins, `generated` at v0.10.0).
+
+Downstream consumers can now cite the conventions document as `mori://shinzui/keiro-ui` + `docs/architecture/inspection-api-conventions.md` (artifact-level URI pending) and the decisions as `mori://shinzui/keiro-ui/okf/adrs/concepts/ADR-1` through `ADR-4` once the registry observes the bundle.
 
 
 ## Context and Orientation

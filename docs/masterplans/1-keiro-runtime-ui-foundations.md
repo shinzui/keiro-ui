@@ -57,7 +57,7 @@ ADR context. This repository has no `docs/adr/` and no OKF bundles; **no local A
 
 | # | Title | Path | Hard Deps | Soft Deps | Status |
 |---|-------|------|-----------|-----------|--------|
-| 1 | Define cross-project inspection API and WebSocket conventions | docs/plans/1-define-cross-project-inspection-api-and-websocket-conventions.md | None | None | In Progress |
+| 1 | Define cross-project inspection API and WebSocket conventions | docs/plans/1-define-cross-project-inspection-api-and-websocket-conventions.md | None | None | Complete |
 | 2 | Audit kiroku and file UI endpoint improvement requests | docs/plans/2-audit-kiroku-and-file-ui-endpoint-improvement-requests.md | None | EP-1 | Not Started |
 | 3 | Audit pgmq-hs and file UI endpoint improvement requests | docs/plans/3-audit-pgmq-hs-and-file-ui-endpoint-improvement-requests.md | None | EP-1 | Not Started |
 | 4 | Audit shibuya and file UI endpoint improvement requests | docs/plans/4-audit-shibuya-and-file-ui-endpoint-improvement-requests.md | None | EP-1 | Not Started |
@@ -95,8 +95,8 @@ Candidate ADRs this MasterPlan expects to produce (in keiro-ui unless noted): th
 
 ## Progress
 
-- [ ] EP-1: Conventions document drafted (transport, JSON, pagination, error envelope, WS protocol, CORS/auth posture)
-- [ ] EP-1: keiro-ui `docs/adr/` bundle seeded, registered in `mori.dhall`, and validating; initial ADRs recorded
+- [x] EP-1: Conventions document drafted (transport, JSON, pagination, error envelope, WS protocol, CORS/auth posture) (2026-08-19)
+- [x] EP-1: keiro-ui `docs/adr/` bundle seeded, registered in `mori.dhall`, and validating; initial ADRs recorded (2026-08-19: ADR-1..ADR-4, strict validation and `mori validate` pass)
 - [ ] EP-2: kiroku audit confirmed against working tree; endpoint gap list finalized
 - [ ] EP-2: kiroku improvement requests filed and validating in kiroku's bundle
 - [ ] EP-3: pgmq-hs improvement-requests bundle bootstrapped and validating
@@ -112,7 +112,7 @@ Candidate ADRs this MasterPlan expects to produce (in keiro-ui unless noted): th
 
 ## Surprises & Discoveries
 
-(None yet.)
+- EP-1 (2026-08-19): confirmed concretely that the okf-profiles v0.10.0 ADR profile rejects the `timestamp` frontmatter field under strict validation and requires the `generated` object (`generated.by` required, actor format such as `human:nadeem`; `generated.at` recommended, RFC3339 UTC). Consequence for EP-3: the pgmq-hs improvement-requests bundle it bootstraps at v0.10.0 must author records with `generated`, not `timestamp`. EP-2/EP-4/EP-5 are unaffected — their repositories' v0.5.0-era pins still use the `timestamp` family. Evidence and the authoritative doc pointers are in EP-1's Surprises & Discoveries (docs/plans/1-define-cross-project-inspection-api-and-websocket-conventions.md).
 
 
 ## Decision Log

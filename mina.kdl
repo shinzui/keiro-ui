@@ -1,0 +1,6 @@
+rei {
+  create {
+    default-parent intention_01m0frswp3emfsk87xnn4mzndn
+    title-prefix 経路-UI
+  }
+}

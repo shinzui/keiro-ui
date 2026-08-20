@@ -25,19 +25,29 @@ This plan is therefore a **requirements-filing plan**. After it completes, the s
 
 ## Progress
 
-- [ ] Milestone 1: Audit re-confirmed against both working trees; findings recorded in this plan
-- [ ] Milestone 2: Shibuya improvement requests authored and filed (processor inspection depth; pause/resume control plane; browser-consumption hardening)
-- [ ] Milestone 2: Shibuya bundle `index.md` and `log.md` updated; `okf validate` and `mori validate` pass in the shibuya repo
-- [ ] Milestone 2: Shibuya changes committed with the required trailers
-- [ ] Milestone 3: shibuya-pgmq-adapter improvement requests authored and filed (queue-context observability; DLQ browse/redrive)
-- [ ] Milestone 3: Adapter bundle `index.md` and `log.md` updated; `okf validate` and `mori validate` pass in the adapter repo
-- [ ] Milestone 3: Adapter changes committed with the required trailers
-- [ ] Allocated `IR-N` handles for all filed requests recorded in this plan and reported to the MasterPlan
+- [x] Milestone 1: Audit re-confirmed against both working trees; findings recorded in this plan (2026-08-19: shibuya at `7158f3e`, adapter at `fee9b3a`, both clean; all absence greps silent — no test-suite, no CORS, no pause/resume, no duration histogram in shibuya-metrics; no `pgmq.metrics` usage in the adapter; baseline `okf validate` green in both bundles; `okf id next` reports IR-3 (shibuya) and IR-2 (adapter), matching the estimates)
+- [x] Milestone 2: Shibuya improvement requests authored and filed (processor inspection depth; pause/resume control plane; browser-consumption hardening) (2026-08-19: IR-3, IR-4, IR-5)
+- [x] Milestone 2: Shibuya bundle `log.md` updated (no `index.md` exists in this bundle — see Surprises & Discoveries); `okf validate` ("OK: 5 concepts") and `mori validate` pass in the shibuya repo (2026-08-19)
+- [x] Milestone 2: Shibuya changes committed with the required trailers (2026-08-19: shibuya commit `bf2cff1`; `nix fmt` clean, treefmt hook passed)
+- [x] Milestone 3: shibuya-pgmq-adapter improvement requests authored and filed (queue-context observability; DLQ browse/redrive) (2026-08-19: IR-2, IR-3)
+- [x] Milestone 3: Adapter bundle `log.md` updated (no `index.md` exists in this bundle either); `okf validate` ("OK: 3 concepts") and `mori validate` pass in the adapter repo (2026-08-19)
+- [x] Milestone 3: Adapter changes committed with the required trailers (2026-08-19: adapter commit `1d88223`; `nix fmt` clean)
+- [x] Allocated `IR-N` handles for all filed requests recorded in this plan and reported to the MasterPlan (2026-08-19)
+
+Allocated handles (all `status: proposed`, `origin: mori://shinzui/keiro-ui`):
+
+- shibuya IR-3 — Expose processor progress, latency, and in-flight detail for inspection UIs (`mori://shinzui/shibuya/okf/improvement-requests/concepts/IR-3`)
+- shibuya IR-4 — Implement designed processor pause/resume and expose gated control endpoints (`mori://shinzui/shibuya/okf/improvement-requests/concepts/IR-4`)
+- shibuya IR-5 — Harden shibuya-metrics for browser clients — CORS, tests, and WS convention alignment (`mori://shinzui/shibuya/okf/improvement-requests/concepts/IR-5`)
+- shibuya-pgmq-adapter IR-2 — Surface queue depth and age context for processors consuming pgmq queues (`mori://shinzui/shibuya-pgmq-adapter/okf/improvement-requests/concepts/IR-2`)
+- shibuya-pgmq-adapter IR-3 — Expose dead-letter-queue browse and redrive for adapter-managed DLQs (`mori://shinzui/shibuya-pgmq-adapter/okf/improvement-requests/concepts/IR-3`)
 
 
 ## Surprises & Discoveries
 
-(None yet.)
+- Milestone 1 (2026-08-19): neither shibuya-family bundle has an `index.md` — unlike kiroku's and pgmq-hs's bundles, they hold only request files, `log.md`, and `profile.dhall`, and both validate cleanly that way under their pinned v0.5.0 profiles. The plan's instruction to update `index.md` therefore does not apply; filing updates `log.md` only, imitating the local convention exactly (see Decision Log).
+- Both repos' `mori validate` emits the same pre-existing schema-hash warning kiroku shows (recorded hash predates the binary's embedded schema; "mori ignores this hash"), while still reporting the configuration valid. Milder than pgmq-hs's hard failure (see docs/plans/3-audit-pgmq-hs-and-file-ui-endpoint-improvement-requests.md); no repair needed to make validation pass, so none was made.
+- EP-1 and EP-3 both completed before filing, so the requests cite real handles throughout: keiro-ui ADR-1..ADR-4 and the pgmq-hs set IR-1..IR-3. The backfill contingency for the adapter's queue-context request was not needed.
 
 
 ## Decision Log
@@ -58,10 +68,18 @@ This plan is therefore a **requirements-filing plan**. After it completes, the s
   Rationale: MasterPlan decision: pins are per-repository maintenance with their own blast radius; a filing plan must not change them as a side effect.
   Date: 2026-08-19
 
+- Decision: No `index.md` is created or updated in either shibuya-family bundle; filing touches only the request files and `log.md`.
+  Rationale: Neither bundle has an `index.md` today and both validate cleanly without one; imitating the local convention exactly outranks the plan's (incorrect) assumption that one exists. Creating one would be an unrequested structural change to another repository's bundle.
+  Date: 2026-08-19
+
 
 ## Outcomes & Retrospective
 
-(To be filled during and after implementation.)
+Completed 2026-08-19, all milestones in one session. Five requests filed across two repositories: shibuya gained IR-3 (processor inspection depth, with the hot/cold-path constraint stated as a hard requirement), IR-4 (pause/resume implementing the repository's own dormant design, gated off by default), and IR-5 (CORS + a first-ever test suite + additive WS convention alignment, explicitly non-overlapping with Shikigami's IR-1) in commit `bf2cff1`; shibuya-pgmq-adapter gained IR-2 (queue depth/age context sourced from pgmq-owned surfaces, citing the pgmq-hs IR-1..IR-3 handles EP-3 filed hours earlier) and IR-3 (DLQ browse and gated redrive, continuing the repository's own completed IR-1) in commit `1d88223`. Both bundles validate with log enforcement; estimates matched allocations exactly (IR-3/4/5 and IR-2/3).
+
+The one convention correction: neither shibuya-family bundle has an `index.md`, so the plan's catalog step was dropped in favor of the local log-only convention (Decision Log). The EP-3 lesson (baseline-validate the target repo before touching it) paid off in reverse here — both baselines were green, so all validation noise afterward would have been attributable to this plan's files; none appeared.
+
+No keiro-ui ADR change was needed: the requests apply ADR-1..ADR-4 rather than altering them. For EP-5's composition/non-duplication sections, the complete lower-layer handle inventory is now: kiroku IR-8..IR-13, pgmq-hs IR-1..IR-3, shibuya IR-3..IR-5, shibuya-pgmq-adapter IR-2..IR-3.
 
 
 ## Context and Orientation

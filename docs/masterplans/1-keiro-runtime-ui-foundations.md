@@ -57,7 +57,7 @@ ADR context. This repository has no `docs/adr/` and no OKF bundles; **no local A
 
 | # | Title | Path | Hard Deps | Soft Deps | Status |
 |---|-------|------|-----------|-----------|--------|
-| 1 | Define cross-project inspection API and WebSocket conventions | docs/plans/1-define-cross-project-inspection-api-and-websocket-conventions.md | None | None | Not Started |
+| 1 | Define cross-project inspection API and WebSocket conventions | docs/plans/1-define-cross-project-inspection-api-and-websocket-conventions.md | None | None | In Progress |
 | 2 | Audit kiroku and file UI endpoint improvement requests | docs/plans/2-audit-kiroku-and-file-ui-endpoint-improvement-requests.md | None | EP-1 | Not Started |
 | 3 | Audit pgmq-hs and file UI endpoint improvement requests | docs/plans/3-audit-pgmq-hs-and-file-ui-endpoint-improvement-requests.md | None | EP-1 | Not Started |
 | 4 | Audit shibuya and file UI endpoint improvement requests | docs/plans/4-audit-shibuya-and-file-ui-endpoint-improvement-requests.md | None | EP-1 | Not Started |

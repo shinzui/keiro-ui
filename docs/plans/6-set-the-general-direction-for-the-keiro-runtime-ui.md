@@ -29,12 +29,14 @@ No application code is written by this plan. Building the React app is future wo
 
 - [x] Milestone 1: `docs/architecture/ui-prior-art-survey.md` written from the survey findings embedded in this plan. (2026-08-19: per-tool sections for every named tool, the live-update mechanism table, the five-rung gating ladder, and the four-item unclaimed-territory list are all present; dated with the re-verify caveat.)
 - [x] Milestone 2: `docs/architecture/ui-direction.md` written (information architecture, screen inventory mapped to endpoint surfaces and filed improvement requests, data layer, live-update strategy, action gating, deployment and embedding). (2026-08-19: eight `##` parts; every screen cites concrete filed handles — no awaited plan-path references, so no backfill items; `subscribe_events`, `store_position`, and `next_cursor` references all consistent with the conventions document.)
-- [ ] Milestone 3: Durable decisions recorded as ADRs in `docs/adr/`; MasterPlan registry and Progress updated; cross-links to filed IR handles verified or recorded as follow-ups.
+- [x] Milestone 3: Durable decisions recorded as ADRs in `docs/adr/`; MasterPlan registry and Progress updated; cross-links to filed IR handles verified or recorded as follow-ups. (2026-08-19: ADR-5 no backend-for-frontend, ADR-6 the design-system adapter, ADR-7 read-only first with owning-repository gates — allocated via `okf id next`, indexed, logged; strict validation reports "OK: 7 concepts". All IR cross-links were concrete at authoring time; `mori path` resolves the spot-checked handles after `mori registry reregister`.)
 
 
 ## Surprises & Discoveries
 
-(None yet.)
+- All soft dependencies were hard by execution time: EP-2..EP-5 had filed every request, so the screen inventory cites all 21 handles concretely and the plan's plan-path fallback and Progress backfill mechanism went unused.
+- Freshly committed OKF concepts are not immediately `mori path`-resolvable; `mori registry reregister` refreshes the registry (verified: `mori://shinzui/keiro/okf/improvement-requests/concepts/IR-26`, `mori://shinzui/pgmq-hs/okf/improvement-requests/concepts/IR-1`, and `mori://shinzui/keiro-ui/okf/adrs/concepts/ADR-1` all resolve to on-disk paths afterward). The reregister run also flagged an unrelated project (`tan/registration-service-protos`) with an outdated mori schema — not touched, noted here only so the warning is not later misattributed to this initiative's changes.
+- The ADR handles cited prospectively in the direction document (ADR-5..ADR-7) matched the allocator exactly, since the bundle held ADR-1..ADR-4; citing unallocated handles in a document committed in the same change as their allocation is safe only under that same-change discipline — worth keeping as a practice note.
 
 
 ## Decision Log
@@ -62,7 +64,11 @@ No application code is written by this plan. Building the React app is future wo
 
 ## Outcomes & Retrospective
 
-(To be filled during and after implementation.)
+Completed 2026-08-19, all three milestones in one session. Delivered `docs/architecture/ui-prior-art-survey.md` (ten tool sections plus four briefs, the live-update mechanism table, the five-rung gating ladder, the unclaimed-territory list), `docs/architecture/ui-direction.md` (eight parts; every screen names its endpoint surface and canonical improvement-request handle; consistent with the conventions document on WS frames, pagination, error envelope, and ADR-28 vocabulary), and ADR-5..ADR-7 in the strict-validating bundle.
+
+The direction rests on an unusually solid base because the initiative ran in dependency order: the conventions and ADR corpus existed before the requests, and all 21 requests existed before the direction — so the document contains no "pending" references at all. The survey's sharpest finding shaped the direction most: no surveyed tool renders the aggregate as a first-class object, so the aggregate browser (stream and folded state side by side, projection cursors relative to the aggregate's head) is the console's declared differentiation, alongside causation/correlation DAGs, live process-manager state, and replay blast-radius previews.
+
+What remains is deliberately out of scope: building the app (a future MasterPlan starts from `ui-direction.md`), choosing the component library (ADR-6 keeps it open), and the runtime repositories' acceptance and implementation of the filed requests. The keiro-ui foundations MasterPlan is complete with this plan.
 
 
 ## Context and Orientation

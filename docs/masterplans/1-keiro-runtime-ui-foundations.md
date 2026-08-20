@@ -62,7 +62,7 @@ ADR context. This repository has no `docs/adr/` and no OKF bundles; **no local A
 | 3 | Audit pgmq-hs and file UI endpoint improvement requests | docs/plans/3-audit-pgmq-hs-and-file-ui-endpoint-improvement-requests.md | None | EP-1 | Complete |
 | 4 | Audit shibuya and file UI endpoint improvement requests | docs/plans/4-audit-shibuya-and-file-ui-endpoint-improvement-requests.md | None | EP-1 | Complete |
 | 5 | Audit keiro and file UI endpoint improvement requests | docs/plans/5-audit-keiro-and-file-ui-endpoint-improvement-requests.md | None | EP-1, EP-2, EP-3, EP-4 | Complete |
-| 6 | Set the general direction for the keiro runtime UI | docs/plans/6-set-the-general-direction-for-the-keiro-runtime-ui.md | EP-1 | EP-2, EP-3, EP-4, EP-5 | Not Started |
+| 6 | Set the general direction for the keiro runtime UI | docs/plans/6-set-the-general-direction-for-the-keiro-runtime-ui.md | EP-1 | EP-2, EP-3, EP-4, EP-5 | Complete |
 
 
 ## Dependency Graph
@@ -105,9 +105,9 @@ Candidate ADRs this MasterPlan expects to produce (in keiro-ui unless noted): th
 - [x] EP-4: shibuya-pgmq-adapter improvement requests filed and validating (2026-08-19: IR-2..IR-3, adapter commit 1d88223)
 - [x] EP-5: keiro audit confirmed; improvement requests filed and validating in keiro's bundle (2026-08-19: IR-26..IR-32, keiro commit b0645cd4, "OK: 32 concepts")
 - [x] EP-5: composition/non-duplication request cross-links verified against EP-2/3/4 filed handles (2026-08-19: IR-28/IR-29 delegate to kiroku IR-8; IR-31 cites kiroku IR-8..IR-13, pgmq-hs IR-1..IR-3, shibuya IR-3..IR-5; all handles concrete at authoring time)
-- [ ] EP-6: prior-art survey distilled into the direction document
-- [ ] EP-6: general-direction document complete (information architecture, data layer, deployment story)
-- [ ] MasterPlan: ADR distillation pass across all child plans
+- [x] EP-6: prior-art survey distilled into the direction document (2026-08-19: docs/architecture/ui-prior-art-survey.md)
+- [x] EP-6: general-direction document complete (information architecture, data layer, deployment story) (2026-08-19: docs/architecture/ui-direction.md, all screens citing filed handles; ADR-5..ADR-7 recorded)
+- [x] MasterPlan: ADR distillation pass across all child plans (2026-08-19: see Outcomes & Retrospective — seven ADRs total; remaining living-section content judged task-local)
 
 
 ## Surprises & Discoveries
@@ -117,6 +117,7 @@ Candidate ADRs this MasterPlan expects to produce (in keiro-ui unless noted): th
 - EP-3 (2026-08-19): pgmq-hs's filed handle set is **IR-1..IR-3** (`mori://shinzui/pgmq-hs/okf/improvement-requests/concepts/IR-1` non-destructive inspection reads; IR-2 JSON codecs; IR-3 the pgmq-metrics sister package) — for EP-5's cross-linking. Unplanned but necessary: pgmq-hs's `mori.dhall` pinned a mori-schema commit the installed mori binary can no longer parse, so `just docs-check` was broken on the pristine tree; EP-3 repaired it via `mori schema migrate --apply` plus the `versionConstraint` helper field (details in that plan's Surprises & Discoveries). Lesson for EP-4/EP-5: run the target repo's own validation recipe before touching anything — kiroku showed a milder form of the same skew (a hash warning), and other repos may need the same migration.
 - EP-4 (2026-08-19): shibuya's filed handle set is **IR-3..IR-5** (inspection depth; gated pause/resume; CORS/tests/WS-convention hardening) and shibuya-pgmq-adapter's is **IR-2..IR-3** (queue depth/age context; DLQ browse + gated redrive) — for EP-5's cross-linking. Convention drift among bundles: the shibuya-family bundles have no `index.md` (log-only), unlike kiroku's and pgmq-hs's — filing plans must imitate each bundle's actual file set, not assume a uniform shape. Both repos show the benign mori schema-hash warning (config still valid); no repair needed, unlike pgmq-hs. **The complete lower-layer handle inventory for EP-5 is now: kiroku IR-8..IR-13, pgmq-hs IR-1..IR-3, shibuya IR-3..IR-5, shibuya-pgmq-adapter IR-2..IR-3.**
 - EP-5 (2026-08-19): keiro's filed handle set is **IR-26..IR-32** (`mori://shinzui/keiro/okf/improvement-requests/concepts/IR-26` HTTP ops layer; IR-27 Wake-driven WS feeds; IR-28 aggregate reads; IR-29 process-manager reads; IR-30 workflow paging primitives; IR-31 composed mounting; IR-32 the stance ADR). keiro's bundle is also log-only (no `index.md`), confirming the per-repo convention drift as the rule rather than the exception. **The initiative's full endpoint-request inventory for EP-6 is 21 requests: kiroku IR-8..IR-13, pgmq-hs IR-1..IR-3, shibuya IR-3..IR-5, shibuya-pgmq-adapter IR-2..IR-3, keiro IR-26..IR-32.** Registry lag note: freshly committed concepts are not immediately resolvable via `mori path`; `mori registry reregister` refreshes, but canonical URIs remain the reference regardless.
+- EP-6 (2026-08-19): after `mori registry reregister`, spot-checked handles resolve on disk (keiro IR-26, pgmq-hs IR-1, keiro-ui ADR-1), so every cross-repo citation this initiative wrote is registry-verifiable. The survey's decisive finding for the direction: no surveyed tool treats the aggregate as a first-class object — the aggregate browser, causation/correlation DAGs, live process-manager state, and replay blast-radius previews are declared as the console's differentiation territory precisely because the runtime already persists the data for all four.
 
 
 ## Decision Log
@@ -164,4 +165,16 @@ Candidate ADRs this MasterPlan expects to produce (in keiro-ui unless noted): th
 
 ## Outcomes & Retrospective
 
-(To be filled during and after implementation.)
+**Complete, 2026-08-19.** All six child plans executed in one day, in dependency order (EP-1 → EP-2 → EP-3 → EP-4 → EP-5 → EP-6), delivering exactly the three outcomes Vision & Scope named:
+
+1. **Per-repository improvement requests, 21 in total**, each validated by its repository's own tooling against its own pinned profile, each carrying `origin: mori://shinzui/keiro-ui` and `status: proposed`: kiroku IR-8..IR-13 (commit 8f03c19), pgmq-hs IR-1..IR-3 (commits 32b3c1e, 590a46f — including bootstrapping that repository's first improvement-requests bundle at okf-profiles v0.10.0), shibuya IR-3..IR-5 (commit bf2cff1), shibuya-pgmq-adapter IR-2..IR-3 (commit 1d88223), keiro IR-26..IR-32 (commit b0645cd4).
+2. **The cross-project contract in this repository**: `docs/architecture/inspection-api-conventions.md` (ten convention areas plus the citation rule) and the `docs/adr/` bundle — profiled, frozen at okf-profiles v0.10.0, registered in `mori.dhall`, strict-validating — holding ADR-1..ADR-7.
+3. **The UI general direction**: `docs/architecture/ui-prior-art-survey.md` and `docs/architecture/ui-direction.md`, with every screen mapped to filed request handles and the component-library decision kept genuinely open (ADR-6).
+
+**ADR distillation pass** (across all six plans' Decision Logs, Surprises & Discoveries, and Outcomes): the durable decisions were promoted as they occurred rather than at the end — ADR-1 (endpoint ownership and the layer matrix), ADR-2 (WebSocket protocol convention), ADR-3 (push is a hint, poll is truth), ADR-4 (sister packages) from EP-1; ADR-5 (no backend-for-frontend), ADR-6 (design-system adapter), ADR-7 (read-only first with owning-repository gates) from EP-6. The remaining living-section material was reviewed and judged task-local, not durable: the okf-profiles `timestamp`→`generated` frontmatter drift and the per-repository bundle file-set differences (index-ful versus log-only) are the profile publisher's and each repository's contracts, recorded in the plans that hit them; the pgmq-hs mori-schema migration and the registry-reregister behavior are tooling maintenance facts, not keiro-ui architecture. No further ADRs were created.
+
+**What went well**: running strictly in dependency order converted every soft dependency into a hard citation — no filed request or document contains a "pending" reference; per-repository baseline validation before touching anything caught pre-existing breakage (pgmq-hs's mori-schema skew) and correctly attributed it; imitating each bundle's newest record beat every assumption a plan skeleton made (frontmatter families, index conventions).
+
+**What surprised**: bundle conventions drift per repository far more than the plans assumed — three different frontmatter/file-set combinations across five bundles; and kiroku IR-2 having already shipped its library API let EP-2 shrink a request to HTTP-only, a check ("did an old IR already deliver the primitive?") worth making standard in future filing work.
+
+**What remains, deliberately downstream**: the runtime repositories' acceptance and implementation of the 21 requests (keiro IR-32's stance ADR is the keystone acceptance), and the future "build the console" MasterPlan that starts from `docs/architecture/ui-direction.md`.

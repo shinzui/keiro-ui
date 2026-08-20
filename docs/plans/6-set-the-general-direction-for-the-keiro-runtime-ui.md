@@ -28,7 +28,7 @@ No application code is written by this plan. Building the React app is future wo
 ## Progress
 
 - [x] Milestone 1: `docs/architecture/ui-prior-art-survey.md` written from the survey findings embedded in this plan. (2026-08-19: per-tool sections for every named tool, the live-update mechanism table, the five-rung gating ladder, and the four-item unclaimed-territory list are all present; dated with the re-verify caveat.)
-- [ ] Milestone 2: `docs/architecture/ui-direction.md` written (information architecture, screen inventory mapped to endpoint surfaces and filed improvement requests, data layer, live-update strategy, action gating, deployment and embedding).
+- [x] Milestone 2: `docs/architecture/ui-direction.md` written (information architecture, screen inventory mapped to endpoint surfaces and filed improvement requests, data layer, live-update strategy, action gating, deployment and embedding). (2026-08-19: eight `##` parts; every screen cites concrete filed handles — no awaited plan-path references, so no backfill items; `subscribe_events`, `store_position`, and `next_cursor` references all consistent with the conventions document.)
 - [ ] Milestone 3: Durable decisions recorded as ADRs in `docs/adr/`; MasterPlan registry and Progress updated; cross-links to filed IR handles verified or recorded as follow-ups.
 
 

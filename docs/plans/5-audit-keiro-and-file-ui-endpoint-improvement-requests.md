@@ -25,16 +25,31 @@ You can see the result working by running keiro's own OKF validation over the bu
 
 ## Progress
 
-- [ ] Milestone 1: Audit re-confirmed against the current keiro working tree (no-server absence, `keiro-ops` surface, schema tables, bundle profile, next free IR id).
-- [ ] Milestone 2: All seven improvement-request documents drafted in `docs/improvement-requests/` in the keiro repository and passing profile validation locally.
-- [ ] Milestone 2: `index.md` and `log.md` in the bundle updated.
-- [ ] Milestone 3: Requests committed in the keiro repository with the cross-repository trailers; allocated `IR-N` handles recorded back into this plan (Surprises & Discoveries or an appended note) and into the MasterPlan registry notes.
-- [ ] Milestone 3: Cross-links to the kiroku / pgmq-hs / shibuya requests (from `docs/plans/2-…`, `3-…`, `4-…` in keiro-ui) inserted where those handles exist, or their absence recorded for follow-up.
+- [x] Milestone 1: Audit re-confirmed against the current keiro working tree (no-server absence, `keiro-ops` surface, schema tables, bundle profile, next free IR id). (2026-08-19: tree at exactly the audited commit `15d00486`, clean; no web deps in any cabal file; the stance sentence at `docs/why-keiro.md:474`; `mainWithHooks`/`opsCommandTree`/`runOpsInvocation`/`OpsResult` all present; baseline validation "OK: 25 concepts"; `okf id next` → IR-26.)
+- [x] Milestone 2: All seven improvement-request documents drafted in `docs/improvement-requests/` in the keiro repository and passing profile validation locally. (2026-08-19: "OK: 32 concepts" with profile and log enforcement.)
+- [x] Milestone 2: `log.md` in the bundle updated with a dated Addition entry naming all seven. (keiro's bundle has no `index.md` — see Surprises & Discoveries; the plan's index step does not apply.)
+- [x] Milestone 3: Requests committed in the keiro repository with the cross-repository trailers (keiro commit `b0645cd4`); allocated `IR-N` handles recorded below and in the MasterPlan registry notes. (2026-08-19)
+- [x] Milestone 3: Cross-links to the kiroku / pgmq-hs / shibuya requests inserted at authoring time — EP-2/EP-3/EP-4 had all filed before this plan ran, so requests 3, 4, and 6 cite concrete handles (kiroku IR-8..IR-13, pgmq-hs IR-1..IR-3, shibuya IR-3..IR-5) with no follow-up needed. (2026-08-19)
+
+Allocated handles (keiro bundle, all `status: proposed`, `origin: mori://shinzui/keiro-ui`; numbering matched the IR-26..IR-32 expectation exactly):
+
+- IR-26 — Serve the keiro-ops surface over HTTP (`serve-the-keiro-ops-surface-over-http.md`)
+- IR-27 — Publish WebSocket live feeds over Keiro.Wake (`publish-websocket-live-feeds-over-keiro-wake.md`)
+- IR-28 — Expose aggregate inspection read APIs (`expose-aggregate-inspection-read-apis.md`)
+- IR-29 — Expose process-manager inspection reads (`expose-process-manager-inspection-reads.md`)
+- IR-30 — Complete workflow inspection primitives for HTTP (`complete-workflow-inspection-primitives-for-http.md`)
+- IR-31 — Mount composed runtime inspection surfaces (`mount-composed-runtime-inspection-surfaces.md`)
+- IR-32 — Record the inspection-UI boundary in an ADR (`record-the-inspection-ui-boundary-in-an-adr.md`)
+
+Canonical handles: `mori://shinzui/keiro/okf/improvement-requests/concepts/IR-26` through `IR-32`.
 
 
 ## Surprises & Discoveries
 
-(None yet.)
+- Milestone 2 (2026-08-19): keiro's improvement-request bundle has **no `index.md`** — 25 concept files plus `log.md`, with the profile outside the bundle at `mori/improvement-requests-profile.dhall`. The plan's "update `index.md`" step was dropped in favor of the bundle's actual log-only convention (the same drift EP-4 found in the shibuya family; only kiroku and the new pgmq-hs bundle carry catalogs). Validation passes with log enforcement, confirming `index.md` is not required by the pinned profile.
+- Milestone 2 (2026-08-19): keiro's newest records (e.g. IR-25) carry `reviews:` provenance blocks from actual model reviews. None was fabricated for the seven new records — the initiative's standing rule — and `okf validate --profile-enforce --log-enforce` passes without them, confirming `reviews:` is recommended, not required, at this pin.
+- Milestone 3 (2026-08-19): artifact-level `mori path` resolution of the new handles initially failed ("artifact not found") because registry data lagged the just-committed files; `mori registry reregister` was run to refresh. Per the plan and the global referencing rule, the canonical URIs remain the reference regardless of resolution timing.
+- Timing luck worth recording: because EP-1..EP-4 all completed first, every soft dependency this plan carries was hard by filing time — requests 3/4/6 cite real handles, request 1 and 2 cite the real conventions document and keiro-ui ADR handles, and none of the "if not yet filed" fallbacks in the plan were exercised.
 
 
 ## Decision Log
@@ -62,7 +77,11 @@ You can see the result working by running keiro's own OKF validation over the bu
 
 ## Outcomes & Retrospective
 
-(To be filled during and after implementation.)
+Completed 2026-08-19, all milestones in one session. Seven requests filed in keiro's bundle as IR-26..IR-32 (keiro commit `b0645cd4`, "OK: 32 concepts" under profile and log enforcement): the HTTP ops layer mechanically derived from `isMutation` with preview/confirm mutations (IR-26), Wake-driven WebSocket feeds with the poll-is-truth pairing (IR-27), aggregate inspection reads library-first (IR-28), process-manager inspection reads (IR-29), cursor-paged workflow primitives for incremental rendering (IR-30), the composed mounting story (IR-31), and the stance ADR that makes the whole surface an explicit decision rather than drift (IR-32).
+
+The composition/non-duplication discipline the MasterPlan required is embedded in the texts: IR-28/IR-29 delegate raw stream browsing to kiroku IR-8 and cite kiroku ADR-1's name-resolution constraint; IR-31 composes rather than proxies, citing every lower-layer handle set (kiroku IR-8..IR-13, pgmq-hs IR-1..IR-3, shibuya IR-3..IR-5) while depending on none of them for acceptance; IR-32 confronts `docs/why-keiro.md`'s no-UI stance head-on and treats a recorded "no" as a valid outcome.
+
+Numbering matched expectations exactly (IR-26..IR-32). The recurring cross-plan lesson recurred: bundle file-set conventions differ per repository (keiro is log-only, no index), so filing plans must imitate what is on disk, not what a sibling repo does. No keiro-ui ADR change was needed — the requests apply ADR-1..ADR-4. EP-6 can now cite a complete, concrete endpoint-request inventory across all four repositories: 21 filed requests total (kiroku 6, pgmq-hs 3, shibuya 3, shibuya-pgmq-adapter 2, keiro 7).
 
 
 ## Context and Orientation

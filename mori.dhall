@@ -16,4 +16,14 @@ in  Schema.Project::{
       }
     , repos =
       [ Schema.Repo::{ name = "keiro-ui", github = Some "shinzui/keiro-ui" } ]
+    , okfBundles =
+      [ Schema.OkfBundle::{
+        , name = "adrs"
+        , path = "docs/adr"
+        , okfVersion = "0.2"
+        , profile = Some "docs/adr/profile.dhall"
+        , description = Some
+            "Durable architecture decisions for the keiro runtime UI initiative"
+        }
+      ]
     }

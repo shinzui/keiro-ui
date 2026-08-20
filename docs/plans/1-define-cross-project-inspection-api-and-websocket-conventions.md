@@ -33,7 +33,7 @@ ExecPlan: docs/plans/1-define-cross-project-inspection-api-and-websocket-convent
 ## Progress
 
 - [x] Milestone 1: `docs/architecture/inspection-api-conventions.md` written, covering all ten convention areas listed in Plan of Work. (2026-08-19: 11 `##` sections — the ten areas plus the citation section; `subscribe_events`, `subscribe_all`, and `store_position` all present per acceptance greps.)
-- [ ] Milestone 2: `docs/adr/` bootstrapped as a profiled OKF bundle (`profile.dhall` pinned and frozen, `index.md`, `log.md`) and registered in `mori.dhall`; `mori validate` passes.
+- [x] Milestone 2: `docs/adr/` bootstrapped as a profiled OKF bundle (`profile.dhall` pinned and frozen, `index.md`, `log.md`) and registered in `mori.dhall`; `mori validate` passes. (2026-08-19: `dhall freeze` recorded sha256:c6882a5…; `okf validate --strict --profile-enforce --log-enforce` passes on the empty bundle; `okf id next` reports ADR-1; the `Schema.OkfBundle` constructor was accepted as written in the plan.)
 - [ ] Milestone 3: Four initial ADRs written with handles allocated by `okf id next`; strict profile validation and log enforcement pass.
 
 

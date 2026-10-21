@@ -21,6 +21,11 @@ provenance:
       at: 2026-10-21T18:42:29Z
       mode: "update"
       note: "Round 2: align to owning-plan spellings, correct audited upstream facts, e2e layout, light theme where applicable"
+    - model: "claude-opus-5-5"
+      harness: "claude-code"
+      at: 2026-10-21T19:46:56Z
+      mode: "implement"
+      note: "Implemented M1-M5: shell layout, right sheet, palette and shortcuts, profiles/health/liveness, links/format and suites"
   reviews:
     - model: "claude-fable-5-1"
       harness: "claude-code"
@@ -66,25 +71,68 @@ surface and, later, the store head), and nothing here can mutate anything; see
 
 ## Progress
 
-- [ ] M1 — Shell layout: rail, collapsible sidebar, bottom bar, theme switching, and
+- [x] M1 — Shell layout: rail, collapsible sidebar, bottom bar, theme switching, and
   placeholder routes for every page in the MasterPlan's link map render at
-  `http://localhost:5173`; sidebar state survives reload.
-- [ ] M2 — Right sheet: `registerSheet` / `useRightSheet` open a registered sheet kind, the
+  `http://localhost:5173`; sidebar state survives reload. (2026-10-21: `e2e/shell/layout.spec.ts`
+  visits all 28 placeholder paths with no console error; collapse persists under
+  `keiro-ui.sidebar.v1`.)
+- [x] M2 — Right sheet: `registerSheet` / `useRightSheet` open a registered sheet kind, the
   URL gains `?sheet=<kind>:<ref>`, reloading restores the open sheet, Escape closes it.
-- [ ] M3 — Command palette, recent-entity store, and keyboard shortcuts: ⌘K navigates to
+  (2026-10-21: `e2e/shell/sheet.spec.ts` — About sheet via the palette, `sheet=about%3Aconsole`,
+  reload restores, Escape clears, section change closes, `nonsense` explains itself.)
+- [x] M3 — Command palette, recent-entity store, and keyboard shortcuts: ⌘K navigates to
   any page or recent entity and parses typed entity identifiers; `[`, `?`, and the `g`
-  chords work; typing inside inputs never triggers them.
-- [ ] M4 — Connection profiles, health probes, liveness toggle: the settings page creates and
+  chords work; typing inside inputs never triggers them. (2026-10-21: `palette.spec.ts`,
+  `shortcuts.spec.ts`; all twelve parsers unit-tested in `commands.test.ts`.)
+- [x] M4 — Connection profiles, health probes, liveness toggle: the settings page creates and
   selects profiles, the bottom bar shows one health dot per surface for the active profile,
-  pause/resume flips every polling query that reads `useLiveness()`.
-- [ ] M5 — Link builders, formatting helpers, and the Playwright suite: every route in the
+  pause/resume flips every polling query that reads `useLiveness()`. (2026-10-21:
+  `connections.spec.ts` asserts the four same-origin probe URLs, the "Origin must not contain
+  a path" rejection, and `waitForRequest("http://127.0.0.1:9092/health/live")` after selecting
+  a separate profile; `liveness.test.tsx` proves a `refetchIntervalFor` query stops while
+  paused and refetches once on resume.)
+- [x] M5 — Link builders, formatting helpers, and the Playwright suite: every route in the
   link map has a typed builder; `format.ts` never emits "lag"; `bun run test` and
-  `bun run test:e2e --project shell` pass.
+  `bun run test:e2e --project shell` pass. (2026-10-21: 115 vitest tests and 16 `shell`
+  specs pass; `bun run check` and `bun run build` clean.)
+- [ ] Integration check with plan 10: `liveness.tsx` becomes a re-export of the client core's
+  `LivenessProvider`/`useLiveness` and the pause toggle stops a real `useSurfaceQuery` poll.
+  Performed by docs/plans/10-implement-the-client-core-for-http-cursors-int64-websocket-and-live-queries.md
+  when it lands (the MasterPlan's second early producer/consumer check).
 
 
 ## Surprises & Discoveries
 
-(None yet.)
+- 2026-10-21: TanStack Router's default search serializer JSON-parses every value, so
+  `?from=9007199254740993` would arrive as a lossy number (and fail every `z.string()`
+  search schema), and it writes the string `"41"` as `%2241%22`. The router now uses
+  `apps/console/src/lib/search.ts`: scalar values stay exact strings; only values starting
+  with `[` or `{` are JSON (e.g. `status_class=["running"]`). Every screen plan's search
+  schemas therefore see positions and ids as decimal strings, as the link-map rule intends.
+- 2026-10-21: React 19 treats a `ref` prop on a function component specially, so registered
+  sheet components receive `{ entityRef, close }` (`SheetProps`), not `{ ref }`;
+  `useRightSheet().open({ kind, ref })` is unchanged.
+- 2026-10-21: React Aria links (`SidebarMenuButton href`) do full page loads unless wrapped in
+  React Aria's `RouterProvider`. `packages/ui/src/components/router-provider.tsx` re-exports it
+  (hand-written, so the console still never imports `react-aria-components`), and
+  `__root.tsx` wires it to TanStack Router through `apps/console/src/lib/href.ts`, which
+  splits internal hrefs into `{to, search}` so the router applies any base path.
+- 2026-10-21: React Aria's `Autocomplete` keeps virtual focus on an item that is still
+  visible after the query changes, so typing "subs" left focus on "Streams" (first after
+  "s"). The palette ranks commands whose keywords or hint match ahead of label-only
+  matches, remounts the list per query, and runs the first ranked visible command when
+  Enter is pressed with nothing focused.
+- 2026-10-21: the shadcn sidebar container is `position: fixed; left: 0`; with the 48 px
+  rail beside it the container takes `md:left-12!`. The rail is in normal flow, so the
+  sidebar's gap element still offsets the page correctly.
+- 2026-10-21: bun's isolated installs do not expose `packages/ui`'s dependencies to the
+  console, so `lucide-react` and `cn` are also direct dependencies of `@keiro-ui/console`
+  (same pinned versions).
+- 2026-10-21: keystrokes sent right after `page.goto` can arrive before the lazily split
+  shell has attached its listeners; the e2e helpers `gotoShell` and `openPalette` in
+  `apps/console/e2e/shell/fixtures.ts` wait for the page header and the focused search box.
+  Health probes against unstarted surfaces log "Failed to load resource" console errors,
+  which the console-error fixture ignores.
 
 
 ## Decision Log
@@ -129,9 +177,47 @@ surface and, later, the store head), and nothing here can mutate anything; see
   Date: 2026-10-21
 
 
+- Decision: `apps/console/src/lib/links.ts` gains `links.timer(id)` (the timers page with
+  `?sheet=timer:<id>`), so the `timer <id>` jump parser and the process-manager screens have
+  a typed target for a single timer; every other builder is exactly as specified.
+  Rationale: there is no timer detail route, and the timer inspector is a sheet
+  (`registerSheet("timer", …)` in docs/plans/16-build-the-aggregates-process-managers-and-timers-screens.md).
+  Date: 2026-10-21
+
+- Decision: The command registry, recent/pinned stores, palette open state, and profile
+  store are module-level `useSyncExternalStore` stores (`shell/local-store.ts` for the
+  persisted ones), so `registerFeature` can register commands at module scope; there is no
+  `CommandRegistryProvider`. `StatusSlotProvider`, `ConnectionProfileProvider`, and
+  `LivenessProvider` remain providers in `__root.tsx`. Modules that render components use
+  `.tsx` (`settings/connection-profiles.tsx`, `shell/shortcuts.tsx`); import paths are
+  unchanged.
+  Rationale: a context-held registry cannot receive module-scope registrations, which the
+  `registerFeature` contract requires.
+  Date: 2026-10-21
+
+- Decision: The right sheet's width handle is a small pointer- and keyboard-driven
+  separator in `shell/right-sheet.tsx`, not `@keiro-ui/ui/components/resizable`.
+  Rationale: `react-resizable-panels` sizes panels inside a panel group; the sheet is a
+  fixed modal, so a group would have to span the viewport behind the overlay. The handle
+  clamps to 360 px – 60 vw and persists under `keiro-ui.sheet-width.v1` as specified.
+  Date: 2026-10-21
+
+
 ## Outcomes & Retrospective
 
-(To be filled during and after implementation.)
+2026-10-21 — Milestones 1–5 complete. The console now runs inside the full shell: rail,
+icon-collapsible sidebar with Pages/Pinned/Recent, bottom bar (profile switcher, four health
+dots, page and store-head slots, liveness toggle, version, palette hint), URL-addressed right
+sheet, ⌘K palette with pages, recents, twelve jump parsers, and actions, global shortcuts, the
+Connections settings page with export/import, typed link builders, formatters, and
+`registerFeature`. Evidence: `bun run check` clean; `bun run test` 115 passed; `bun run test:e2e`
+17 passed (16 `shell`, 1 `smoke`); `bun run build` clean. The remaining item is the
+integration check with plan 10, which that plan performs when the client core lands.
+
+For screen plans: register sheets with components taking `{ entityRef, close }`; search
+values arrive as strings (arrays as JSON); use `gotoShell`/`openPalette` from
+`e2e/shell/fixtures.ts` in Playwright specs; `useStatusSlot` content should be memoized or
+cheap, since it re-registers whenever its element identity changes.
 
 
 ## Context and Orientation

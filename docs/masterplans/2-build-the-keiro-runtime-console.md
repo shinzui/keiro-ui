@@ -322,7 +322,7 @@ repository.
 | # | Title | Path | Hard Deps | Soft Deps | Status |
 |---|-------|------|-----------|-----------|--------|
 | 7 | Scaffold the console workspace and design system | docs/plans/7-scaffold-the-console-workspace-and-design-system.md | None | None | Complete |
-| 8 | Build the console app shell, navigation, and command palette | docs/plans/8-build-the-console-app-shell-navigation-and-command-palette.md | EP-7 | EP-10 | Not Started |
+| 8 | Build the console app shell, navigation, and command palette | docs/plans/8-build-the-console-app-shell-navigation-and-command-palette.md | EP-7 | EP-10 | Complete |
 | 9 | Provision the local runtime stack and recorded fixtures | docs/plans/9-provision-the-local-runtime-stack-and-recorded-fixtures.md | None | EP-7 | Not Started |
 | 10 | Implement the client core for HTTP, cursors, int64, WebSocket, and live queries | docs/plans/10-implement-the-client-core-for-http-cursors-int64-websocket-and-live-queries.md | EP-7 | EP-9 | Not Started |
 | 11 | Implement the kiroku, pgmq, and shibuya typed clients | docs/plans/11-implement-the-kiroku-pgmq-and-shibuya-typed-clients.md | EP-10 | EP-9 | Not Started |
@@ -646,8 +646,9 @@ they bite: no rebuild/replay UI; no adapter dead-letter redrive until upstream s
 
 ## Progress
 
-Phase 1 is under way: EP-7 is Complete (2026-10-21), so EP-8, EP-9, and EP-10 are all
-ready.
+Phase 1 is under way: EP-7 and EP-8 are Complete (2026-10-21); EP-9 and EP-10 are ready.
+The EP-8/EP-10 liveness integration check (Integration Points, early check 2) runs when
+EP-10 lands.
 
 Cross-plan gates with their own acceptance:
 
@@ -753,6 +754,15 @@ Cross-plan gates with their own acceptance:
 - EP-7 (2026-10-21): the React Aria Sheet composes as `<SheetTrigger>` wrapping its trigger
   and `<Sheet side>` content; the right-sheet host of EP-8 should drive it with
   `isOpen`/`onOpenChange` rather than a Radix-style controlled `open` prop.
+- EP-8 (2026-10-21): the router uses a custom search serializer
+  (`apps/console/src/lib/search.ts`) — scalar search values stay exact strings and only
+  JSON arrays/objects are parsed — because TanStack's default would turn int64 positions in
+  `?from=` into lossy numbers. Screen plans' search schemas declare positions and ids as
+  `z.string()`; array filters such as `status_class` travel as JSON arrays.
+- EP-8 (2026-10-21): registered sheet components receive `{ entityRef, close }` (React 19
+  reserves `ref`); `links.timer(id)` was added for the timer inspector sheet; React Aria
+  links navigate through a `RouterProvider` re-exported from
+  `@keiro-ui/ui/components/router-provider`.
 - Audit (2026-10-21): kiroku's guide says known query parameters reject duplicates, but
   only the dead-letters route does; the browse routes take the first value. The client
   never sends duplicate keys, so this is a documentation note for EP-11, not a bug to

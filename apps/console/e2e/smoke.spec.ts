@@ -21,4 +21,18 @@ test("the production build renders the shell in Paper Mono, light by default", a
   })
   expect(paperMonoLoaded).toBe(true)
   await expect(page.getByRole("heading", { level: 1 })).toHaveCSS("font-family", /Paper Mono/)
+
+  // The palette's theme action switches to dark; the About sheet opens as a dialog.
+  await expect(page.getByRole("button", { name: "Open command palette" })).toBeVisible()
+  await page.keyboard.press("ControlOrMeta+k")
+  await expect(page.getByRole("searchbox")).toBeFocused()
+  await page.keyboard.type("Toggle theme")
+  await page.keyboard.press("Enter")
+  await expect(page.locator("html")).toHaveClass(/\bdark\b/)
+
+  await page.keyboard.press("ControlOrMeta+k")
+  await expect(page.getByRole("searchbox")).toBeFocused()
+  await page.keyboard.type("About this console")
+  await page.keyboard.press("Enter")
+  await expect(page.getByRole("dialog").filter({ hasText: "About this console" })).toBeVisible()
 })

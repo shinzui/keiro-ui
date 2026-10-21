@@ -6,6 +6,8 @@ import { lazy, Suspense } from "react"
 
 import { registerAllFeatures } from "@/features"
 import { navigateToHref, publicHref } from "@/lib/href"
+import { ConnectionProfileProvider } from "@/settings/connection-profiles"
+import { LivenessProvider } from "@/shell/liveness"
 import { StatusSlotProvider } from "@/shell/status-slots"
 import { ThemeProvider, useTheme } from "@/shell/theme"
 
@@ -40,11 +42,15 @@ function RootComponent() {
           navigate={(href) => void navigateToHref(router, href)}
           useHref={(href) => publicHref(router, href)}
         >
-          <StatusSlotProvider>
-            <HeadContent />
-            <Outlet />
-            <ThemedToaster />
-          </StatusSlotProvider>
+          <ConnectionProfileProvider>
+            <LivenessProvider>
+              <StatusSlotProvider>
+                <HeadContent />
+                <Outlet />
+                <ThemedToaster />
+              </StatusSlotProvider>
+            </LivenessProvider>
+          </ConnectionProfileProvider>
         </AriaRouterProvider>
       </ThemeProvider>
       <Suspense>

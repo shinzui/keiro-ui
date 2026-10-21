@@ -2,10 +2,18 @@ import { Sidebar, SidebarInset, SidebarProvider } from "@keiro-ui/ui/components/
 import { Outlet } from "@tanstack/react-router"
 import { useSyncExternalStore } from "react"
 
+import { AboutSheet } from "./about-sheet"
+import { CommandPalette } from "./command-palette"
 import { createLocalStore } from "./local-store"
 import { Rail } from "./rail"
+import { registerSheet, RightSheetOutlet } from "./right-sheet"
 import { SectionSidebar } from "./section-sidebar"
+import { ShellCommands } from "./shell-commands"
+import { ShortcutsDialog, useGlobalShortcuts } from "./shortcuts"
 import { StatusBar } from "./status-bar"
+import { ConnectionSwitcher, HealthDots, LivenessToggle, PaletteHint } from "./status-widgets"
+
+registerSheet("about", AboutSheet)
 
 // The shadcn sidebar's cookie persistence is not used: the console is a static bundle with
 // no server to read cookies.
@@ -17,6 +25,11 @@ export const sidebarStore = createLocalStore<{ open: boolean }>(
       ? { open: (raw as { open: boolean }).open }
       : undefined,
 )
+
+function GlobalShortcuts() {
+  useGlobalShortcuts()
+  return null
+}
 
 export function AppShell() {
   const { open } = useSyncExternalStore(sidebarStore.subscribe, sidebarStore.get)
@@ -35,8 +48,18 @@ export function AppShell() {
         <div className="min-h-0 flex-1 overflow-auto">
           <Outlet />
         </div>
-        <StatusBar />
+        <StatusBar
+          connection={<ConnectionSwitcher />}
+          health={<HealthDots />}
+          liveness={<LivenessToggle />}
+          paletteHint={<PaletteHint />}
+        />
       </SidebarInset>
+      <RightSheetOutlet />
+      <CommandPalette />
+      <ShortcutsDialog />
+      <GlobalShortcuts />
+      <ShellCommands />
     </SidebarProvider>
   )
 }

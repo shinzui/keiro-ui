@@ -1,16 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
 
-import { PlaceholderPage } from "@/components/placeholder-page"
+import { ConnectionsPage } from "@/settings/connections-page"
 
 export const Route = createFileRoute("/_shell/settings/connections")({
-  component: Page,
+  component: ConnectionsPage,
 })
-
-function Page() {
-  return (
-    <PlaceholderPage
-      title="Connections"
-      plan="docs/plans/8-build-the-console-app-shell-navigation-and-command-palette.md (Milestone 4)"
-    />
-  )
-}

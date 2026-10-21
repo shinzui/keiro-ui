@@ -3,3 +3,17 @@
 .seihou/manifest.json.tmp
 CLAUDE.local.md
 .codex/
+node_modules
+dist
+.vite
+.tanstack/
+test-results/
+playwright-report/
+.direnv
+result
+result-*
+*.log
+.env
+.env.local
+.pre-commit-config.yaml
+.DS_Store

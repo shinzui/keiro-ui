@@ -1,0 +1,24 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/npm/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "react", "unicorn", "oxc", "import"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "perf": "warn"
+  },
+  "env": {
+    "browser": true,
+    "es2024": true,
+    "node": true
+  },
+  "ignorePatterns": [
+    "node_modules",
+    "dist",
+    "result",
+    ".direnv",
+    ".seihou",
+    "agents/**",
+    "**/routeTree.gen.ts",
+    "nix/tooling-sources.json"
+  ]
+}

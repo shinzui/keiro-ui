@@ -1,0 +1,27 @@
+{
+  "$schema": "https://oxc.rs/schemas/oxfmtrc.json",
+  "semi": false,
+  "sortImports": true,
+  "singleQuote": false,
+  "tabWidth": 2,
+  "useTabs": false,
+  "printWidth": 100,
+  "trailingComma": "all",
+  "arrowParens": "always",
+  "bracketSpacing": true,
+  "endOfLine": "lf",
+  "insertFinalNewline": true,
+  "sortPackageJson": true,
+  "ignorePatterns": [
+    "node_modules",
+    "dist",
+    "result",
+    ".direnv",
+    ".seihou",
+    "agents/**",
+    "docs/**",
+    "**/routeTree.gen.ts",
+    "bun.lock",
+    "nix/tooling-sources.json"
+  ]
+}

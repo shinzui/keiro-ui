@@ -3,6 +3,7 @@ import { setupServer, type SetupServer } from "msw/node"
 
 import { closeFeeds, feedHandlers } from "./feeds"
 import { handlers } from "./handlers"
+import { mutationHandlers } from "./mutations"
 import { resetScenario } from "./scenario"
 
 export interface MockServer {
@@ -19,7 +20,7 @@ export interface MockServer {
  * vitest), plus the scripted WebSocket feeds. Call `reset()` in `afterEach`.
  */
 export function startMockServer(): MockServer {
-  const server = setupServer(...handlers, ...feedHandlers)
+  const server = setupServer(...mutationHandlers, ...handlers, ...feedHandlers)
   server.listen({ onUnhandledFrame: "warn" })
   return {
     server,

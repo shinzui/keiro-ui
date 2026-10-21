@@ -732,8 +732,38 @@ function deriveKeiroProjections() {
   )
 }
 
+// pgmq: only the pinned queue's detail and metrics were recorded; the dead-letter queue's are
+// taken from its own elements of the recorded /queues and /metrics arrays.
+function derivePgmqDeadLetterQueue() {
+  const pgmqManifest = JSON.parse(
+    readFileSync(join(packageRoot, "manifests/pgmq.json"), "utf8"),
+  ) as Manifest
+  const dlq = pgmqManifest.pins.dlq_queue
+  if (!dlq) throw new Error("the pgmq manifest pins no dlq_queue")
+  const element = (relative: string) => {
+    const found = arrayElements(read(relative)).find((e) => stringField(e, "queue_name") === dlq)
+    if (!found) throw new Error(`${relative} has no ${dlq}`)
+    return found
+  }
+  const entry = (slug: string, template: string): Omit<FileMeta, "derived"> => ({
+    ...meta.files[`pgmq/${slug}.json`]!,
+    slug: `${slug}-dlq`,
+    template,
+    params: { queue: dlq },
+    request: template.replace("{queue}", dlq),
+    derived_from: `the ${dlq} element of the recorded pgmq/${slug === "queue" ? "queues" : "metrics"}.json`,
+  })
+  derive("pgmq/queue-dlq.json", element("pgmq/queues.json"), entry("queue", "/queues/{queue}"))
+  derive(
+    "pgmq/queue-metrics-dlq.json",
+    element("pgmq/metrics.json"),
+    entry("queue-metrics", "/queues/{queue}/metrics"),
+  )
+}
+
 deriveKiroku()
 deriveShibuya()
+derivePgmqDeadLetterQueue()
 deriveKeiroTimers()
 deriveKeiroProjections()
 registerKeiro()

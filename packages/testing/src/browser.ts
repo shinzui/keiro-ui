@@ -2,6 +2,7 @@ import { setupWorker } from "msw/browser"
 
 import { closeFeeds, feedHandlers } from "./feeds"
 import { handlers } from "./handlers"
+import { mutationHandlers } from "./mutations"
 import { feedScript, kirokuLog, pins, resetScenario, useScenario } from "./scenario"
 
 /**
@@ -29,7 +30,7 @@ declare global {
  * apps/console/public/mockServiceWorker.js (`bunx msw init apps/console/public`).
  */
 export async function startMockWorker(): Promise<void> {
-  const worker = setupWorker(...handlers, ...feedHandlers)
+  const worker = setupWorker(...mutationHandlers, ...handlers, ...feedHandlers)
   window.__keiroUiMock = {
     useScenario,
     feedScript,

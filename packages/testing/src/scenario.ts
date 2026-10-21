@@ -19,13 +19,36 @@ export interface FeedOptions {
   removeLast?: boolean
 }
 
+/**
+ * The gated operator actions (plan 19). Unset keeps the recorded behaviour (keiro's health
+ * reports mutations disabled; shibuya's control read is the recorded body).
+ */
+export interface MutationScenario {
+  /** keiro's mutation gate: refused, accepting, or refused under schema drift. */
+  keiro?: "disabled" | "enabled" | "drift"
+  /** The preview disposition of a timer mutation (default: would_requeue / would_cancel). */
+  timerDisposition?:
+    | "would_requeue"
+    | "would_cancel"
+    | "not_found"
+    | "not_firing"
+    | "already_terminal"
+  /** A refusal code an executing keiro POST answers with instead of executing. */
+  executeRefusal?: "mutation_outcome_unknown" | "command_failed" | "inspection_busy"
+  /** A refusal code a keiro preview answers with. */
+  previewRefusal?: "inspection_busy" | "origin_not_allowed" | "schema_drift"
+  /** shibuya's control gate and the refusal a control POST answers with. */
+  shibuyaControl?: "enabled" | "disabled" | "origin_not_allowed"
+}
+
 export interface ScenarioState {
   fail: Partial<Record<Surface, string[]>>
   recorded: Partial<Record<Surface, string[]>>
   feeds: Partial<Record<Surface, FeedOptions>>
+  mutations: MutationScenario
 }
 
-export const scenarioState: ScenarioState = { fail: {}, recorded: {}, feeds: {} }
+export const scenarioState: ScenarioState = { fail: {}, recorded: {}, feeds: {}, mutations: {} }
 
 /**
  * Swaps routes for their recorded error fixture (`fail`) or swaps a derived default for its
@@ -34,9 +57,11 @@ export const scenarioState: ScenarioState = { fail: {}, recorded: {}, feeds: {} 
 export function useScenario(scenario: {
   fail?: Partial<Record<Surface, string[]>>
   recorded?: Partial<Record<Surface, string[]>>
+  mutations?: MutationScenario
 }): void {
   if (scenario.fail) Object.assign(scenarioState.fail, scenario.fail)
   if (scenario.recorded) Object.assign(scenarioState.recorded, scenario.recorded)
+  if (scenario.mutations) Object.assign(scenarioState.mutations, scenario.mutations)
 }
 
 /** Configures the scripted WebSocket feed of a surface for subsequent connections. */
@@ -53,6 +78,7 @@ export function resetScenario(): void {
   scenarioState.fail = {}
   scenarioState.recorded = {}
   scenarioState.feeds = {}
+  scenarioState.mutations = {}
   kirokuLog.reset()
 }
 

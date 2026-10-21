@@ -1259,6 +1259,22 @@
       "status": 200,
       "contentType": "application/json"
     },
+    "pgmq/queue-dlq.json": {
+      "surface": "pgmq",
+      "slug": "queue-dlq",
+      "variant": "default",
+      "method": "GET",
+      "template": "/queues/{queue}",
+      "query": {},
+      "params": {
+        "queue": "console_demo_dlq"
+      },
+      "request": "/queues/console_demo_dlq",
+      "status": 200,
+      "contentType": "application/json",
+      "derived_from": "the console_demo_dlq element of the recorded pgmq/queues.json",
+      "derived": true
+    },
     "pgmq/queue-message-big-id.json": {
       "surface": "pgmq",
       "slug": "queue-message-big-id",
@@ -1353,6 +1369,22 @@
       "status": 200,
       "contentType": "application/json",
       "cursor": "2"
+    },
+    "pgmq/queue-metrics-dlq.json": {
+      "surface": "pgmq",
+      "slug": "queue-metrics-dlq",
+      "variant": "default",
+      "method": "GET",
+      "template": "/queues/{queue}/metrics",
+      "query": {},
+      "params": {
+        "queue": "console_demo_dlq"
+      },
+      "request": "/queues/console_demo_dlq/metrics",
+      "status": 200,
+      "contentType": "application/json",
+      "derived_from": "the console_demo_dlq element of the recorded pgmq/metrics.json",
+      "derived": true
     },
     "pgmq/queue-metrics.json": {
       "surface": "pgmq",

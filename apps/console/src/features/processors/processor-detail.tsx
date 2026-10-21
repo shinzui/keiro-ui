@@ -152,7 +152,7 @@ export function ProcessorDetail({ row, now }: { row: ProcessorRow; now: number }
       <Section title="Progress">
         <ProgressCursors progress={metrics.progress} />
       </Section>
-      <ControlStatus />
+      <ControlStatus processorId={row.id} status={status} />
     </div>
   )
 }

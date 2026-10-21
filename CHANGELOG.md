@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased (0.2.0)
+
+- **Operator actions**, each riding its server's own gate and off by default: pause and resume a
+  processor (shibuya `enableControl`), requeue or cancel a timer, and redrive a dead-letter queue
+  through keiro's job-level redrive (keiro-ops-http `--enable-mutations`). A closed gate renders
+  the action disabled with the server's reason; keiro actions preview first and execute only
+  after the operator types the target; refusals render verbatim; an unknown outcome forces a
+  re-read. Executed actions are listed in a session audit sheet.
+
 ## 0.1.0 — 2026-10-21
 
 The first release of the keiro runtime console. It is read-only: no screen writes to any

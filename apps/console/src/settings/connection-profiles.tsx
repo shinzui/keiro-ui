@@ -217,6 +217,13 @@ export function useConnectionProfiles(): ConnectionProfilesValue {
   return value
 }
 
+export const DEFAULT_DEAD_LETTER_SUFFIX = "_dlq"
+
+/** The profile's dead-letter queue suffix, or shibuya-pgmq-adapter's default `_dlq`. */
+export function deadLetterSuffix(profile: ConnectionProfile): string {
+  return profile.deadLetterQueueSuffix?.trim() || DEFAULT_DEAD_LETTER_SUFFIX
+}
+
 export function useSurfaceBaseUrl(surface: Surface): string {
   const { active } = useConnectionProfiles()
   return surfaceBaseUrl(active, surface, window.location.origin)

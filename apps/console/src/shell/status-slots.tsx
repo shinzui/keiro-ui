@@ -1,6 +1,6 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from "react"
 
-export type StatusSlotId = "page" | "store-head"
+export type StatusSlotId = "page" | "store-head" | "actions"
 
 type Slots = Partial<Record<StatusSlotId, ReactNode>>
 type SetSlot = (id: StatusSlotId, content: ReactNode | undefined) => void

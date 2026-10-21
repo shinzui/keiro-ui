@@ -5,6 +5,7 @@ import { createFileRoute, Link } from "@tanstack/react-router"
 import { CursorPager } from "@/components/CursorPager"
 import { PageHeader } from "@/components/page-header"
 import { BindingsTab } from "@/features/queues/bindings-tab"
+import { DeadLetterRedrive } from "@/features/queues/dead-letter-redrive"
 import { MessagesTable } from "@/features/queues/messages-table"
 import { NotifyThrottle } from "@/features/queues/notify-throttle"
 import {
@@ -66,6 +67,7 @@ function QueuePage() {
         )}
       </PageHeader>
       <div className="flex flex-col gap-3 p-6">
+        {!notFound && <DeadLetterRedrive queue={name} length={metrics.data?.queue_length} />}
         {metrics.isError && !notFound && (
           <p className="text-sm text-destructive">{metrics.error.message}</p>
         )}

@@ -14,7 +14,8 @@ function Slot({ name, children }: { name: string; children: ReactNode }) {
 
 /**
  * The 28 px bottom bar. Fixed slots, left to right: connection profile, per-surface health,
- * the free `page` slot, the `store-head` slot, liveness, version, and the palette hint.
+ * the free `page` slot, the `store-head` slot, the session's `actions`, liveness, version, and
+ * the palette hint.
  */
 export function StatusBar({
   connection,
@@ -29,6 +30,7 @@ export function StatusBar({
 }) {
   const page = useStatusSlotContent("page")
   const storeHead = useStatusSlotContent("store-head")
+  const actions = useStatusSlotContent("actions")
   return (
     <footer
       aria-label="Status"
@@ -41,6 +43,7 @@ export function StatusBar({
         {page}
       </div>
       {storeHead && <Slot name="store-head">{storeHead}</Slot>}
+      {actions && <Slot name="actions">{actions}</Slot>}
       <Slot name="liveness">{liveness}</Slot>
       <Separator orientation="vertical" />
       <Slot name="version">

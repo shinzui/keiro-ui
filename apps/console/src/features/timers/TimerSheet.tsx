@@ -10,6 +10,7 @@ import { hrefOf, links } from "@/lib/links"
 import { useRecordVisit } from "@/shell/recent"
 import type { SheetProps } from "@/shell/right-sheet"
 
+import { TimerActionButtons } from "./timer-actions"
 import { errorLine } from "./TimersTable"
 
 /**
@@ -118,9 +119,7 @@ export function TimerSheet({ entityRef }: SheetProps) {
             <JsonViewer label="Payload" value={timer.payload} />
           </>
         )}
-        <p className="text-xs text-muted-foreground">
-          Operator actions arrive with gated actions (read-only release).
-        </p>
+        <TimerActionButtons timerId={entityRef} />
       </div>
     </>
   )

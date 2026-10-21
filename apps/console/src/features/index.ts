@@ -1,3 +1,4 @@
+import { registerActionsFeature } from "./actions/register"
 import { registerQueuesFeature } from "./queues/register"
 import { registerStreamsFeature } from "./streams/register"
 import { registerTimersFeature } from "./timers/register"
@@ -11,4 +12,5 @@ export function registerAllFeatures(): void {
   registerQueuesFeature()
   registerWorkflowsFeature()
   registerTimersFeature()
+  registerActionsFeature()
 }

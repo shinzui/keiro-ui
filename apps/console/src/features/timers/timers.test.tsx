@@ -92,12 +92,15 @@ test("the stuck tab validates the minimum age and lists stuck timers without an 
   expect(await screen.findByRole("alert")).toHaveTextContent('invalid duration "five"')
 })
 
-test("a timer id opens the sheet with its payload and no action button", async () => {
+test("a timer id opens the sheet with its payload and gated actions", async () => {
   const { router } = await renderRoute("/timers")
   const table = await screen.findByRole("grid", { name: "Pending timers" })
   fireEvent.click(await within(table).findByRole("button", { name: timer_id!.slice(0, 8) }))
   await waitFor(() => expect(currentSearch(router).sheet).toBe(`timer:${timer_id}`))
   const sheet = await screen.findByRole("dialog")
   expect(await within(sheet).findByText("Payload")).toBeInTheDocument()
-  expect(within(sheet).queryByRole("button", { name: /requeue|cancel|dead/i })).toBeNull()
+  // keiro's mutations are off by default: the actions are present and disabled with the reason.
+  await waitFor(() => expect(within(sheet).getByRole("button", { name: "Requeue" })).toBeDisabled())
+  expect(within(sheet).getByRole("button", { name: "Cancel timer" })).toBeDisabled()
+  expect(within(sheet).getByTestId("gate-reason")).toHaveTextContent("Mutations are disabled")
 })

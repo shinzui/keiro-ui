@@ -103,3 +103,8 @@ release-pack:
 # The production smoke: build for /console/, serve with dev/caddy/Caddyfile, run both tiers.
 smoke-production port="8080":
     CONSOLE_PORT={{port}} bun run test:e2e:production
+
+# WARNING: mutates the target stack (pauses/resumes a processor, requeues a timer). Scratch,
+# mutation-enabled stacks only; never production. See apps/console/e2e/actions/actions.live.spec.ts.
+smoke-live-mutations:
+    cd apps/console && KEIRO_UI_LIVE_MUTATIONS=1 bunx playwright test --config playwright.live.config.ts actions

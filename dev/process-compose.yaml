@@ -44,6 +44,8 @@ processes:
       period_seconds: 5
     availability: { restart: on_failure, max_restarts: 3 }
 
+  # Its metrics server has no /control (pause/resume stay disabled in the console); a host with
+  # enableControl = True must also list the console's origin in corsAllowedOrigins.
   # No runnable host ships a standalone shibuya-metrics server, so the baseline is the
   # shibuya-pgmq-adapter example consumer (Hackage shibuya-metrics ^>=0.10.0.0: basic metrics
   # only), consuming its demo queues in pgmq_dev (the database pgmq-inspect reads in the

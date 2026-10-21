@@ -26,7 +26,9 @@ test("the palette jumps to a processor whose Control card reads disabled", async
   await jump(page, `processor ${processor}`)
   await expect(page).toHaveURL(`/processors/${processor}`)
   await expect(page.getByRole("region", { name: "Control" })).toContainText("Control enabled: no")
-  await expect(page.getByRole("region", { name: "Control" }).getByRole("button")).toHaveCount(0)
+  await expect(
+    page.getByRole("region", { name: "Control" }).getByRole("button", { name: "Pause" }),
+  ).toBeDisabled()
   await expect(page.getByTestId("latency-histogram").locator('[data-bar="bucket"]')).toHaveCount(18)
   await expect(page.getByText("estimated from histogram buckets")).toBeVisible()
 })

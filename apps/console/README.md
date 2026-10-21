@@ -35,6 +35,13 @@ for, its last reaction with provenance when recorded, its pending timers, and it
 feed, with manager and correlation filters; the Stuck tab polls stuck timers with keiro's
 `min_age` (`5m`, `1h`) and `min_attempts`. A timer opens in the right sheet.
 
+**Operator actions** (from 0.2) are few and gated by the servers: pause and resume a processor
+(shibuya's `enableControl`), requeue or cancel a timer, and redrive a dead-letter queue through
+keiro (keiro-ops-http's `--enable-mutations`). A closed gate shows the action disabled with the
+server's reason. Every keiro action previews first and executes only after the operator types the
+target; refusals render as the server sent them; executed actions are listed in the session audit
+("N actions this session" in the bottom bar). `docs/deployment.md` covers the hosts' settings.
+
 The aggregate and process-manager reads exist only on a keiro host that mounts its inspection
 hooks. On any other host those pages show "… inspection is not mounted on this keiro host"
 with the probed path instead of an error; see `dev/README.md` for the local stack.

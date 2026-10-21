@@ -1,10 +1,10 @@
 import { queryKeys, useSurfaceQuery } from "@keiro-ui/client-core"
 import {
   type ProcessorMap,
+  shibuyaKeys,
   type ProcessorMetrics,
   type TerminalInfo,
   useShibuyaClient,
-  useShibuyaControlStatus,
   useShibuyaHealth,
   useShibuyaProcessors,
   useShibuyaProcessorsFeed,
@@ -74,4 +74,13 @@ export function useMissingProcessor(id: string, missing: boolean) {
 }
 
 export const useReadiness = () => useShibuyaHealth("ready")
-export const useControlStatus = useShibuyaControlStatus
+/** `GET /control`, polled so a gate flipped on the server shows without a reload. */
+export function useControlStatus() {
+  const shibuya = useShibuyaClient()
+  return useSurfaceQuery({
+    surface: "shibuya",
+    queryKey: shibuyaKeys.control(),
+    queryFn: ({ signal }) => shibuya.control.status(signal),
+    poll: 5_000,
+  })
+}

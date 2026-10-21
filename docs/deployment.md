@@ -135,6 +135,26 @@ server must then allow the console's origin, with its own setting:
 The costs: four TLS endpoints, four allow-lists to keep in sync, and a CORS preflight before
 cross-origin requests. Recipes A and B have none of these.
 
+## Operator actions
+
+From 0.2 the console can pause and resume a shibuya processor, requeue or cancel a keiro timer,
+and redrive a pgmq dead-letter queue through keiro. Each action rides its server's own gate and
+is off by default: shibuya's `enableControl` (default `False`) and keiro-ops-http's
+`--enable-mutations` (default off). With a gate off, the console shows the action disabled with
+the server's reason.
+
+**shibuya control needs the console's origin even on one origin.** Browsers send an `Origin`
+header on every `POST`, including same-origin ones, and shibuya-metrics refuses a control `POST`
+whose `Origin` is not in `corsAllowedOrigins` (403 `origin_not_allowed`), even when CORS is
+otherwise off. Whenever `enableControl` is on, set `corsAllowedOrigins` to the console's origin:
+the page's own origin in recipes A and B (for example `https://ops.example`), the console's
+origin in recipe C. The console never strips or rewrites the header.
+
+keiro previews every mutation before it can be confirmed, and the console requires the operator
+to type the target (a timer id or a queue name) before executing. Executed actions are listed in
+the session's audit sheet ("N actions this session" in the bottom bar), which is kept in the
+browser tab only.
+
 ## keiro's read budget
 
 keiro-ops-http admits a fixed number of concurrent inspection reads (4 by default) and answers

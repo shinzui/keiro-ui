@@ -5,6 +5,7 @@ import { createRootRouteWithContext, HeadContent, Outlet, useRouter } from "@tan
 import { lazy, Suspense } from "react"
 
 import { registerAllFeatures } from "@/features"
+import { SessionAuditStatus } from "@/features/actions/session-audit-sheet"
 import { navigateToHref, publicHref } from "@/lib/href"
 import { ClientsProvider } from "@/settings/clients"
 import { ConnectionProfileProvider } from "@/settings/connection-profiles"
@@ -48,6 +49,7 @@ function RootComponent() {
               <LivenessProvider>
                 <StatusSlotProvider>
                   <HeadContent />
+                  <SessionAuditStatus />
                   <Outlet />
                   <ThemedToaster />
                 </StatusSlotProvider>

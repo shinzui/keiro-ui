@@ -5,7 +5,9 @@ import { defineConfig, devices } from "@playwright/test"
 // allow-list) with the EP-9 stack up. It never starts a server: start `bun run dev` first.
 export default defineConfig({
   testDir: "e2e",
-  testMatch: "live.spec.ts",
+  // The read-only gate, plus the opt-in mutating actions spec (skipped unless
+  // KEIRO_UI_LIVE_MUTATIONS=1; see its header).
+  testMatch: ["live.spec.ts", "actions/actions.live.spec.ts"],
   timeout: 60_000,
   workers: 1,
   reporter: "list",

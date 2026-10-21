@@ -48,6 +48,7 @@ export function scenario(
   value: {
     fail?: Partial<Record<Surface, string[]>>
     recorded?: Partial<Record<Surface, string[]>>
+    mutations?: Record<string, string | undefined>
   },
 ) {
   return page.evaluate((v) => window.__keiroUiMock!.useScenario(v), value)

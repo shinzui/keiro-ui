@@ -10,6 +10,7 @@ import { Timestamp } from "@/components/timestamp"
 import { useCursorTrail } from "@/features/streams/useCursorTrail"
 import { useLiveTimers, useStuckTimers } from "@/features/timers/queries"
 import { durationError, type TimersSearch, timersSearch } from "@/features/timers/search"
+import { GateNotice } from "@/features/timers/timer-actions"
 import { TimersTable } from "@/features/timers/TimersTable"
 import { useNow } from "@/lib/use-now"
 import { useLiveness } from "@/shell/liveness"
@@ -127,11 +128,13 @@ function PendingTab({ search }: { search: TimersSearch }) {
             : feedCaption[feedStatus]}
       </p>
       {page.isError && <p className="text-sm text-destructive">{page.error.message}</p>}
+      <GateNotice subject="Timer actions" />
       <TimersTable
         timers={page.data?.items ?? []}
         now={now}
         isPending={page.isPending}
         label="Pending timers"
+        actions
       />
       <CursorPager
         cursor={search.after}
@@ -203,12 +206,14 @@ function StuckTab({ search }: { search: TimersSearch }) {
         </p>
       )}
       {stuck.isError && <p className="text-sm text-destructive">{stuck.error.message}</p>}
+      <GateNotice subject="Timer actions" />
       <TimersTable
         timers={stuck.data ?? []}
         now={0}
         isPending={stuck.isPending}
         stuck
         label="Stuck timers"
+        actions
       />
     </div>
   )

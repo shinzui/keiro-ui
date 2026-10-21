@@ -21,6 +21,11 @@ provenance:
       at: 2026-10-21T18:42:29Z
       mode: "update"
       note: "Round 2: align to owning-plan spellings, correct audited upstream facts, e2e layout, light theme where applicable"
+    - model: "claude-opus-5-5"
+      harness: "claude-code"
+      at: 2026-10-21T22:51:21Z
+      mode: "implement"
+      note: "M1-M4: shibuya control, MutationFlow and timer actions, DLQ redrive, refusal matrix and suites"
   reviews:
     - model: "claude-fable-5-1"
       harness: "claude-code"
@@ -70,28 +75,58 @@ out until the parent MasterPlan's successor decides otherwise.
 
 ## Progress
 
-- [ ] M1: `packages/client-shibuya` exposes `control.status()`, `control.pause(id)`, and
-  `control.resume(id)`; the processor detail page's Control card pauses and resumes a
-  processor when `/control` reports `enabled: true` and renders a visibly disabled control
-  with the server reason when it does not; every shibuya refusal code in this plan's
-  refusal matrix renders verbatim.
-- [ ] M2: the shared `MutationFlow` component (preview → typed confirmation → execute →
-  result) exists in `apps/console/src/features/actions/`, and timer **Requeue** and
-  **Cancel** work from `/timers` rows and the timer sheet through the keiro client's
-  `mutations.preview` / `mutations.execute`, with every keiro gate and refusal rendered.
-- [ ] M3: dead-letter redrive works from the queue page for queues matching the connection
-  profile's dead-letter suffix, through keiro's `/pgmq/dlq/redrive`, using the same
-  `MutationFlow`; the queue page states that this is keiro's job-level redrive and that
-  adapter-level redrive is not available.
-- [ ] M4: the refusal matrix is covered by vitest + MSW scripted sequences, the Playwright
-  suite covers disabled gates, the preview → confirm → executed path, and a drift refusal;
-  the session audit sheet lists executed mutations; `docs/deployment.md` carries the shibuya
-  `Origin` paragraph; and the Outcomes section proposes the honest-gate rendering ADR.
+- [x] Early interaction check (2026-10-21): a second keiro-ops-http 0.21.0.0 with
+  `--enable-mutations` on port 9193 against the jitsurei database answered an empty-body
+  `POST /timer/requeue/<unknown id>` with `outcome: preview`, `disposition: not_found`, and the
+  `cli_reinvocation`; `{"confirm":"execute"}` with `outcome: executed`, `not_transitioned`, no
+  `exit_code`; `{"confirm":"yes"}` with 400 `invalid_confirmation`; the default host with 403
+  `mutations_disabled`. Only state-free calls were made, and the instance was stopped.
+  `packages/client-keiro/test/mutations.test.ts` pins the captured bodies.
+- [x] M1 (2026-10-21): `client-shibuya` `control.pause/resume` (no body, no custom headers,
+  `ControlResult`, `ShibuyaControlRefusal`); the processor Control card polls `/control`, shows
+  disabled Pause/Resume with "Control operations are disabled on the server (enableControl =
+  False)", confirms in an alert dialog, toasts the returned state, records the action, and
+  registers palette commands when enabled; a host without `/control` says so. Evidence:
+  `packages/client-shibuya/test/control.test.ts`, `features/processors/control-status.test.tsx`.
+- [x] M2 (2026-10-21): `features/actions/` (`MutationFlow`, `useKeiroMutationsGate`,
+  `RefusalView`, the session audit and its sheet and bottom-bar slot) and timer Requeue/Cancel
+  from a `/timers` row menu and the timer sheet. Evidence: `features/timers/timer-actions.test.tsx`
+  (disabled gate; preview → typed confirmation → executed with a re-read and an audit entry;
+  no-change disposition with no Execute; `mutation_outcome_unknown` locks Execute and re-reads;
+  `inspection_busy` retry), `features/actions/refusal.test.tsx` (every code in both matrices).
+- [x] M3 (2026-10-21): the Dead letters card on `/queues/<name><suffix>` with the job-level
+  sentence, the derived logical queue, a limit, and keiro's redrive through `MutationFlow`; the
+  profile's `deadLetterQueueSuffix` (default `_dlq`) gains a settings input. Evidence:
+  `features/queues/dead-letter-redrive.test.tsx` (the request carries `queue=console_demo` and
+  `limit=25`; preview `available`/`would_affect_at_most`; result `affected` and `exit_code`).
+- [x] M4 (2026-10-21): scripted mutation scenarios in `packages/testing/src/mutations.ts`;
+  `e2e/actions/actions.spec.ts` → 4 passed (disabled gates; requeue preview → confirm →
+  executed; `not_found` never offers Execute; `schema_drift` lists the drift);
+  `docs/deployment.md` "Operator actions" with the shibuya `Origin` paragraph; the scope grep
+  prints nothing. Live (default jitsurei stack): the Control card reports no control surface,
+  `/timers` and `/queues/console_demo_dlq` show keiro's disabled-mutations reason, and no POST
+  is sent. `e2e/actions/actions.live.spec.ts` exists and was skipped (no mutation-enabled stack
+  was run). `bun run test` 576 passed; Playwright all projects green; `bun run check` clean.
 
 
 ## Surprises & Discoveries
 
-(None yet.)
+- keiro's dead-letter redrive acts on pgmq inside keiro's own database. On the jitsurei stack
+  that database has no `pgmq` schema (the queues live in `pgmq_dev`, read by pgmq-inspect), so a
+  redrive preview answers 422 `command_failed` ("schema "pgmq" does not exist"). The console
+  renders it as a refusal; a deployment where keiro and the queues share a database is needed
+  for redrive to act.
+- The jitsurei stack's shibuya host (the shibuya-pgmq-adapter example on Hackage
+  shibuya-metrics 0.10.0.x) has no `/control` route and answers 404; the Control card states
+  that the host has no control surface rather than calling the gate disabled.
+- The mock had no detail or metrics for the dead-letter queue (only the pinned queue was
+  recorded), so `/queues/console_demo_dlq` showed "No queue with this name" in mock mode and
+  hid the card. `derive.ts` now takes both bodies from the recorded `/queues` and `/metrics`
+  arrays.
+- React Aria modals mark the rest of the page hidden from assistive technology; tests that read
+  the bottom bar or the rows behind an open sheet query hidden elements on purpose.
+- The read-only release's assertions ("no action button", "Operator actions arrive…") were
+  superseded here and updated to the gated behaviour.
 
 
 ## Decision Log
@@ -134,10 +169,35 @@ out until the parent MasterPlan's successor decides otherwise.
   around.
   Date: 2026-10-21
 
+- Decision: `useKeiroMutationsGate()` reads keiro's `/health` through the shell's health probe
+  (the same query the bottom bar polls) rather than a second `health.get()` query, so the gate
+  and the health dot never disagree and keiro's inspection budget is not spent twice.
+  Date: 2026-10-21
+
+- Decision: When keiro's gate is closed, each `/timers` row shows its action menu button
+  disabled (its accessible name carries the reason) and the page states the reason once above
+  the table; the sheet and the redrive card state it beside their buttons.
+  Rationale: a reason under every row would drown the table; a hidden menu would hide the gate.
+  Date: 2026-10-21
+
 
 ## Outcomes & Retrospective
 
-(To be filled during and after implementation.)
+Complete (2026-10-21). The console offers exactly three actions, each behind its owning
+server's gate: processor pause/resume (shibuya), timer requeue/cancel and dead-letter redrive
+(keiro). Closed gates are visible as disabled controls with the server's reason; keiro actions
+preview before any confirmation exists and execute only after the target is typed; every
+refusal renders verbatim with its code; an unknown outcome re-reads and locks Execute; executed
+actions are listed per session. Verified against scripted servers in vitest and Playwright and,
+for the closed-gate states, against the live stack. The mutating live spec is written and
+opt-in; it has not been run here because no mutation-enabled stack was started.
+
+Distillation proposed for the MasterPlan's completion pass, the honest-gate rendering rules as
+an application of ADR-7: (1) a disabled gate is a disabled control plus the server's reason,
+never a hidden one; (2) a preview renders before any confirmation control exists, and a
+no-change preview never offers Execute; (3) refusal codes render verbatim, and
+`mutation_outcome_unknown` forces a re-read before any retry; (4) shibuya control requires the
+console's origin in `corsAllowedOrigins`, even on one origin.
 
 
 ## Context and Orientation

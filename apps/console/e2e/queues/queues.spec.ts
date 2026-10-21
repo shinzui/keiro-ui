@@ -36,7 +36,7 @@ test("a sheet URL reopens the message; Escape closes it; the full page shows the
   )
   await page.getByRole("dialog").getByRole("link", { name: "Open full page" }).click()
   await expect(page).toHaveURL(`/queues/${pgmq.dlq_queue}/messages/${pgmq.dlq_msg_id}`)
-  const panel = page.getByRole("region", { name: "Dead letter" })
+  const panel = page.getByRole("region", { name: "Dead letter", exact: true })
   await expect(panel).toContainText("poison_message")
   await expect(panel).toContainText("Redrive is not available")
 })

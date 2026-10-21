@@ -29,13 +29,15 @@ test("filters round-trip, a feed update lands live, and the stuck tab validates 
   await expect(page.getByRole("alert")).toContainText('invalid duration "five"')
 })
 
-test("the palette opens a timer in the sheet, with its payload and no action", async ({ page }) => {
+test("the palette opens a timer in the sheet, with its payload and gated actions", async ({
+  page,
+}) => {
   await open(page, "/")
   const { timer_id } = await pins(page, "keiro")
   await jump(page, `timer ${timer_id}`)
   await expect(page).toHaveURL(new RegExp(`/timers\\?sheet=timer%3A${timer_id}`))
   const sheet = page.getByRole("dialog")
   await expect(sheet.getByText("Payload")).toBeVisible()
-  await expect(sheet.getByText("Operator actions arrive with gated actions")).toBeVisible()
-  await expect(sheet.getByRole("button", { name: /requeue|cancel|dead/i })).toHaveCount(0)
+  await expect(sheet.getByRole("button", { name: "Requeue" })).toBeDisabled()
+  await expect(sheet.getByTestId("gate-reason")).toContainText("Mutations are disabled")
 })

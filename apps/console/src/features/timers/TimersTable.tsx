@@ -15,6 +15,8 @@ import { formatDuration } from "@/lib/format"
 import { links } from "@/lib/links"
 import { useRightSheet } from "@/shell/right-sheet"
 
+import { TimerRowActions } from "./timer-actions"
+
 /**
  * "due in 4 min 50 s" / "overdue by 40 s", recomputed from `fire_at` (keiro's feed strips
  * `due_in_seconds` before comparing, so a clock tick alone sends no update).
@@ -42,12 +44,15 @@ export function TimersTable({
   isPending,
   stuck = false,
   label = "Timers",
+  actions = false,
 }: {
   timers: TimerRow[]
   now: number
   isPending: boolean
   stuck?: boolean
   label?: string
+  /** Show the Requeue/Cancel row menu (EP-19). */
+  actions?: boolean
 }) {
   const { open } = useRightSheet()
   return (
@@ -61,6 +66,7 @@ export function TimersTable({
         <TableHead>Attempts</TableHead>
         {!stuck && <TableHead>Last error</TableHead>}
         <TableHead>Fired event</TableHead>
+        {actions && <TableHead>Actions</TableHead>}
       </TableHeader>
       <TableBody
         renderEmptyState={() => (
@@ -132,6 +138,11 @@ export function TimersTable({
                   "—"
                 )}
               </TableCell>
+              {actions && (
+                <TableCell>
+                  <TimerRowActions timerId={timer.timer_id} />
+                </TableCell>
+              )}
             </TableRow>
           )
         })}

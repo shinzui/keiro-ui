@@ -121,6 +121,17 @@ function ProfileForm({
             </Field>
           ))}
         <Field>
+          <FieldLabel htmlFor={`${formId}-dlq-suffix`}>Dead-letter queue suffix</FieldLabel>
+          <Input
+            id={`${formId}-dlq-suffix`}
+            placeholder="_dlq"
+            value={draft.deadLetterQueueSuffix ?? ""}
+            onChange={(event) =>
+              update({ ...draft, deadLetterQueueSuffix: event.target.value || undefined })
+            }
+          />
+        </Field>
+        <Field>
           <FieldLabel htmlFor={`${formId}-pm-names`}>Process manager names</FieldLabel>
           {/* keiro exposes no list of mounted process managers; the index page offers these. */}
           <Textarea

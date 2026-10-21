@@ -75,7 +75,7 @@ test("an origin refusal renders verbatim with the deployment pointer", async () 
   const refusal = await within(card).findByRole("alert")
   expect(refusal).toHaveTextContent("origin_not_allowed")
   expect(refusal).toHaveTextContent("Origin not allowed")
-  expect(refusal).toHaveTextContent("corsAllowedOrigins (docs/deployment.md)")
+  expect(refusal).toHaveTextContent("corsAllowedOrigins (docs/user/deployment.md)")
 })
 
 test("a host without /control says so", async () => {

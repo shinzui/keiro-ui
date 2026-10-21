@@ -40,7 +40,7 @@ feed, with manager and correlation filters; the Stuck tab polls stuck timers wit
 keiro (keiro-ops-http's `--enable-mutations`). A closed gate shows the action disabled with the
 server's reason. Every keiro action previews first and executes only after the operator types the
 target; refusals render as the server sent them; executed actions are listed in the session audit
-("N actions this session" in the bottom bar). `docs/deployment.md` covers the hosts' settings.
+("N actions this session" in the bottom bar). `docs/user/deployment.md` covers the hosts' settings.
 
 The aggregate and process-manager reads exist only on a keiro host that mounts its inspection
 hooks. On any other host those pages show "… inspection is not mounted on this keiro host"

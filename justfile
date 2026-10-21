@@ -41,6 +41,14 @@ format-check:
 check:
     bun run check
 
+# Validate and graph the OKF bundles (okf and dhall are not in the dev shell)
+docs-check:
+    okf validate docs/adr --strict --profile docs/adr/profile.dhall --profile-enforce --log-enforce
+    okf validate docs/user --strict --profile mori/user-documentation-profile.dhall --profile-enforce --log-enforce
+    okf graph docs/user > /dev/null
+    okf validate docs/capabilities --profile docs/capabilities/profile.dhall --profile-enforce --log-enforce
+    okf graph docs/capabilities > /dev/null
+
 # Run the vitest suites (always through bun run: a bare `bun test` starts bun's own runner)
 test:
     bun run test

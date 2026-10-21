@@ -4,7 +4,7 @@ import type { ReactNode } from "react"
 
 import { MUTATIONS_DISABLED_REASON } from "./gate"
 
-const DEPLOYMENT = "docs/deployment.md"
+const DEPLOYMENT = "docs/user/deployment.md"
 
 /** The ApiError behind a client's typed refusal (its `cause`), or the error itself. */
 export function apiErrorOf(error: unknown): ApiError | undefined {

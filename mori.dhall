@@ -25,5 +25,33 @@ in  Schema.Project::{
         , description = Some
             "Durable architecture decisions for the keiro runtime UI initiative"
         }
+      , Schema.OkfBundle::{
+        , name = "user-documentation"
+        , path = "docs/user"
+        , profile = Some "mori/user-documentation-profile.dhall"
+        , profileBinding = Some
+            ( Schema.ProfileBinding.Published
+                Schema.PinnedImport::{
+                , publisher = "shinzui/okf-profiles"
+                , publisherRef = Some
+                    Schema.MoriRef::{ namespace = "shinzui", name = "okf-profiles" }
+                , export = Some "documentation.userDocumentation"
+                , version = Some "v0.19.0"
+                , pin = Some
+                    "sha256:85176d78369b6d73c9f13c30277903b629d6bf048a4c7d71fc26e68b99c3eaa6"
+                }
+            )
+        , okfVersion = "0.2"
+        , description = Some
+            "Reader-facing documentation for running and deploying the keiro runtime console"
+        }
+      , Schema.OkfBundle::{
+        , name = "capabilities"
+        , path = "docs/capabilities"
+        , profile = Some "docs/capabilities/profile.dhall"
+        , okfVersion = "0.2"
+        , description = Some
+            "What keiro-ui provides today, one concept per capability, with evidence"
+        }
       ]
     }

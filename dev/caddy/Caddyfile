@@ -1,4 +1,4 @@
-# Recipe A of docs/deployment.md on a development machine: the console bundle at /console/ and
+# Recipe A of docs/user/deployment.md on a development machine: the console bundle at /console/ and
 # the four inspection surfaces of the local stack (dev/README.md) on one origin.
 #   VITE_BASE_PATH=/console/ bun run build
 #   caddy run --config dev/caddy/Caddyfile --adapter caddyfile      # from the repository root

@@ -1,3 +1,14 @@
+---
+type: Guide
+title: Deploying the keiro runtime console
+description: Serve the static console bundle at any base path and make the four inspection surfaces reachable from it, on one origin behind a proxy, on a composing host, or on separate origins.
+docId: DOC-3
+tags: [deployment, reverse-proxy, cors, base-path, operator-actions]
+generated:
+  by: claude-code/claude-opus-5-5
+  at: 2026-10-21T22:52:08Z
+---
+
 # Deploying the keiro runtime console
 
 The console is a static bundle: an `index.html` and hashed assets. It has no server of its own

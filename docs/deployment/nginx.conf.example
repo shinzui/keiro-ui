@@ -1,4 +1,4 @@
-# Recipe A (docs/deployment.md) for nginx. Inside an http { } block.
+# Recipe A (docs/user/deployment.md) for nginx. Inside an http { } block.
 map $http_upgrade $connection_upgrade {
     default upgrade;
     ""      close;

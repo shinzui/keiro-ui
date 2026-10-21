@@ -30,7 +30,7 @@ cp docs/deployment/nginx.conf.example "$out/deployment/nginx.conf.example"
 cat >"$out/NOTICE.md" <<NOTICE
 # keiro runtime console $version
 
-Built from commit $commit with base path \`$base\`. Deployment: docs/deployment.md in the
+Built from commit $commit with base path \`$base\`. Deployment: docs/user/deployment.md in the
 keiro-ui repository; the proxy examples are in \`deployment/\`.
 
 ## Third-party notices

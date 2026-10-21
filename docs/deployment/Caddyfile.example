@@ -1,4 +1,4 @@
-# Recipe A (docs/deployment.md): the console bundle at /console/ and four inspection servers
+# Recipe A (docs/user/deployment.md): the console bundle at /console/ and four inspection servers
 # behind one origin. Replace /srv/console with the unpacked bundle and the ports with yours.
 :8080 {
 	redir /console /console/ 301

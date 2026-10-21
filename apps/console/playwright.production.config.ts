@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test"
 
 // The production smoke: the console built for /console/ and served by dev/caddy/Caddyfile
-// (recipe A of docs/deployment.md). Tier 1 needs no backend; tier 2 runs when the local stack
+// (recipe A of docs/user/deployment.md). Tier 1 needs no backend; tier 2 runs when the local stack
 // answers through the proxy. CONSOLE_PORT overrides the port (8080 by default).
 const port = process.env.CONSOLE_PORT ?? "8080"
 const baseURL = `http://127.0.0.1:${port}/console/`

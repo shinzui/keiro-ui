@@ -19,6 +19,7 @@ import {
 } from "react"
 
 import { ApiError } from "./errors"
+import { type Dialect, type FeedStatus, type Frame, openFeed } from "./feed"
 import { surfaces, type Surface } from "./surface"
 
 // ADR-3: every live view polls; pushes only shorten latency. Paused means polling stops and
@@ -139,6 +140,59 @@ export function useSurfaceQuery<TData, TError = ApiError>(
     wasPaused.current = paused
   }, [paused, refetch])
   return result
+}
+
+/**
+ * Layers a feed onto the query cache (ADR-3: push is a hint, poll is truth). Open while
+ * `enabled` and not paused; closed when paused, disabled, or unmounted. Frames go to
+ * `applyToCache`; an overflow, resync frame, or reconnect invalidates `invalidate` so the
+ * owning queries re-read.
+ */
+export function useFeedSubscription<SubscribeArgs = void>(options: {
+  enabled?: boolean
+  url: string
+  dialect: Dialect<SubscribeArgs>
+  subscriptions?: SubscribeArgs[]
+  applyToCache(queryClient: QueryClient, frame: Frame, kind: "snapshot" | "delta" | "extra"): void
+  invalidate: readonly unknown[]
+  WebSocket?: typeof WebSocket
+}): { status: FeedStatus } {
+  const queryClient = useQueryClient()
+  const { paused } = useLiveness()
+  const [status, setStatus] = useState<FeedStatus>("connecting")
+  const latest = useRef(options)
+  useEffect(() => {
+    latest.current = options
+  })
+  const active = options.enabled !== false && !paused
+  const subscriptionsKey = JSON.stringify(options.subscriptions ?? [], (_k, v: unknown) =>
+    typeof v === "bigint" ? v.toString() : v,
+  )
+  const invalidateKey = JSON.stringify(options.invalidate)
+
+  // Reopen only when the connection's identity changes: the URL, the dialect, or the
+  // subscriptions/invalidation key by value (callers pass fresh arrays every render).
+  useEffect(() => {
+    if (!active) return
+    const apply = (kind: "snapshot" | "delta" | "extra") => (frame: Frame) =>
+      latest.current.applyToCache(queryClient, frame, kind)
+    const handle = openFeed<SubscribeArgs>({
+      url: options.url,
+      dialect: options.dialect,
+      subscriptions: latest.current.subscriptions,
+      WebSocket: latest.current.WebSocket,
+      onSnapshot: apply("snapshot"),
+      onDelta: apply("delta"),
+      onExtra: apply("extra"),
+      onResync: () =>
+        void queryClient.invalidateQueries({ queryKey: [...latest.current.invalidate] }),
+      onStatus: (next) => setStatus(next),
+    })
+    return () => handle.close()
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- keyed by value on purpose
+  }, [active, options.url, options.dialect, subscriptionsKey, invalidateKey, queryClient])
+
+  return { status: active ? status : "closed" }
 }
 
 export type { QueryClient, QueryKey }

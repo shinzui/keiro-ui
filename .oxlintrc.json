@@ -37,7 +37,7 @@
       }
     },
     {
-      "files": ["**/e2e/**"],
+      "files": ["**/e2e/**", "**/test/**"],
       "rules": {
         "eslint/no-await-in-loop": "off"
       }

@@ -107,7 +107,7 @@ export function createKeiroClient(options: { baseUrl: string; fetch?: typeof fet
       journal: (
         name: string,
         id: string,
-        query: { after?: JournalCursor; limit?: number } = {},
+        query: { after?: JournalCursor; limit?: number; generation?: number } = {},
         signal?: AbortSignal,
       ) =>
         read(
@@ -120,7 +120,7 @@ export function createKeiroClient(options: { baseUrl: string; fetch?: typeof fet
       steps: (
         name: string,
         id: string,
-        query: { after?: StepsCursor; limit?: number } = {},
+        query: { after?: StepsCursor; limit?: number; generation?: number } = {},
         signal?: AbortSignal,
       ) =>
         read(

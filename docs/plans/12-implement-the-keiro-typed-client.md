@@ -16,6 +16,17 @@ provenance:
       at: 2026-10-21T15:56:48Z
       mode: "update"
       note: "Switch workspace tooling from pnpm to bun; vitest and Playwright kept on Node 22"
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T18:42:29Z
+      mode: "update"
+      note: "Round 2: align to owning-plan spellings, correct audited upstream facts, e2e layout, light theme where applicable"
+  reviews:
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T18:42:29Z
+      verdict: "changes-requested"
+      note: "Round 2 review against upstream trees and the owning plans; findings applied in the same pass"
 ---
 
 # Implement the keiro typed client
@@ -46,7 +57,7 @@ import { createKeiroClient } from "@keiro-ui/client-keiro"
 const keiro = createKeiroClient({ baseUrl: "/keiro" })
 const page = await keiro.workflows.list({ status_class: ["running"], limit: 50 })
 page.items[0]?.workflow_id // typed string
-page.next_cursor           // branded WorkflowListCursor | undefined
+page.nextCursor            // branded WorkflowListCursor | undefined (the wire field is next_cursor)
 ```
 
 and get runtime-validated, correctly typed results, with keiro's cursors, int64 positions,
@@ -164,28 +175,43 @@ bun run --filter @keiro-ui/client-core test
 
 The client core exports, under `packages/client-core/src/`:
 
-- `http.ts` — `createHttpClient({ baseUrl, fetch? })` returning `{ get, post }`; query
-  objects are encoded with array values repeated as separate keys; bodies are JSON; the
-  response text is parsed losslessly (see `int64.ts`).
-- `errors.ts` — `ApiError { surface, status, code, message, details }`, built from the
-  nested envelope `{"error": {"code", "message", "details"?}}` that keiro uses.
+- `http.ts` — `createHttpClient({ surface, baseUrl, fetch?, headers? })` returning
+  `{ surface, baseUrl, url, get, post }`; `get(path, { query?, signal?, headers?, okStatuses? })`
+  and `post(path, { body?, query?, signal?, headers?, okStatuses? })` encode query objects
+  with array values repeated as separate keys, send a JSON body only when `body` is not
+  `undefined` (a `post` without a body sends no body and no content type, which is exactly
+  keiro's preview request), parse the response text losslessly (see `int64.ts`), and
+  return rather than throw for the statuses listed in `okStatuses`.
+- `errors.ts` — `ApiError { surface, status, code, message, details?, raw, headers }`,
+  built from the nested envelope `{"error": {"code", "message", "details"?}}` that keiro
+  uses (non-JSON bodies become `http_<status>`, network failures `network_error`).
 - `int64.ts` — the rule that JSON integers outside JavaScript's safe range are revived as
   `bigint`, and the zod helper `int64()` which normalizes a declared field to `bigint` whether
   it arrived as `number` or `bigint`.
-- `pages.ts` — `Page<T, Cursor>` as `{ items: T[]; next_cursor?: Cursor }` and the
-  `useInfiniteQuery` adapter that echoes cursors back untouched.
-- `feed.ts` — the WebSocket core of ADR-2: `createFeedConnection({ url, dialect, onFrame, onResync })`,
-  where a `Dialect` names the subscribe/unsubscribe frame builders and the frame types it
-  treats as snapshot, delta, error, goodbye, and pong; it reconnects with backoff and calls
-  `onResync` whenever the dialect reports overflow.
-- `live.ts` — `useSurfaceQuery` (polling with the adaptive clamp and the global pause
-  switch) and `useFeedSubscription(dialect, applyToCache)`, which layers a feed onto a
-  TanStack Query cache entry.
-- `query-keys.ts` — key factories; this plan adds the `keiro` factory.
+- `pages.ts` — `Page<T, Cursor>` as `{ items: T[]; nextCursor?: Cursor }` (decoded from the
+  wire's `next_cursor`), `pageSchema(item, cursor, extra?)` whose `extra` schema carries
+  keiro's page-level `observed_at`, `generation`, and `visible_store_head`, and
+  `useCursorPages({ surface, queryKey, fetchPage, enabled?, poll? })`, the `useInfiniteQuery`
+  adapter that hands `nextCursor` to `fetchPage(cursor, signal)` untouched.
+- `feed.ts` — the WebSocket core of ADR-2:
+  `openFeed({ url, dialect, subscriptions?, onSnapshot, onDelta, onExtra?, onError?, onResync, onStatus? })`,
+  where a `Dialect` names the subscribe/unsubscribe frame builders, the frame types it
+  treats as snapshot, delta, error, goodbye, and pong (plus `extra` types such as
+  `unsubscribed`), its overflow codes, and an `isResync(frame)` predicate; it reconnects
+  with backoff and calls `onResync` on overflow codes, on `isResync`, and after every
+  reconnect.
+- `live.ts` — `useSurfaceQuery(options)` (TanStack query options plus `surface` and an
+  optional `poll`; polling with the adaptive clamp and the global pause switch),
+  `useFeedSubscription({ enabled?, url, dialect, subscriptions?, applyToCache, invalidate })`,
+  which layers a feed onto TanStack Query cache entries and invalidates the `invalidate`
+  key prefix on resync, and `useLiveness()`.
+- `query-keys.ts` — `surfaceKey(surface, ...parts)` and the per-surface `queryKeys`; this
+  package builds its own `keiroKeys` factory on `surfaceKey("keiro", ...)` and adds nothing
+  to the core.
 
-If any of those names differ in the working tree, the client core's exports win: adapt the
-imports in this package and record the difference in Surprises & Discoveries rather than
-changing `packages/client-core`.
+The names above are copied from plan 10's Interfaces and Dependencies section, which is
+the binding contract; if the working tree differs from it, plan 10 is corrected first and
+the spelling cascaded here, rather than this package adapting silently.
 
 `packages/testing` (`@keiro-ui/testing`, owned by
 `docs/plans/9-provision-the-local-runtime-stack-and-recorded-fixtures.md`, a soft
@@ -200,9 +226,16 @@ entry as `"source": "hand-derived"` so EP-9 can replace them with recordings.
 All keiro paths below are relative to the keiro repository checkout, which Mori registers
 as `mori://shinzui/keiro` (on this machine `/Users/shinzui/Keikaku/bokuno/keiro`; confirm
 with `mori registry show shinzui/keiro --full`). The package is `keiro-ops-http`
-(`keiro-ops-http/keiro-ops-http.cabal`, version 0.21.0.0, unreleased; the keiro MasterPlan
-45 records all six surfaces implemented at commit `5893c7eb`). Pin the audited commit in
-this plan's Surprises & Discoveries when you start, and re-run the live tests if keiro moves.
+(`keiro-ops-http/keiro-ops-http.cabal`, version 0.21.0.0 in tree, unreleased; the keiro
+MasterPlan 45 records all six surfaces implemented at commit `5893c7eb` and its release
+plan says the cohort publishes as 0.22.0.0). keiro's MasterPlan 46 (plans 317–319, Not
+Started on 2026-10-21) changes the unreleased contract before publication: 403
+`origin_not_allowed` for cross-origin HTTP mutations, 415 `unsupported_media_type` for a
+non-JSON confirmation body, a 30 s delivery deadline, `/health` allowed to answer 503
+`inspection_busy`, a replacement default-order cursor kind whose old tokens fail closed as
+`invalid_cursor`, and `provenance_status: "unavailable"` as the norm. Pin the audited
+commit in this plan's Surprises & Discoveries when you start, re-audit against keiro when
+those plans land, and re-run the live tests if keiro moves.
 
 The authoritative prose contracts are three guides in the keiro repository, cited as
 project URI plus path because their artifact-level Mori URIs are pending:
@@ -215,10 +248,12 @@ are `keiro/src/Keiro/Workflow/Inspection.hs`, `keiro/src/Keiro/Inspection/Aggreg
 command modules `keiro-ops/src/Keiro/Ops/Workflow.hs`, `Aggregate.hs`, `ProcessManager.hs`,
 `Timer.hs`, `Projection.hs`, `Shard.hs`, `Stream.hs`, `Outbox.hs`, `Inbox.hs`, `Pgmq.hs`
 under the same directory. The HTTP layer is `keiro-ops-http/src/Keiro/Ops/Http/Application.hs`
-(dispatch, error envelope, confirmation), `keiro-ops-http/src/Keiro/Ops/Protocol.hs`
-(WebSocket frames), `keiro-ops-http/src/Keiro/Ops/Views.hs` (the three feed views and
-their filters), `keiro-ops-http/src/Keiro/Ops/Compose.hs` (prefix mounting), and
-`keiro-ops-http/src/Keiro/Ops/Cors.hs`.
+(dispatch, error envelope, confirmation), `keiro-ops-http/src/Keiro/Ops/Http/Protocol.hs`
+(WebSocket frames), `keiro-ops-http/src/Keiro/Ops/Http/Views.hs` (the three feed views and
+their filters), `keiro-ops-http/src/Keiro/Ops/Http/Feed/Driver.hs` (the shared feed driver:
+1 s fallback and minimum refresh intervals, 5 s read timeout, 500-item page cap, 32 views
+per connection), `keiro-ops-http/src/Keiro/Ops/Http/Compose.hs` (prefix mounting), and
+`keiro-ops-http/src/Keiro/Ops/Http/Cors.hs`.
 
 **The route rule.** keiro has no hand-written route table. `mori://shinzui/keiro/okf/adrs/concepts/ADR-53`
 makes the HTTP surface a transport over the `keiro-ops` command tree: the path segments are
@@ -230,9 +265,10 @@ rejected with 400: `json`, `force`, `database_url`, `allow_schema_drift`, `help`
 `GET`, mutations are `POST` (the server classifies with its `isMutation` function), and the
 wrong method returns 405 with an `Allow` header. A successful read returns the command's
 JSON value as-is — no wrapper object. Two response headers may appear: `Keiro-Ops-Schema-Drift`
-when drift was admitted by host policy, and `Keiro-Ops-Exit-Code` when the underlying
-command exited non-zero. An unknown command path is a 400 `invalid_request`, not a 404; the
-only 404 is the root path.
+when drift was admitted by host policy, and `Keiro-Ops-Exit-Code` on a *read* whose
+underlying command exited non-zero (a mutation reports its exit code only in the body's
+`exit_code` field, never as a header). An unknown command path is a 400 `invalid_request`,
+not a 404; the only 404 is the root path.
 
 **Pagination and cursors.** Paged reads return `{ "observed_at": ..., "items": [...], "next_cursor"?: "..." }`
 and take `limit` (default 100 for workflows and timers, 50 for aggregates and process
@@ -261,7 +297,11 @@ with these codes: 400 `invalid_request` (details hold `arguments`), `invalid_con
 `schema_verification_failed`, `internal_error`; 503 `inspection_busy`; 504
 `inspection_timeout`, `mutation_outcome_unknown`. Schema drift applies to reads too: when the
 host's policy is `RefuseOnDrift` (the default), every admitted request verifies the live
-schema first.
+schema first, and `GET /health` itself answers 503 with `{"status":"schema_drift",...}` in
+that state (200 only under `AllowDrift`). Two codes keiro's MasterPlan 46 is adding before
+release are declared now so the typed helpers exist when they ship: 403 `origin_not_allowed`
+(a cross-origin HTTP mutation whose `Origin` is not allow-listed; today only the WebSocket
+upgrade checks it) and 415 `unsupported_media_type` (a confirmation body that is not JSON).
 
 **Hook-gated families.** The `/aggregate/*`, `/pm/*`, `/rebuild/*`, `/replay-audit`,
 `/wf/resume-once`, and `/timer/drain-once` command groups exist only when the host process
@@ -275,8 +315,9 @@ executable enables it with `--enable-mutations`. When disabled, any `POST` retur
 `mutations_disabled` before touching the schema. When enabled, `POST <path>` with an empty
 body is a **preview**: it returns 200 `{"outcome":"preview","result":...,"cli_reinvocation":"keiro-ops ... --json --force"}`
 and changes nothing. `POST <path>` with a body of exactly `{"confirm":"execute"}` (at most
-1 KiB) **executes** and returns `{"outcome":"executed","result":...,"exit_code"?:N}`. Any
-other body is 400 `invalid_confirmation`. A mutation that hits its deadline returns 504
+1 KiB; a larger body is 413 `inspection_request_too_large`) **executes** and returns
+`{"outcome":"executed","result":...,"exit_code"?:N}`. Any other body is 400
+`invalid_confirmation`. A mutation that hits its deadline returns 504
 `mutation_outcome_unknown`, which means the caller must re-read state before retrying.
 This is the server-side gate that `docs/adr/0007-read-only-first-with-owning-repository-gates.md`
 requires the console to render honestly and never bypass.
@@ -289,7 +330,10 @@ Three feeds exist: `workflows`, `timers`, `projection_groups`. A client sends
 the workflows feed accepts `status_class`, `workflow_name`, and `limit`; the timers feed
 accepts `manager`, `correlation_id`, and `limit`; the projection_groups feed accepts `limit`
 only; `limit` ranges 1..500 with default 100, and any unknown filter field is refused with
-`invalid_subscription`. The server answers with `snapshot {feed, sequence, trigger, observed_at, items}`
+`invalid_subscription`. An **empty** `status_class` array is also refused with
+`invalid_subscription`, so the subscribe builder omits the key when no class is selected
+(selecting all seven classes is normalized to "none selected" first); `workflow_name` may be
+`null`. The server answers with `snapshot {feed, sequence, trigger, observed_at, items}`
 and thereafter `update {feed, sequence, trigger, observed_at, changed, removed}`, where
 `trigger` is `subscribe`, `notify`, or `timeout`; projection frames also carry
 `visible_store_head`. `changed` holds full items to upsert; `removed` holds key objects —
@@ -361,8 +405,11 @@ that joins the words and URL-encoded positionals into a path, encodes each flag 
 `snake_case` query key (arrays repeated, booleans as `true`/`false`, `undefined` omitted),
 and throws before sending if a key is one of the five reserved names. Implement
 `src/errors.ts`: `RouteUnavailable` (constructed when an `ApiError` has status 400, code
-`invalid_request`, and `details.arguments` names the first path word as unknown — read the
-exact detail shape from `Application.hs` lines 142–164 and record it in a test fixture),
+`invalid_request`, and the request this client sent began with the command word
+`aggregate` or `pm`; `details.arguments` is only the translated argv, for example
+`["aggregate","types"]`, with no "unknown" marker, and the optparse text in `message` is
+the only other signal, so the client keys on the word it sent — read the exact detail shape
+from `Application.hs` lines 142–164 and record it in a test fixture),
 `CursorMismatch` (409 `cursor_generation_mismatch`), and the predicate helpers
 `isMutationsDisabled`, `isSchemaDrift`, `isInspectionBusy`, `isTooLarge` (413 either code)
 over `ApiError`. Implement `src/cursors.ts` with a branded string per read kind:
@@ -422,7 +469,9 @@ non-empty `items` from the jitsurei seed.
 Add `aggregates.types()`, `aggregates.list({name, limit?, after?})`, `aggregates.show({name, id})`,
 `aggregates.snapshot({name, id})`, `processManagers.list({name, limit?, after?})`, and
 `processManagers.show({name, correlation, timer_limit?})` with the fields enumerated in the
-MasterPlan inventory. `aggregates.show` returns `hydration.source` as the enum
+MasterPlan inventory. Every flag object in this package uses the wire's `snake_case` keys
+(`timer_limit`, `min_age`, `min_attempts`, `status_class`), never camelCase aliases, so a
+screen's search parameters pass straight through. `aggregates.show` returns `hydration.source` as the enum
 `snapshot | full_replay`; `processManagers.show` resolves to `null` when the server returns
 JSON `null`. Both namespaces wrap every call so that the hook-less 400 becomes
 `RouteUnavailable`; export `isRouteUnavailable(error)`.
@@ -486,16 +535,38 @@ exact body `{"confirm":"execute"}` with `Content-Type: application/json` and val
 `{outcome: "executed", result, exit_code?}`. Map refusals to typed errors: `MutationsDisabled`
 (403), `SchemaDrift` (409, carrying `details.drift`), `InvalidConfirmation` (400),
 `MutationOutcomeUnknown` (504, with a message telling the caller to re-read state before
-retrying). Add the three wrappers, each returning `{ preview(): Promise<Preview>, execute(): Promise<Executed> }`:
-`timers.requeue(timerId)` over `/timer/requeue/{TIMER_ID}`, `timers.cancel(timerId)` over
-`/timer/cancel/{TIMER_ID}`, and `pgmq.dlqRedrive({queue})` over `/pgmq/dlq/redrive?queue=`.
+retrying), `OriginNotAllowed` (403 `origin_not_allowed`), and `UnsupportedMediaType`
+(415). Add the three wrappers, each returning
+`{ preview(): Promise<Preview>, execute(): Promise<Executed> }` with result types taken
+from the command modules rather than assumed:
+
+- `timers.requeue(timerId)` over `/timer/requeue/{TIMER_ID}` and `timers.cancel(timerId)`
+  over `/timer/cancel/{TIMER_ID}` (`keiro-ops/src/Keiro/Ops/Timer.hs`). A preview of an
+  unknown or ineligible timer is **not** a refusal: it answers 200 with
+  `result: {preview: true, operation, disposition: "not_found" | "not_firing" | "already_terminal" | "would_requeue" | "would_cancel", timer: TimerItem | null}`,
+  and an execution answers
+  `result: {operation, outcome: "transitioned" | "not_transitioned", transitioned: boolean, timer}`.
+  422 `command_failed` arises only from store failures. The wrappers type these as
+  `TimerMutationPreview` and `TimerMutationResult`; screens render the disposition.
+- `pgmq.dlqRedrive({queue, limit?})` over `/pgmq/dlq/redrive?queue=&limit=`
+  (`keiro-ops/src/Keiro/Ops/Pgmq.hs`), where `queue` is the **logical job queue name**:
+  keiro derives the dead-letter queue itself (`<queue>_dlq`, with its own sanitizing and
+  hashing of long names) and rejects a name that already ends in `_dlq`, so passing the
+  physical DLQ name would make keiro operate on `<name>_dlq_dlq`. `limit` is the number of
+  messages moved per execution (server default 100). The preview result is
+  `{preview: true, operation, queue, available, would_affect_at_most}` and the executed
+  result `{operation, queue, affected}`; neither names the original queue beyond `queue`.
+  Typed as `DlqRedrivePreview` and `DlqRedriveResult`.
+
 Export them from the `./mutations` entry point only, so a screen must opt in explicitly.
 
 Acceptance: `test/mutations.test.ts` with MSW handlers asserts the empty preview body, the
-exact confirm body, each refusal mapping, and that `execute` never runs when `preview`
-threw; plus a guard test in `apps/console` is not this plan's job, but this plan's
-acceptance includes running `grep -r "client-keiro/mutations" apps/console/src` and
-seeing no output.
+exact confirm body, each refusal mapping, each timer `disposition` and `outcome` value
+decoding, the logical-queue rule (`pgmq.dlqRedrive({queue: "orders"})` requests
+`queue=orders`, and `{queue: "orders_dlq"}` is rejected client-side with a `RangeError`
+before any request), and that `execute` never runs when `preview` threw; plus a guard test
+in `apps/console` is not this plan's job, but this plan's acceptance includes running
+`grep -r "client-keiro/mutations" apps/console/src` and seeing no output.
 
 
 ## Concrete Steps
@@ -530,8 +601,8 @@ Write `packages/client-keiro/package.json`:
   },
   "dependencies": {
     "@keiro-ui/client-core": "workspace:*",
-    "@tanstack/react-query": "^5.104.5",
-    "zod": "^4.6.7"
+    "@tanstack/react-query": "5.104.5",
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@keiro-ui/testing": "workspace:*"
@@ -643,8 +714,9 @@ from this package.
 
 Libraries whose choice matters: `zod` 4 (schemas and derived types; `.passthrough()` on every
 object), `@tanstack/react-query` 5 (cache entries the feed hooks update),
-`@keiro-ui/client-core` (`createHttpClient`, `ApiError`, `int64`, `Page`,
-`createFeedConnection`, `Dialect`, `useSurfaceQuery`, `useFeedSubscription`),
+`@keiro-ui/client-core` (`createHttpClient`, `ApiError`, `int64`, `Page`, `pageSchema`,
+`useCursorPages`, `openFeed`, `Dialect`, `useSurfaceQuery`, `useFeedSubscription`,
+`surfaceKey`),
 `@keiro-ui/testing` (fixtures, MSW node server, scripted feeds) for tests only. No other
 runtime dependency is permitted in this package.
 
@@ -675,9 +747,11 @@ Interfaces this package exports, by module path, that other plans depend on:
   returning `{ status: "live" | "reconnecting" | "read_failed" | "off" }`; and
   `packages/client-keiro/src/feeds/merge.ts`: `mergeFeedFrame`.
 - `packages/client-keiro/src/mutations.ts` (`@keiro-ui/client-keiro/mutations`):
-  `preview`, `execute`, `timers.requeue`, `timers.cancel`, `pgmq.dlqRedrive`, and the
-  refusal classes `MutationsDisabled`, `SchemaDrift`, `InvalidConfirmation`,
-  `MutationOutcomeUnknown`. Consumed only by `docs/plans/19-add-gated-operator-actions.md`.
+  `preview`, `execute`, `timers.requeue`, `timers.cancel`, `pgmq.dlqRedrive`, the result
+  types `TimerMutationPreview`, `TimerMutationResult`, `DlqRedrivePreview`,
+  `DlqRedriveResult`, and the refusal classes `MutationsDisabled`, `SchemaDrift`,
+  `InvalidConfirmation`, `MutationOutcomeUnknown`, `OriginNotAllowed`,
+  `UnsupportedMediaType`. Consumed only by `docs/plans/19-add-gated-operator-actions.md`.
 
 Prerequisites declared by the parent: this plan starts only after
 `docs/plans/10-implement-the-client-core-for-http-cursors-int64-websocket-and-live-queries.md`

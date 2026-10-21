@@ -16,6 +16,17 @@ provenance:
       at: 2026-10-21T15:56:48Z
       mode: "update"
       note: "Switch workspace tooling from pnpm to bun; vitest and Playwright kept on Node 22"
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T18:42:29Z
+      mode: "update"
+      note: "Round 2: align to owning-plan spellings, correct audited upstream facts, e2e layout, light theme where applicable"
+  reviews:
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T18:42:29Z
+      verdict: "changes-requested"
+      note: "Round 2 review against upstream trees and the owning plans; findings applied in the same pass"
 ---
 
 # Provision the local runtime stack and recorded fixtures
@@ -180,7 +191,8 @@ The sibling checkouts this plan builds from, with the commits the MasterPlan aud
   `shibuya-metrics` 0.10.0.1 with an Unreleased changelog holding CORS, control, detailed
   metrics, and `error`/`terminal` frames. Contract: `docs/architecture/METRICS.md` and the
   golden `shibuya-metrics/test/golden/processor-metrics.json.golden`. There is no standalone
-  executable: a metrics server exists only inside an application that starts one.
+  server executable (the three `bench/` executables are bounded load fixtures on ephemeral
+  ports): a metrics server exists only inside an application that starts one.
   `shibuya-example` (`just example`) starts one on 9090 and exits after about five seconds.
 - shibuya-pgmq-adapter at `/Users/shinzui/Keikaku/bokuno/shibuya-project/shibuya-pgmq-adapter`
   (`c443ac3`): its `shibuya-pgmq-example` consumer (`just example-consumer`, metrics port
@@ -188,15 +200,19 @@ The sibling checkouts this plan builds from, with the commits the MasterPlan aud
   PostgreSQL (`just process-up`) with `just example-simulator` producing load, but it builds
   against Hackage `shibuya-metrics ^>=0.10.0.0`, so it serves basic metrics only: no
   `latency`/`oldestInFlight`/`progress` fields, no `/control` routes, no `error` frames.
-- keiro at `/Users/shinzui/Keikaku/bokuno/keiro` (`5893c7eb` or later): package
-  `keiro-ops-http` 0.21.0.0 (unreleased) with executables `keiro-ops-http`
+- keiro at `/Users/shinzui/Keikaku/bokuno/keiro` (`5893c7eb` or later; keiro's own plans
+  say the cohort will publish as 0.22.0.0, and its MasterPlan 46 changes the unreleased HTTP
+  contract before publication, so re-audit when its plans 317–319 land): package
+  `keiro-ops-http` 0.21.0.0 in tree (unreleased) with executables `keiro-ops-http`
   (`keiro-ops-http/app/Main.hs`; flags `--database-url`, `--bind`, `--port`, repeatable
   `--allow-origin`, `--enable-mutations`, `--allow-schema-drift`, `--request-timeout`; env
   `KEIRO_OPS_DATABASE_URL` or `DATABASE_URL`) and `keiro-ops-http-compose-example`
   (`keiro-ops-http/example/Compose.hs`, built only with the cabal flag `compose-example`).
   Contracts: `docs/guides/serve-keiro-ops-over-http.md`,
   `docs/guides/stream-keiro-inspection-views.md`,
-  `docs/guides/compose-runtime-inspection-surfaces.md`. Both executables use
+  `docs/guides/compose-runtime-inspection-surfaces.md`. The compose example mounts only
+  `/keiro` and `/kiroku` (no keiro executable composes shibuya or pgmq), which is why this
+  plan runs the four servers separately behind the Vite proxy. Both executables use
   `emptyAppHooks`, so `/aggregate/*` and `/pm/*` do not exist in any process you can start,
   although `jitsurei/src/Jitsurei/Inspection.hs` defines the inspectors; the JSON encoders
   are `keiro/src/Keiro/Inspection/Aggregate.hs` and `keiro/src/Keiro/ProcessManager/Inspect.hs`,
@@ -233,7 +249,13 @@ and streams never cross-link in the console. `stack-build` builds `kiroku-inspec
 `pgmq-inspect`, and `keiro-ops-http` from the sibling checkouts into `dev/bin/` (symlinks to
 `cabal list-bin` results or the nix `result/bin`), and `stack-up` starts them through
 `process-compose` on 9091, 9092, and 9093 with the console's dev origin on each CORS
-allowlist (harmless in development, required for the separate-origins deployment test later).
+allowlist (harmless for kiroku and pgmq in development, required for the separate-origins
+deployment test later, and **required for keiro even in development**: keiro-ops-http
+admits a WebSocket upgrade only when the browser's `Origin` is allow-listed or equals the
+request's own `Host`, and the Vite proxy rewrites `Host` to `127.0.0.1:9093`, so without
+`--allow-origin http://localhost:5173` every `/keiro/ws` upgrade is refused with 403
+`origin_not_allowed`; note also that `keiro-ops-http`'s built-in default port is 9092, the
+pgmq port, so `--port 9093` must always be passed).
 `stack-check` curls each surface and attempts each WebSocket upgrade. At the end of M1,
 `just stack-check` prints green for kiroku, pgmq, and keiro.
 
@@ -435,16 +457,23 @@ and `ws 9090/ws -> 101`.
     "./scenario": "./src/scenario.ts",
     "./fixtures/*": "./fixtures/*"
   },
-  "scripts": { "record": "tsx scripts/record.ts", "test": "vitest run" },
-  "dependencies": { "msw": "^3.0.3" },
-  "devDependencies": { "tsx": "^4", "vitest": "^5", "ws": "^8", "@types/ws": "^8" }
+  "scripts": { "record": "bun scripts/record.ts", "test": "vitest run" },
+  "dependencies": { "msw": "3.0.3" },
+  "devDependencies": { "vitest": "5.0.5", "ws": "8.22.0", "@types/ws": "8.18.2" }
 }
 ```
 
-and add `"fixtures:record": "bun run --filter @keiro-ui/testing record"` to the root
-`package.json`. Write the manifests. The kiroku manifest, for example, names
-`GET /capabilities`, `/health`, `/health/live`, `/health/ready`, `/metrics`,
-`/subscriptions`, `/subscription-checkpoints`,
+(exact versions, per the workspace rule EP-7 set; these are the npm versions on
+2026-10-21, so re-run `npm view` before pinning; bun runs TypeScript directly, so no `tsx`
+is needed) and add `"fixtures:record": "bun run --filter @keiro-ui/testing record"` to the
+root `package.json`. The recorder accepts optional surface names as arguments
+(`bun run fixtures:record keiro pgmq`) and records every surface when none is given. Write
+the manifests. The kiroku manifest, for example, names `GET /capabilities`, `/health`,
+`/health/live`, `/health/ready`, `/metrics`, `/subscriptions` (the standalone
+`kiroku-inspect` mounts the live registry, so this records `200 []`; the legacy 404
+envelope `{"error":"subscription status not configured"}` that embedded hosts without a
+provider return cannot be recorded from this stack and is hand-written as
+`subscriptions-404-legacy.json` from `docs/user/metrics.md`), `/subscription-checkpoints`,
 `/subscriptions/{subscription}/dead-letters?limit=100`, `/streams?limit=100`,
 `/streams?category={category}&limit=100`, `/streams/{stream}`,
 `/streams/{stream}/events?from=0&limit=100` (forward and `direction=backward`),
@@ -521,9 +550,14 @@ last page otherwise. `scenario.ts` exports `useScenario({ fail: { kiroku: ["stre
 which swaps the named routes for their recorded error fixtures, and `feedScript(surface, { overflowAfter })`.
 Feeds use MSW's `ws.link("ws://*/kiroku/ws/events")` and, on a `subscribe_events` frame,
 send `event_stream_started`, then the `event` frames taken from the recorded `events-all`
-fixture, then (when `overflowAfter` is set) `{"type":"error","code":"event_stream_overflowed","message":"...","dropped":3}`
-before continuing, and `{"type":"goodbye"}` when the scenario closes. The pgmq script sends
-`snapshot {queue, metrics, push:true}` then `update {source:"poll"}`, an `error {code:"overflow", queue}`;
+fixture, then (when `overflowAfter` is set)
+`{"type":"error","code":"event_stream_overflowed","message":"event stream overflowed; 3 undelivered batch(es) dropped since the last notice; re-read from your last position"}`
+before continuing (the count lives only in the message text, which kiroku documents as not
+a contract; the frame has no structured count field, so no consumer may parse it), and
+`{"type":"goodbye"}` when the scenario closes. The pgmq script sends
+`snapshot {queue, metrics, push:true}` then `update {source:"poll"}`, an
+`error {code:"overflow", message, queue: null}` (overflow is a connection-level error, so
+`queue` is `null`, exactly as pgmq-inspect's `ws-error.json` golden shows);
 the shibuya script sends `snapshot {metrics}`, `update {processor, metrics}`, `terminal`, and
 `error {code:"queue_overflow"}` followed by a fresh `snapshot`; the keiro script, for each of
 `workflows`, `timers`, `projection_groups`, sends `snapshot {feed, sequence:1, trigger:"subscribe", items}`
@@ -647,9 +681,9 @@ for an existing request before allocating.
 ## Interfaces and Dependencies
 
 Libraries whose choice matters: `msw` 3 (HTTP and WebSocket interception in Node and
-browser), `tsx` to run the recorder, `ws` for feed tests in Node, `process-compose` (host
-tool) for the stack, `just`, `curl`, `psql`, and the owning repositories' toolchains
-(`cabal`, `nix`).
+browser), `ws` for feed tests in Node, `process-compose` (host tool) for the stack, `just`,
+`curl`, `psql`, and the owning repositories' toolchains (`cabal`, `nix`). The recorder runs
+under `bun` directly.
 
 This plan owns and other plans consume: the fixture layout
 `packages/testing/fixtures/<surface>/<slug>.json` plus `_meta.json`; the manifests

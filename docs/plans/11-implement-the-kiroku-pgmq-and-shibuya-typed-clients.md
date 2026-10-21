@@ -16,6 +16,17 @@ provenance:
       at: 2026-10-21T15:56:48Z
       mode: "update"
       note: "Switch workspace tooling from pnpm to bun; vitest and Playwright kept on Node 22"
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T18:42:29Z
+      mode: "update"
+      note: "Round 2: align to owning-plan spellings, correct audited upstream facts, e2e layout, light theme where applicable"
+  reviews:
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T18:42:29Z
+      verdict: "changes-requested"
+      note: "Round 2 review against upstream trees and the owning plans; findings applied in the same pass"
 ---
 
 # Implement the kiroku, pgmq, and shibuya typed clients
@@ -134,37 +145,49 @@ This plan uses these exports and nothing else from it; if plan 10 shipped them u
 names, adapt at the import site and record the mapping in this plan's Decision Log rather
 than duplicating the functionality:
 
-- `createHttpClient({ baseUrl, fetch? })` from `packages/client-core/src/http.ts`:
-  `get(path, { query?, okStatuses? })` and `post(...)`, encoding query values (repeating a
-  key for arrays, serializing `bigint` as a decimal string) and parsing JSON losslessly.
-- `ApiError` and `normalizeError(surface, response, body)` from
+- `createHttpClient({ surface, baseUrl, fetch?, headers? })` from
+  `packages/client-core/src/http.ts`: `get(path, { query?, signal?, headers?, okStatuses? })`
+  and `post(path, { body?, query?, signal?, headers?, okStatuses? })`, encoding query values
+  (repeating a key for arrays, serializing `bigint` as a decimal string) and parsing JSON
+  losslessly; `okStatuses` lists non-2xx statuses whose body is returned instead of thrown
+  (the health routes pass `[200, 503]`).
+- `ApiError` and `normalizeError(surface, status, bodyText, headers)` from
   `packages/client-core/src/errors.ts`: one error class with `surface`, `status`, `code`,
-  `message`, `details`, built from the three envelopes on the wire — the nested
-  `{"error": {"code", "message", "details"?}}` (kiroku's new routes, pgmq), shibuya's flat
-  `{"error": "<text>", "code": "<snake_case>", ...context}`, and kiroku's legacy
-  `{"error": "<string>", ...context}` (mapped to code `legacy_error` with the string as the
-  message and any sibling keys as `details`).
+  `message`, `details`, `raw`, and `headers`, built from the three envelopes on the wire —
+  the nested `{"error": {"code", "message", "details"?}}` (kiroku's new routes, pgmq),
+  shibuya's flat `{"error": "<text>", "code": "<snake_case>", ...context}`, and kiroku's
+  legacy `{"error": "<string>", ...context}` (mapped to code `legacy_error` with the string
+  as the message and any sibling keys as `details`); non-JSON bodies become `http_<status>`
+  and network failures `network_error` with status 0.
 - `int64()` from `packages/client-core/src/int64.ts`: a zod schema accepting a JSON number
   or the `bigint` the lossless parser produced for out-of-range integers and always
-  producing a `bigint`.
-- `pageSchema(itemSchema, cursorSchema)` and `useCursorPages(...)` from
+  producing a `bigint` (branded `Int64`).
+- `pageSchema(itemSchema, cursorSchema, extraSchema?)` and
+  `useCursorPages({ surface, queryKey, fetchPage, enabled?, poll? })` from
   `packages/client-core/src/pages.ts`: `Page<T, Cursor>` is `{ items: T[]; nextCursor?: Cursor }`
   decoded from the wire's `{ "items": [...], "next_cursor"?: ... }` (absence of
   `next_cursor` is the end-of-data signal, never `null`), and the `useInfiniteQuery` adapter
-  echoes `nextCursor` back as the next request's `from` without touching it.
-- `Dialect` and `openFeed(dialect, { url, onFrame, onResync })` from
-  `packages/client-core/src/feed.ts`: the ADR-2 WebSocket core. A dialect names the
+  passes `nextCursor` to the caller's `fetchPage(cursor, signal)`, which is the only place
+  that knows the parameter is called `from`.
+- `Dialect` and `openFeed({ url, dialect, subscriptions?, onSnapshot, onDelta, onExtra?, onError?, onResync, onStatus?, WebSocket?, backoff? })`
+  from `packages/client-core/src/feed.ts`: the ADR-2 WebSocket core. A dialect names the
   subscribe and unsubscribe frame builders, the `snapshot`, delta (`update` or `event`),
-  `error`, `goodbye`, and `pong` frame types, and the error codes that mean "you missed
-  frames"; the core reconnects with backoff, pings, treats `goodbye` as a deliberate close,
-  and calls `onResync` on overflow codes so the owner can re-read the poll path.
-- `useSurfaceQuery(key, fetcher, options)`, `useFeedSubscription(dialect, applyToCache)`,
-  and `useLiveness()` from `packages/client-core/src/live.ts`: queries poll at the
-  surface's default interval, obey the global pause, and use the adaptive clamp; feed
-  subscriptions apply frames to the query cache and are torn down when liveness is paused.
-- `queryKeys` helpers from `packages/client-core/src/query-keys.ts`: a factory that
-  prefixes every key with the surface name so cache invalidation can be scoped per surface
-  (for example `queryKeys("kiroku").scope("streams", params)`).
+  `error`, `goodbye`, and `pong` frame types plus any `extra` types, and the error codes
+  that mean "you missed frames"; the core reconnects with backoff, treats `goodbye` as a
+  server-initiated close that still reconnects, and calls `onResync` on overflow codes and
+  after every reconnect so the owner can re-read the poll path.
+- `useSurfaceQuery(options)` (TanStack `UseQueryOptions` plus `surface` and an optional
+  `poll` override), `useFeedSubscription({ enabled?, url, dialect, subscriptions?, applyToCache, invalidate })`,
+  and `useLiveness()` returning `{ paused, pausedSince, pause, resume, refreshAll }` from
+  `packages/client-core/src/live.ts`: queries poll at the surface's default interval, obey
+  the global pause, and use the adaptive clamp; feed subscriptions apply frames to the query
+  cache, invalidate the `invalidate` key prefix on resync, and are torn down when liveness
+  is paused.
+- `queryKeys` and `surfaceKey` from `packages/client-core/src/query-keys.ts`: one factory
+  per surface that prefixes every key with the surface name so cache invalidation can be
+  scoped per surface (for example `queryKeys.kiroku("streams", params)` →
+  `["kiroku", "streams", params]`); `keyPart` turns a `bigint` into its decimal string for
+  keys.
 
 **Terms.** A *surface* is one project's HTTP+WebSocket inspection API. A *cursor* is the
 opaque value a page returns as `next_cursor` and the client sends back as `from`; its
@@ -218,15 +241,18 @@ Event JSON keeps its published camelCase keys (`eventId`, `eventType`, `streamVe
 `causationId`, `correlationId`, `createdAt`) plus the newer snake_case `original_stream_name`
 (nullable) — frozen by `mori://shinzui/kiroku/okf/adrs/concepts/ADR-9`, so the client never
 renames them. `/metrics`, `/metrics/<name>` (404 `{"error":"subscription not found","subscription":"<name>"}`),
-`/subscriptions` (404 `{"error":"subscription status not configured"}` when the host
-mounts no provider), and the `/ws` probe over plain HTTP use the legacy string envelope.
+`/subscriptions` (404 `{"error":"subscription status not configured"}` when an embedded
+host mounts no provider; the standalone `kiroku-inspect` does mount the live registry and
+answers `200 []`), and the `/ws` probe over plain HTTP use the legacy string envelope.
 WebSocket paths: `/ws/metrics` (a `snapshot {metrics}` on connect and then periodically;
 `subscribe_metrics` and `unsubscribe_metrics` exist) and `/ws/events` (idle until
 `subscribe_events {from_position?, category?}`; replies `event_stream_started {from_position}`
 then `event {event}` frames; `unsubscribe_events`; `error {message}` or `error {code, message}`
 with codes `replay_failed`, `category_read_failed`, `live_decode_failed`, and
-`event_stream_overflowed`, the last sent before surviving events with the exact dropped
-count; `ping` → `pong`; `goodbye` before a server-initiated close). Frames the server does
+`event_stream_overflowed`, the last sent before surviving events; its message text names
+the number of dropped *batches* but the frame carries no structured count and kiroku
+documents message text as not a contract, so the client exposes the frame and never parses
+the number; `ping` → `pong`; `goodbye` before a server-initiated close). Frames the server does
 not understand are silently ignored. Browser access is explicit and off by default
 (`mori://shinzui/kiroku/okf/adrs/concepts/ADR-16`) — irrelevant through the Vite proxy, which
 is same-origin, but it is why the live test suite talks to the port directly. The surface
@@ -358,7 +384,8 @@ route, and the contract tests pass against fixtures and the live server.
 
 Schemas (`packages/client-kiroku/src/schemas.ts`): `StreamInfo` (`stream_id: int64()`,
 `name`, `category`, `version: int64()`, `created_at`, `deleted_at: nullable`,
-`truncate_before: nullable int64()`), `KirokuEvent` (the camelCase keys above with
+`truncate_before: int64()` — never null; `0` means nothing truncated), `KirokuEvent` (the
+camelCase keys above with
 `streamVersion`, `globalPosition`, `originalVersion` as `int64()` and `original_stream_name`
 nullable; `payload` and `metadata` as `z.unknown()`; `.passthrough()` so unknown fields
 survive, per kiroku's "ignore unknown fields" rule), `DeadLetter` (`dead_letter_id: int64()`,
@@ -420,12 +447,15 @@ types give compile-time path and operation shapes (`paths["/queues/{queue}/messa
 which `src/client.ts` uses to type its request parameters and raw responses.
 
 Schemas (`packages/client-pgmq/src/schemas.ts`): `Queue`, `Message` (`msg_id: int64()`,
-`read_ct: number`, `enqueued_at`, `last_read_at: nullable`, `vt`, `message: unknown`,
-`headers: unknown`), `ArchivedMessage` (plus `archived_at`), `QueueMetrics`
-(`queue_length`, `queue_visible_length`, `total_messages` as `int64()`; the two ages as
-nullable `number`; `scrape_time`; `default_partition_length` nullable `int64()`),
-`TopicBinding`, `RoutingMatch`, `NotifyInsertThrottle`, `ServiceDescriptor`, `Liveness`,
-`Readiness {ready, checks: [{name, healthy, latency_ms, error}]}`, and
+`read_ct: int64()` — the OpenAPI document types it `int64` like `msg_id`, and the parity
+test cannot see a type mismatch, so the schema follows the document even though the value
+is a small attempt counter — `enqueued_at`, `last_read_at: nullable`, `vt`,
+`message: unknown`, `headers: unknown`), `ArchivedMessage` (plus `archived_at`),
+`QueueMetrics` (`queue_length`, `queue_visible_length`, `total_messages` as `int64()`; the
+two ages as nullable `number`; `scrape_time`; `default_partition_length` nullable
+`int64()`), `TopicBinding`, `RoutingMatch`, `NotifyInsertThrottle`
+(`throttle_interval_ms: number`, an `int32`), `ServiceDescriptor`, `Liveness`,
+`Readiness {ready, checks: [{name, healthy, latency_ms: nullable int64(), error}]}`, and
 `PgmqMessageCursor` (branded `bigint`). A parity test
 (`packages/client-pgmq/test/openapi-parity.test.ts`) loads the OpenAPI document, and for
 each component schema with a zod counterpart asserts that the set of `required` property
@@ -519,16 +549,27 @@ snapshot — the dialect still calls `onResync` so the owning query refetches `/
 exports zod schemas for its server frames and parses before dispatch; unknown frame types
 are ignored, per the convention.
 
-Hooks: `useKirokuEventTail({ fromPosition, category?, limit = 500 })` keeps a bounded
-ring of events in the cache under `queryKeys("kiroku").scope("tail", {category, fromPosition})`,
-appending each `event` frame, and on overflow re-reads `/events?from=<last seen globalPosition>`
-(or `/categories/<c>/events`) forward until the cursor is absent, then re-subscribes from the
-new head; `useKirokuMetricsFeed()` writes each snapshot into the key behind
-`useKirokuMetrics()`; `usePgmqQueueMetricsFeed(queue)` writes `snapshot` and `update`
-metrics into the key behind `usePgmqQueueMetrics(queue)` and refetches on `overflow`;
-`useShibuyaProcessorsFeed()` writes `snapshot` into the key behind `useShibuyaProcessors()`,
-merges each `update` by processor id, and applies `terminal` by setting that processor's
-`state` to `{status: "stopped"}` or `{status: "failed", error, timestamp: now}`. Every feed
+Hooks (these signatures are the contract plans 13, 14, 16, and 17 consume; change them
+only together with those plans):
+`useKirokuEventTail({ enabled?, fromPosition, category?, limit = 500, onOverflow?, onError? })`
+keeps a bounded ring of events in the cache under
+`queryKeys.kiroku("tail", {category, fromPosition})`, appending each `event` frame; on
+`event_stream_overflowed` it calls `onOverflow(frame)` (the frame's `message` is for
+display only), re-reads `/events?from=<last seen globalPosition>` (or
+`/categories/<c>/events`) forward until the cursor is absent, then re-subscribes from the
+new head; it calls `onError(frame)` for the other coded errors and returns
+`{ status: "idle" | "connecting" | "live" | "reconnecting" | "error", events: KirokuEvent[] }`.
+`useKirokuMetricsFeed()` writes each snapshot into the key behind `useKirokuMetrics()` and
+returns `{ status }`. `usePgmqQueueMetricsFeed(queue)` writes `snapshot` and `update`
+metrics into the key behind `usePgmqQueueMetrics(queue)` (screens read the metrics from
+that query), refetches on `overflow`, and returns
+`{ status, source?: "poll" | "notify", push?: boolean }` taken from the last frame.
+`useShibuyaProcessorsFeed()` writes `snapshot` into the key behind
+`useShibuyaProcessors()`, merges each `update` by processor id, applies `terminal` by
+setting that processor's `state` to `{status: "stopped"}` or
+`{status: "failed", error, timestamp: now}`, and returns
+`{ status, terminal: Record<string, {status: "stopped" | "failed", error?: string, messageId: string | null}>, receivedAt: Record<string, number> }`
+so screens can group terminal processors and extrapolate in-flight ages between frames. Every feed
 hook is built on `useFeedSubscription`, so it is torn down when liveness is paused and
 re-established on resume with a fresh snapshot.
 
@@ -575,11 +616,11 @@ in pgmq's extra `generate` script and dev dependency):
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "smoke": "node --experimental-strip-types scripts/smoke.ts"
+    "smoke": "bun scripts/smoke.ts"
   },
   "dependencies": {
     "@keiro-ui/client-core": "workspace:*",
-    "zod": "^4"
+    "zod": "4.6.7"
   },
   "peerDependencies": {
     "@tanstack/react-query": "^5",
@@ -587,6 +628,9 @@ in pgmq's extra `generate` script and dev dependency):
   }
 }
 ```
+
+(`dependencies` are pinned exactly, per the workspace rule EP-7 set, to the versions EP-7
+recorded; peer ranges stay ranges by convention.)
 
 Bring in the pgmq OpenAPI document and generate types:
 
@@ -636,7 +680,7 @@ Expected first lines of the kiroku smoke script:
 
 ```text
 kiroku-metrics 0.3.0.1 at http://127.0.0.1:9091
-routes: metrics=true prometheus=true health=true subscriptions_live=false subscriptions_checkpoints=true dead_letters=true browse=true websocket_metrics=true websocket_events=true
+routes: metrics=true prometheus=true health=true subscriptions_live=true subscriptions_checkpoints=true dead_letters=true browse=true websocket_metrics=true websocket_events=true
 store head: 4211
 ```
 

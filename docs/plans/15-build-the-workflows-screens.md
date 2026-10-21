@@ -16,6 +16,17 @@ provenance:
       at: 2026-10-21T15:56:48Z
       mode: "update"
       note: "Switch workspace tooling from pnpm to bun; vitest and Playwright kept on Node 22"
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T18:42:29Z
+      mode: "update"
+      note: "Round 2: align to owning-plan spellings, correct audited upstream facts, e2e layout, light theme where applicable"
+  reviews:
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T18:42:29Z
+      verdict: "changes-requested"
+      note: "Round 2 review against upstream trees and the owning plans; findings applied in the same pass"
 ---
 
 # Build the Workflows screens
@@ -155,12 +166,16 @@ a primitive this plan needs that is missing from `packages/ui` is added there wi
 provides, under `apps/console/src/`: the route tree layout with one directory per section
 (this plan's routes go in the Workflows section directory the shell established, expected
 to be `apps/console/src/routes/_shell/workflows/`; follow whatever directory the shell
-actually created), `shell/navigation.ts` (rail sections and sidebar entries that this plan
-extends), `shell/commands.ts` (`useRegisterCommands` and the recents store fed by
-`useRecordVisit`), `shell/right-sheet.tsx` (`registerSheet(kind, Component)` and
-`useRightSheet().open({kind, ref})`, mirrored to the `sheet` search parameter),
-`lib/links.ts` (typed route builders — every cross-entity hyperlink goes through them),
-and `lib/format.ts` (relative time, durations, bigint display). The keiro client
+actually created), `shell/navigation.ts` (rail sections and sidebar entries; this plan
+adds its presets through `registerFeature` in `shell/features.ts`, never by editing the
+file), `shell/commands.ts` (`useRegisterCommands` for static entries; the parsed
+`workflow <name>/<id>` jump already exists in the shell's `jumpParsers`), `shell/recent.ts`
+(`useRecordVisit({kind, label, href})`, the recents store), `shell/right-sheet.tsx`
+(`registerSheet(kind, Component)` and `useRightSheet().open({kind, ref})`, mirrored to the
+`sheet` search parameter), `lib/links.ts` (typed route builders — every cross-entity
+hyperlink goes through them; `links.workflow(name, id)` takes positional strings), and
+`lib/format.ts` (`formatRelativeTime`, `formatDuration`, `formatInt`,
+`formatTimestamp`). The keiro client
 (docs/plans/12-implement-the-keiro-typed-client.md) is `@keiro-ui/client-keiro`, built on
 `@keiro-ui/client-core` (docs/plans/10-...): `createKeiroClient({baseUrl})` exposes the
 `workflows` namespace (`list`, `header`, `journal`, `steps`, `children`, `awakeables`),
@@ -174,7 +189,10 @@ pause/resume state the bottom bar controls). Fixtures and mock handlers come fro
 recorded keiro responses under `packages/testing/fixtures/keiro/` and scripted feed frames
 in `packages/testing/src/feeds/keiro.ts`.
 
-**The wire contract this screen consumes** (keiro-ops-http 0.21.0.0, audited 2026-10-21;
+**The wire contract this screen consumes** (keiro-ops-http 0.21.0.0 in tree, audited
+2026-10-21 at commit `5893c7eb`; keiro's release plan publishes the cohort as 0.22.0.0, and
+its MasterPlan 46 replaces the default-order list cursor kind before release — old tokens
+then fail closed as `invalid_cursor`, which this screen already handles by clearing `after`;
 routes are generated from the keiro-ops command grammar in
 `keiro-ops/src/Keiro/Ops/Workflow.hs`, JSON in `keiro/src/Keiro/Workflow/Inspection.hs`,
 per `mori://shinzui/keiro/okf/adrs/concepts/ADR-53`). All are GET and reached under the
@@ -192,10 +210,11 @@ where each item has `workflow_id`, `workflow_name`, `generation`, `status`, `sta
 (defaults to the current one), `limit`, `after` and return pages that additionally carry
 `generation`; a journal entry has `event_id` (UUID text), `event_type`, `stream_version`,
 `global_position`, `step_name`, `recorded_at`, `payload`; a step row has `step`, `result`,
-`recorded_at`. Terminal journal entries (completed, cancelled, failed, continued-as-new)
-carry synthetic step names and, for failures, the reason as payload; the exact
-`event_type` strings are those of `workflowJournalCodec` in keiro — read them from the
-recorded fixtures rather than guessing. `.../children/{NAME}/{ID}` and
+`recorded_at`. Terminal journal entries carry synthetic step names
+(`__workflow_completed__`, `__workflow_cancelled__`, `__workflow_failed__`, and the
+continued-as-new marker) and, for failures, the reason as payload; the exact `event_type`
+strings are those of `workflowJournalCodec` in keiro — read them from the recorded fixtures
+rather than guessing. `.../children/{NAME}/{ID}` and
 `.../awakeables/{NAME}/{ID}` take `limit` and `after`; a child row has `child_id`,
 `child_name`, `parent_id`, `parent_name`, `await_step`, `status`, `result`,
 `failure_reason`, timestamps; an awakeable row has `awakeable_id`, `owner_workflow_name`,
@@ -207,10 +226,13 @@ the codes this screen must render are `invalid_cursor` and `invalid_page_size` (
 `inspection_busy` (503), `inspection_timeout` (504). `global_position` is an int64 and
 arrives from the client as `bigint`.
 
-**The live feed.** keiro-ops-http serves `/keiro/ws` (`keiro-ops-http/src/Keiro/Ops/Protocol.hs`
-and `Views.hs`; guide `docs/guides/stream-keiro-inspection-views.md` in keiro). The client
-sends `{"type":"subscribe","feed":"workflows","status_class":[...],"workflow_name":"...","limit":100}`
-(only those three filter fields exist; selecting all seven classes is the same as none).
+**The live feed.** keiro-ops-http serves `/keiro/ws` (`keiro-ops-http/src/Keiro/Ops/Http/Protocol.hs`
+and `keiro-ops-http/src/Keiro/Ops/Http/Views.hs`; guide
+`docs/guides/stream-keiro-inspection-views.md` in keiro). The client sends
+`{"type":"subscribe","feed":"workflows","status_class":[...],"workflow_name":"...","limit":100}`
+(only those three filter fields exist; selecting all seven classes is the same as none, and
+an **empty** `status_class` array is refused with `invalid_subscription`, so the key is
+omitted when no chip is selected — the keiro client's subscribe builder does this).
 The server replies `snapshot {feed, sequence, trigger, observed_at, items}` and thereafter
 `update {feed, sequence, trigger, observed_at, changed, removed}` where `changed` holds full
 items to upsert by `{workflow_name, workflow_id}` and `removed` holds key objects of items
@@ -267,10 +289,12 @@ filters" link rather than a blank page.
 
 `queries.ts` exports `workflowListOptions(search)` built on `keiroKeys.workflows.list(search)`
 and `client.workflows.list(search)`, consumed through `useSurfaceQuery` so the adaptive
-polling interval and the global pause apply; and `workflowPagesOptions(search)` through
-`useCursorPages` for forward paging. Paging is forward-only on the server (there is no
-previous cursor); the UI keeps the visited cursor chain in component state so "previous"
-works within a session and the URL always holds the cursor of the page being viewed.
+polling interval and the global pause apply; the search object includes `after`, so each
+page is its own cache entry keyed by the URL (the client core's `useCursorPages` is the
+"load more" adapter and is used only by the detail tabs in M2 and M3). Paging is
+forward-only on the server (there is no previous cursor); the UI keeps the visited cursor
+chain in component state so "previous" works within a session and the URL always holds the
+cursor of the page being viewed.
 
 `WorkflowFilters.tsx` renders the seven status classes as toggle chips (a chip per class,
 all off meaning all classes), a workflow-name field with submit-on-enter, two
@@ -280,7 +304,7 @@ change navigates with the new search params and drops `after`, because a cursor 
 valid for the query that produced it.
 
 `WorkflowTable.tsx` shows one row per instance: name and id (the id links to the detail
-route via `links.workflow({name, id})`), `StatusClassBadge` (class as the label, raw
+route via `links.workflow(name, id)`), `StatusClassBadge` (class as the label, raw
 status and attempts in its tooltip), generation, attempts, `last_error` truncated to one
 line with the full text in a tooltip, "next attempt" and "wake after" as relative times
 (absolute in the tooltip), `leased_by` with the lease expiry, and created/updated/completed
@@ -288,12 +312,14 @@ columns. An "as of" caption shows the page's `observed_at` and whether the feed 
 connected, polling, or paused. Rows that the feed removed from page one fade out with a
 quiet "moved off this page" notice rather than vanishing.
 
-`feed.ts` subscribes with `useWorkflowsFeed({status_class, workflow_name, limit})` only
-while the list is on page one (`after` absent) and liveness is not paused, and applies each
-frame to the list query's cache with the keiro client's merge function (snapshot replaces
-`items` and `observed_at`; update upserts `changed` by key and deletes `removed`). The
-feed's `onResync` (fired on `queue_overflow`, a sequence gap, or reconnect) invalidates
-the list query so the poll path re-reads. Time-window filters are not part of the feed
+`feed.ts` calls `useWorkflowsFeed({status_class, workflow_name, limit}, {enabled})` with
+`enabled` true only while the list is on page one (`after` absent) and liveness is not
+paused (an empty `status_class` is passed as `undefined`, never `[]`); the hook itself
+applies each frame to the `keiroKeys.workflows.list(filters)` cache entry with the keiro
+client's `mergeFeedFrame` (snapshot replaces `items` and `observed_at`; update upserts
+`changed` by key and deletes `removed`) and invalidates that query on `queue_overflow`, a
+sequence gap, or reconnect so the poll path re-reads. This plan supplies only the
+`enabled` rule and renders the hook's `status`. Time-window filters are not part of the feed
 subscription (the feed accepts only class, name, and limit), so when any time window is
 set the list is poll-only and the caption says so.
 
@@ -318,8 +344,9 @@ loads `client.workflows.header(name, id)` through `useSurfaceQuery` and renders
 `generation` is above 0, listing 0..current and navigating by setting `generation`),
 attempts, `last_error` in full, lease, wake and next-attempt times, and the three
 timestamps. A `command_failed` error for an unknown instance renders a "no such workflow"
-state with a link back to the list. Visiting the route calls `useRecordVisit` with the
-instance's name and id so it appears in recents.
+state with a link back to the list. Visiting the route calls
+`useRecordVisit({kind: "workflow", label: "<name>/<id>", href})` so the instance appears
+in recents.
 
 The Journal tab uses `useCursorPages` over `client.workflows.journal(name, id, {generation, limit, after})`
 with a "load more" control and renders `WorkflowTimeline`: entries in stream-version order,
@@ -341,13 +368,13 @@ Children, and Awakeables tabs with their links.
 `JournalEntrySheet.tsx` registers sheet kind `journal-entry` with reference
 `<name>/<id>/<event_id>` (URL-safe; the sheet reopens on reload from the `sheet` search
 parameter). It shows the entry's step name, event type, recorded time, stream version,
-global position, and payload as JSON, with links built through `links`: "open in the $all
-log" to the events route positioned so the entry is the first row (`links.allEvents({from: global_position - 1n})`;
-the exact builder name is whatever docs/plans/13 established — if that plan is not complete,
-define the builder in `lib/links.ts` here and reconcile), and "open event" to the event
-detail by `event_id`. The payload viewer is the `JsonViewer` from docs/plans/13; if that
-plan is not yet complete, ship a minimal `JsonViewer` in this feature's components and
-replace it when the shared one lands (note the swap in this plan's Progress).
+global position, and payload as JSON, with links built through `links` (all declared by
+the shell plan): "open in the $all log" to the events route positioned so the entry is the
+first row (`links.allEvents({from: String(globalPosition - 1n)})` — URL parameters are
+strings), and "open event" to the event detail by `event_id` (`links.event(eventId)`). The
+payload viewer is `JsonViewer` from `apps/console/src/components/JsonViewer.tsx`
+(docs/plans/13); if that plan is not yet complete, ship a minimal `JsonViewer` at that same
+path and let EP-13 replace it (note the swap in this plan's Progress).
 
 `segments.ts` derives, from a journal page and the header, the span between consecutive
 entries (`recorded_at[n] - recorded_at[n-1]`), the "time to first step" (`created_at` to
@@ -360,7 +387,7 @@ page boundary are computed only when both entries are loaded.
 The Steps tab renders `StepsTable` over `client.workflows.steps` (same generation and
 paging rules as the journal) with `step`, `result` (JSON, expandable), `recorded_at`. The
 Children tab renders `ChildrenTable` over `client.workflows.children`: child name and id
-linking to `links.workflow({name: child_name, id: child_id})`, `await_step`, status badge,
+linking to `links.workflow(child_name, child_id)`, `await_step`, status badge,
 `result`, `failure_reason`, timestamps. The Awakeables tab renders `AwakeablesTable` over
 `client.workflows.awakeables`: id, status, payload (JSON), timestamps. Both are
 cursor-paged with "load more".
@@ -370,13 +397,15 @@ cursor-paged with "load more".
 Scope: the section is reachable everywhere the shell allows, and the Playwright suite
 covers the operator journeys.
 
-`navigation.ts` registers the Workflows rail section's sidebar entries: "All workflows"
-(`/workflows`), presets "Running", "Retrying", "Failed" (each a link with the matching
-`status_class` preset), and the recents list for this section (fed by `useRecordVisit`).
-It registers palette commands: `workflows` (opens the list), `workflows <status_class>`
-(opens the list with that class), and the parsed command `workflow <name>/<id>` (navigates
-to the detail; the parser accepts `name/id` and `name id`). The Playwright suite in
-`apps/console/e2e/workflows.spec.ts` runs against MSW by default and covers: filters
+`navigation.ts` exports `registerWorkflowsFeature()`, one `registerFeature` call (wired
+into `apps/console/src/features/index.ts`) that adds the section's sidebar presets
+"Running", "Retrying", "Failed" (each a link with the matching `status_class` preset; "All
+workflows" is the shell's own page entry), the recents group for this section (fed by
+`useRecordVisit`), the `journal-entry` sheet, and the static palette commands "Workflows"
+and one "Workflows: <class>" entry per status class. The parsed command
+`workflow <name>/<id>` is the shell's (`jumpParsers`); this plan verifies it. The
+Playwright suite in `apps/console/e2e/workflows/workflows.spec.ts` runs against MSW by
+default and covers: filters
 round-trip through the URL (set chips and a time window, reload, see them restored);
 paging forward and back; the detail tabs switching via the URL; the journal-entry sheet
 reopening after reload; a feed update changing a row's badge without reload (using the
@@ -404,11 +433,11 @@ fixture is missing, record it with the recorder (`bun run --filter @keiro-ui/tes
 against the live stack) rather than hand-writing JSON.
 
 Add any missing UI primitives to the owned component package (the badge, tooltip, tabs,
-table, sheet, and toggle-group are expected to exist from earlier plans; `kbd` and
-`scroll-area` may not):
+table, sheet, toggle-group, kbd, and scroll-area are all in plan 7's initial set; run this
+only for a name absent from `packages/ui/src/components/`):
 
 ```bash
-cd packages/ui && bunx shadcn@latest add kbd scroll-area && cd ../..
+cd packages/ui && bunx shadcn@latest add toggle-group kbd scroll-area && cd ../..
 git status --short packages/ui
 ```
 
@@ -466,10 +495,10 @@ that moved.
 Run the end-to-end suite (M4):
 
 ```bash
-bun run test:e2e -- workflows
+bun run test:e2e -- e2e/workflows
 ```
 
-Expected: every test in `apps/console/e2e/workflows.spec.ts` passes against the mock
+Expected: every test in `apps/console/e2e/workflows/workflows.spec.ts` passes against the mock
 service worker; with `KEIRO_UI_LIVE=1` and the stack up, the smoke subset also passes
 against the real surface.
 
@@ -499,7 +528,7 @@ opens that child's detail.
 
 M4 is accepted when: the rail highlights Workflows on these routes; the sidebar shows the
 presets and recents (a visited instance appears at the top); ⌘K with `workflow <name>/<id>`
-navigates to the detail; and `bun run test:e2e -- workflows` passes in mock mode.
+navigates to the detail; and `bun run test:e2e -- e2e/workflows` passes in mock mode.
 
 Required acceptance ends there. Proposals for later scope, not required here: a journal
 diff between two generations; a "stuck" lens combining `retrying` with `next_attempt_at`
@@ -537,9 +566,10 @@ Consumed interfaces (full module paths): from `@keiro-ui/client-keiro`:
 `mergeFeedFrame(page, frame)`, and `keiroKeys.workflows`; from
 `@keiro-ui/client-core`: `useSurfaceQuery`, `useCursorPages`, `useLiveness`, `ApiError`,
 `Page`; from `apps/console/src/shell/*`: `registerSheet`, `useRightSheet`,
-`useRegisterCommands`, `useRecordVisit`, the navigation registry; from
-`apps/console/src/lib/links.ts` and `lib/format.ts`: `links.workflow`, `links.allEvents`,
-`links.event`, `formatRelative`, `formatDuration`, `formatBigInt`.
+`registerFeature`, `useRegisterCommands`, `useRecordVisit` (from `shell/recent.ts`); from
+`apps/console/src/lib/links.ts` and `lib/format.ts`: `links.workflow(name, id)`,
+`links.allEvents(search)`, `links.event(id)`, `formatRelativeTime`, `formatDuration`,
+`formatInt`, `formatTimestamp`.
 
 Provided interfaces (for docs/plans/16, 17, and 19): `StatusClassBadge` and
 `WorkflowTimeline` exported from `apps/console/src/features/workflows/components/`;

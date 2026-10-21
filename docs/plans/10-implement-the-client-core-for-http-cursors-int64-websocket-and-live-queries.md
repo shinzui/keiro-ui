@@ -16,6 +16,17 @@ provenance:
       at: 2026-10-21T15:56:48Z
       mode: "update"
       note: "Switch workspace tooling from pnpm to bun; vitest and Playwright kept on Node 22"
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T18:42:29Z
+      mode: "update"
+      note: "Round 2: align to owning-plan spellings, correct audited upstream facts, e2e layout, light theme where applicable"
+  reviews:
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T18:42:29Z
+      verdict: "changes-requested"
+      note: "Round 2 review against upstream trees and the owning plans; findings applied in the same pass"
 ---
 
 # Implement the client core for HTTP, cursors, int64, WebSocket, and live queries
@@ -209,8 +220,9 @@ needs the structural names):
 
 ```text
 surface  path(s)                 client frames                                   server frames                                                  overflow code / resync rule
-kiroku   /ws/events              subscribe_events{from_position?,category?},     event_stream_started{from_position}, event{event},             event_stream_overflowed (error frame
-                                 unsubscribe_events, ping                        error{message} or error{code,message}, goodbye, pong           carries the dropped count)
+kiroku   /ws/events              subscribe_events{from_position?,category?},     event_stream_started{from_position}, event{event},             event_stream_overflowed (the message
+                                 unsubscribe_events, ping                        error{message} or error{code,message}, goodbye, pong           text names a dropped batch count;
+                                                                                                                                                no structured field, never parse it)
 kiroku   /ws/metrics             (snapshot sent on connect), subscribe_metrics,  snapshot{metrics}, goodbye, pong                               none; reconnect = resync
                                  unsubscribe_metrics, ping
 shibuya  /ws                     subscribe_all, subscribe{processors},            snapshot{metrics}, update{processor,metrics},                  queue_overflow (a fresh snapshot
@@ -279,6 +291,12 @@ of status 404 and code `queue_not_found`.
 
 `src/surface.ts` exports `type Surface = "kiroku" | "pgmq" | "shibuya" | "keiro"` and
 `const surfaces: readonly Surface[]`.
+
+The signatures in this plan's Interfaces and Dependencies section are the contract the
+client plans (`docs/plans/11-...` and `docs/plans/12-...`) and every screen plan restate
+verbatim; when this package's implementation must deviate, change this section first and
+cascade the spelling to those plans in the same commit rather than letting them adapt
+silently.
 
 `src/int64.ts` comes first because `http.ts` depends on it. `parseJsonLossless(text)`
 parses a JSON document so that integer literals that do not fit a safe integer become

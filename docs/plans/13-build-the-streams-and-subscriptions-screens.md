@@ -16,6 +16,17 @@ provenance:
       at: 2026-10-21T15:56:48Z
       mode: "update"
       note: "Switch workspace tooling from pnpm to bun; vitest and Playwright kept on Node 22"
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T18:42:29Z
+      mode: "update"
+      note: "Round 2: align to owning-plan spellings, correct audited upstream facts, e2e layout, light theme where applicable"
+  reviews:
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T18:42:29Z
+      verdict: "changes-requested"
+      note: "Round 2 review against upstream trees and the owning plans; findings applied in the same pass"
 ---
 
 # Build the Streams and Subscriptions screens
@@ -190,11 +201,13 @@ The live tail protocol on `/ws/events`: the client sends
 the server answers `{"type":"event_stream_started","from_position":N}` and then one
 `{"type":"event","event":{...}}` per event; `{"type":"ping"}` gets `{"type":"pong"}`;
 `{"type":"unsubscribe_events"}` stops the tail; the server sends `{"type":"goodbye"}` before
-closing; errors are `{"type":"error","code":"...","message":"..."}` with codes
-`replay_failed`, `category_read_failed`, `live_decode_failed`, and
-`event_stream_overflowed`, the last of which is sent *before* the surviving events and carries
-the exact number dropped in its message. Sending a new `subscribe_events` restarts the tail
-from the new position. The protocol's structure is the cross-project convention of
+closing; errors are `{"type":"error","code":"...","message":"..."}` (or the older uncoded
+`{"type":"error","message":"..."}`, which the client tolerates) with codes `replay_failed`,
+`category_read_failed`, `live_decode_failed`, and `event_stream_overflowed`, the last of
+which is sent *before* the surviving events; its message text mentions how many undelivered
+*batches* were dropped, but the frame has no structured count and kiroku documents message
+text as not a contract, so the console shows the message and never parses it. Sending a new
+`subscribe_events` restarts the tail from the new position. The protocol's structure is the cross-project convention of
 `docs/adr/0002-websocket-inspection-protocol-convention.md`; the client core wraps it so this
 plan only consumes a hook.
 
@@ -220,13 +233,18 @@ cursor pager, the position badge, the live-tail controls) live under
 
 **Shell contracts this plan consumes** (all under `apps/console/src/`, owned by plan 8):
 `shell/navigation.ts` declares the rail sections and each section's sidebar entries;
-`shell/commands.ts` exports `useRegisterCommands` (palette entries, including parsed "go to
-entity" commands) and `useRecordVisit` (feeds the recent-entities store the sidebar and
-palette show); `shell/right-sheet.tsx` exports `registerSheet(kind, Component)` and
-`useRightSheet()`, and mirrors the open sheet to the `sheet` search parameter that
-`_shell.tsx` validates for every child route; `lib/links.ts` exports the typed route builders
-used for every cross-entity link; `lib/format.ts` exports `relativeTime`, `duration`,
-`bigint` (grouped digits), and `formatPositionDistance(head, position)`, the console-wide
+`shell/commands.ts` exports `useRegisterCommands` for static palette entries and already
+owns the parsed `stream <name>`, `category <name>`, `event <uuid>`, and
+`subscription <name>` jump commands (its `jumpParsers` table), so this plan verifies them
+rather than re-registering them; `shell/recent.ts` exports `useRecordVisit({kind, label, href})`,
+which feeds the recent-entities store the sidebar and palette show;
+`shell/right-sheet.tsx` exports `registerSheet(kind, Component)` and `useRightSheet()`,
+and mirrors the open sheet to the `sheet` search parameter that `_shell.tsx` validates for
+every child route; `shell/features.ts` exports `registerFeature`, through which this plan's
+`registerStreamsFeature()` adds its sheet, sidebar presets, and static commands;
+`lib/links.ts` exports the typed route builders used for every cross-entity link;
+`lib/format.ts` exports `formatRelativeTime`, `formatDuration`, `formatInt` (grouped digits
+for `bigint` and `number`), and `formatPositionDistance(head, position)`, the console-wide
 label for "how far behind the head". The keyboard contract is fixed there too: Escape closes
 the right sheet.
 
@@ -235,11 +253,12 @@ the right sheet.
 interval), `useCursorPages` (one page at a time by cursor, echoing cursors untouched),
 `useLiveness` (the console-wide pause/resume/refresh state), and `ApiError` (the normalized
 error with `surface`, `status`, `code`, `message`, `details`). `@keiro-ui/client-kiroku`
-(plan 11) provides `createKirokuClient({baseUrl})` with the namespaces `streams`,
-`categories`, `events`, `subscriptions`, `metrics`, and `capabilities`; `useKirokuClient()`
-bound to the active connection profile; `useKirokuEventTail(...)`, the `/ws/events`
-subscription layered on the poll path; and `useKirokuMetricsFeed()` for `/ws/metrics`. The
-exact signatures are listed under Interfaces and Dependencies.
+(plan 11) provides `createKirokuClient({baseUrl})` with `capabilities()` and the namespaces
+`streams`, `categories`, `events`, `subscriptions`, `checkpoints`, `deadLetters`, `metrics`,
+and `health`; `useKirokuClient()` bound to the active connection profile;
+`useKirokuEventTail(...)`, the `/ws/events` subscription layered on the poll path; and
+`useKirokuMetricsFeed()` for `/ws/metrics`. The exact signatures are listed under
+Interfaces and Dependencies and are plan 11's contract, not this plan's guess.
 
 **ADR context.** Locally: `docs/adr/0003-push-is-a-hint-poll-is-truth.md` — the `$all` tail
 is poll-first; the WebSocket feed only shortens latency, and an overflow error means re-read
@@ -248,8 +267,9 @@ from the last position seen, never assume the stream was complete.
 redrive is stated as unavailable, not hidden. `docs/adr/0008-shadcn-ui-on-the-react-aria-base-is-the-console-component-library.md`
 — the import boundary above. Cross-repository, cited by Mori handle:
 `mori://shinzui/kiroku/okf/adrs/concepts/ADR-17` — stream browsing orders by name bytes
-through one shared name index, which is why `/streams` and `/categories` sort by byte order
-rather than locale, and why the list cursor is a name; `mori://shinzui/kiroku/okf/adrs/concepts/ADR-18`
+through one shared name index, which is why `/streams` and its prefix filter sort by byte
+order rather than locale (category enumeration deliberately keeps the database's own
+collation order), and why the list cursor is a name; `mori://shinzui/kiroku/okf/adrs/concepts/ADR-18`
 — the surface is composable and self-describing: `/capabilities` says which routes a host
 mounted, and the screens degrade to "not mounted here" instead of failing;
 `mori://shinzui/kiroku/okf/adrs/concepts/ADR-9` — published wire shapes are frozen, so the
@@ -278,14 +298,18 @@ introduces the components the others reuse.
 every cursor kept as a **string** in the URL (global positions and stream versions can exceed
 the safe integer range, so they are converted to `bigint` only when calling the client).
 Create `apps/console/src/features/streams/queries.ts` with hooks that wrap the kiroku client
-in `useSurfaceQuery`/`useCursorPages` and the query-key factory for the `kiroku` surface. Add
+in `useSurfaceQuery` — one page per query, keyed by the URL's cursor, because every list in
+this section keeps its cursor in the URL; the client core's `useCursorPages` is the
+"load more" adapter and is not used here — and the query-key factory for the `kiroku`
+surface. Add
 the route files `apps/console/src/routes/_shell/streams/index.tsx` (`/streams`) and
 `apps/console/src/routes/_shell/streams/$name.tsx` (`/streams/$name`). The list page renders
 a `table` from `@keiro-ui/ui/components/table` with columns name, category, version,
 created, deleted (a "deleted" badge when `deleted_at` is set), a filter bar bound to the
 `category` and `prefix` search parameters, and the shared `CursorPager`. The detail page
 renders a `StreamInfo` header (name, category, head version, created, deleted, and a note
-"events before version N truncated" when `truncate_before` is set), a direction toggle
+"events before version N truncated" when `truncate_before` is greater than zero — the field
+is always present and `0` means nothing was truncated), a direction toggle
 bound to the `direction` search parameter, and an events table (version, type, global
 position, created, causation) whose rows open the event sheet. Create the shared components:
 `apps/console/src/components/JsonViewer.tsx` (collapsible tree with raw/pretty toggle and a
@@ -315,10 +339,11 @@ with the category filter, and shows a link "Browse history of <name>" to `/categ
 (see Decision Log). Implement the tail in `apps/console/src/features/streams/EventTail.tsx`:
 it calls `useKirokuEventTail` with `enabled` tied to `useLiveness().paused === false` and to
 the initial read having succeeded, `fromPosition` set to the highest global position
-currently shown (echoed back untouched), and `category` from the URL; on each `event` frame it
+currently shown (echoed back untouched), and `category` from the URL; on each new event in the hook's `events` ring it
 prepends the event with a brief highlight; on `event_stream_overflowed` it shows the notice
-"N events dropped — reloading", re-reads the newest page through the poll path, and the
-hook re-subscribes from the new highest position; on `replay_failed`, `category_read_failed`,
+"events were dropped — reloading" with the server's message text beneath it (never a parsed
+number), re-reads the newest page through the poll path, and the hook re-subscribes from
+the new highest position; on `replay_failed`, `category_read_failed`,
 or `live_decode_failed` it shows a toast (`@keiro-ui/ui/components/sonner`) and keeps
 polling; on pause it unsubscribes and the poll stops; on resume it refetches and
 re-subscribes. The baseline poll of the newest page keeps running on the surface's adaptive
@@ -339,17 +364,18 @@ visit with `useRecordVisit`.
 
 **M4 — Subscriptions checkpoint dashboard and dead letters.** Add
 `apps/console/src/routes/_shell/subscriptions/index.tsx` (`/subscriptions`). Its truth is
-`subscriptions.checkpoints()`: group rows by subscription, show each member's
+`checkpoints.inventory()`: group rows by subscription, show each member's
 `checkpoint_position`, `updated_at` (relative), and the distance to `store_position`
 rendered with `format.formatPositionDistance(storePosition, checkpointPosition)`; show the
 store head itself in the page header. Annotate each row with the live registry
 (`subscriptions.live()`) when available — phase and process-local `global_position` under a
-"process-local" badge — and, when that route answers 404 with the legacy envelope, show the
-muted note "live registry not configured on this surface" instead of an error. Add a
-metrics card from `metrics.get()` for each subscription (`last_known_position`, `lag`
-displayed as "positions behind head" with the wire name in a tooltip, `db_error_count`,
-`last_stop_reason`), again degrading to a note when `/metrics` is not mounted (check
-`capabilities.get()`). Add
+"process-local" badge — and, when that route answers 404 with the legacy envelope (an
+embedded host without a status provider; the standalone `kiroku-inspect` mounts the
+registry and answers `200 []`), show the muted note "live registry not configured on this
+surface" instead of an error. Add a metrics card from `metrics.all()` for each subscription
+(`last_known_position`, `lag` displayed as "positions behind head" with the wire name in a
+tooltip, `db_error_count`, `last_stop_reason`), again degrading to a note when `/metrics`
+is not mounted (check `capabilities()`). Add
 `apps/console/src/routes/_shell/subscriptions/$name.tsx` (`/subscriptions/$name`): the
 subscription's checkpoint rows at the top and its dead letters below, cursor-paged with the
 `member` filter in the URL, columns created, member, global position, reason summary,
@@ -361,9 +387,10 @@ redrive endpoint; the console will offer one when it does."
 `apps/console/src/shell/navigation.ts` with the section's sidebar entries (Streams,
 Categories, All events, Subscriptions) and the recents group for kinds `stream`,
 `subscription`, and `event`; call `useRecordVisit` on the stream, event, and subscription
-pages. Register the parsed palette commands with `useRegisterCommands`: `stream <name>`,
-`event <uuid>`, `subscription <name>`, each navigating through `lib/links.ts`. Write the
-Playwright specs under `apps/console/tests/e2e/streams.spec.ts`, `events.spec.ts`, and
+pages. The parsed palette commands `stream <name>`, `category <name>`, `event <uuid>`, and
+`subscription <name>` already exist in the shell's `jumpParsers`; this plan's end-to-end
+suite verifies them and registers no parsed command of its own. Write the Playwright specs
+under `apps/console/e2e/streams/streams.spec.ts`, `events.spec.ts`, and
 `subscriptions.spec.ts` against the mock handlers.
 
 
@@ -448,13 +475,13 @@ const tail = useKirokuEventTail({
   enabled: !liveness.paused && newest.status === "success",
   fromPosition: highestGlobalPosition,                // bigint, echoed back untouched
   category,
-  onEvent: (event) => prepend(event),
-  onOverflow: (dropped) => {
-    announce(`${dropped} events dropped — reloading`)
+  onOverflow: (frame) => {
+    announce("events were dropped — reloading", frame.message)   // text only, never parsed
     void newest.refetch()                             // ADR-3: re-read, then re-subscribe
   },
-  onError: (error) => toast.error(error.message),
+  onError: (frame) => toast.error(frame.message),
 })
+// tail.events is the hook's bounded ring (newest last); prepend what is new since the last render
 ```
 
 4. Generate the route tree and run the checks after each milestone:
@@ -486,7 +513,7 @@ bun run dev                        # real kiroku-inspect on :9091 through the /k
 6. Run the end-to-end suite for this section:
 
 ```bash
-bun run test:e2e -- streams events subscriptions
+bun run test:e2e -- e2e/streams
 ```
 
 Fixtures this plan expects under `packages/testing/fixtures/kiroku/`: `capabilities.json`,
@@ -494,11 +521,13 @@ Fixtures this plan expects under `packages/testing/fixtures/kiroku/`: `capabilit
 `stream-order-42-events-forward.json`, `stream-order-42-events-backward.json`,
 `categories.json`, `category-order-events.json`, `events-latest.json`, `event-<uuid>.json`
 (at least two, one with a `causationId` that resolves and one whose causation answers 404),
-`subscription-checkpoints.json`, `subscriptions.json`, `subscriptions-404-legacy.json`,
-`metrics.json`, `dead-letters-order-projector.json`. The scripted feed for tests is
-`packages/testing/src/feeds/kiroku.ts` with sequences `started-then-events` (an
-`event_stream_started` frame followed by three `event` frames) and `overflow` (an
-`event_stream_overflowed` error naming five dropped events, then two `event` frames).
+`subscription-checkpoints.json`, `subscriptions.json`, `subscriptions-404-legacy.json`
+(hand-written from kiroku's `docs/user/metrics.md`, because the standalone server never
+answers that way), `metrics.json`, `dead-letters-order-projector.json`. The scripted feed
+for tests is `packages/testing/src/feeds/kiroku.ts` with sequences `started-then-events`
+(an `event_stream_started` frame followed by three `event` frames) and `overflow` (an
+`event_stream_overflowed` error whose message text names three dropped batches, then two
+`event` frames).
 
 
 ## Validation and Acceptance
@@ -508,7 +537,7 @@ input, and the observation. Run the unit and end-to-end suites first, then walk 
 checks.
 
 - `bun run check` and `bun run --filter @keiro-ui/console test` pass with the new tests.
-- `bun run test:e2e -- streams events subscriptions` passes against the mock handlers.
+- `bun run test:e2e -- e2e/streams` passes against the mock handlers.
 - `http://localhost:5173/streams?category=order` shows only streams whose category column is
   `order`; adding `&prefix=order-4` narrows to names starting with `order-4`; the pager's Next
   rewrites the URL to `...&from=<last name on the page>` and the new page starts strictly after
@@ -517,7 +546,9 @@ checks.
   `?direction=backward` shows the newest event first; clicking any row rewrites the URL to
   include `sheet=event:<uuid>` and opens the right sheet with the payload rendered in the JSON
   viewer; reloading the page reopens the same sheet; Escape closes it and removes the parameter.
-- `http://localhost:5173/categories` lists category names in byte order; clicking `order` opens
+- `http://localhost:5173/categories` lists category names in the store's collation order
+  (categories keep the database locale; only streams and the prefix filter are byte-ordered);
+  clicking `order` opens
   `/categories/order` with its events in global-position order; on the last page "Follow live"
   is enabled and new events for the category appear while liveness is on.
 - `http://localhost:5173/events` shows the newest 100 events, newest first, each with a
@@ -526,7 +557,8 @@ checks.
   appear at the top within about one second without a reload; pausing liveness stops the tail
   (the indicator reads paused, no new events appear); resuming refetches and resumes.
 - With the scripted `overflow` feed in the Playwright spec, the notice
-  "5 events dropped — reloading" appears and the list is re-read from the poll path.
+  "events were dropped — reloading" appears with the server's message text under it, and
+  the list is re-read from the poll path.
 - `http://localhost:5173/events?category=order` shows the category tail from the head and the
   "Browse history of order" link to `/categories/order`.
 - `http://localhost:5173/events/<uuid>` renders every field, payload and metadata viewers with
@@ -576,51 +608,57 @@ Complete — the kiroku client and its feed hooks. Soft: plan 9 for recorded fix
 live stack. This plan's event sheet, JSON viewer, cursor pager, and position badge are reused
 by plans 15 and 16; keep their props stable once M1 is accepted.
 
-**Consumed from `@keiro-ui/client-kiroku` (plan 11).** This plan assumes the following; if
-the implemented names differ, adapt the imports and record the difference in this plan's
-Decision Log rather than in the client.
+**Consumed from `@keiro-ui/client-kiroku` (plan 11).** These are plan 11's declared
+exports, copied here so this plan stands alone; plan 11 is the owner, and a change there
+is cascaded here rather than absorbed silently.
 
 ```typescript
-createKirokuClient({ baseUrl: string }): KirokuClient
-useKirokuClient(): KirokuClient            // bound to useSurfaceBaseUrl("kiroku")
+createKirokuClient({ baseUrl: string; fetch?: typeof fetch }): KirokuClient
+useKirokuClient(): KirokuClient            // from KirokuClientProvider, composed in __root.tsx from useSurfaceBaseUrl("kiroku")
 
-KirokuClient.capabilities.get(): Promise<Capabilities>
-KirokuClient.streams.list({ category?, prefix?, from?: string, limit? }): Promise<Page<StreamInfo, string>>
+KirokuClient.capabilities(): Promise<Capabilities>
+KirokuClient.streams.page({ category?, prefix?, from?: KirokuNameCursor, limit? }): Promise<Page<StreamInfo, KirokuNameCursor>>
 KirokuClient.streams.get(name): Promise<StreamInfo>
-KirokuClient.streams.events(name, { from?: bigint, limit?, direction? }): Promise<Page<KirokuEvent, bigint>>
-KirokuClient.categories.list({ from?: string, limit? }): Promise<Page<{ name: string }, string>>
-KirokuClient.categories.events(name, { from?: bigint, limit? }): Promise<Page<KirokuEvent, bigint>>
-KirokuClient.events.all({ from?: bigint, limit?, direction? }): Promise<Page<KirokuEvent, bigint>>
-KirokuClient.events.get(id: string): Promise<KirokuEvent>
-KirokuClient.subscriptions.checkpoints(): Promise<{ storePosition: bigint; checkpoints: Checkpoint[] }>
-KirokuClient.subscriptions.live(): Promise<LiveSubscription[]>   // rejects with ApiError status 404, code "legacy_error" when not configured
-KirokuClient.subscriptions.deadLetters(name, { member?, from?: string, limit? }): Promise<Page<DeadLetter, string>>
-KirokuClient.metrics.get(): Promise<KirokuMetrics>
+KirokuClient.streams.events(name, { from?: KirokuPositionCursor, limit?, direction? }): Promise<Page<KirokuEvent, KirokuPositionCursor>>
+KirokuClient.categories.page({ from?: KirokuNameCursor, limit? }): Promise<Page<Category, KirokuNameCursor>>
+KirokuClient.categories.events(name, { from?: KirokuPositionCursor, limit? }): Promise<Page<KirokuEvent, KirokuPositionCursor>>
+KirokuClient.events.all({ from?: KirokuPositionCursor, limit?, direction? }): Promise<Page<KirokuEvent, KirokuPositionCursor>>
+KirokuClient.events.get(uuid: string): Promise<KirokuEvent>
+KirokuClient.checkpoints.inventory(): Promise<CheckpointInventory>          // { store_position: bigint; checkpoints: [...] }
+KirokuClient.subscriptions.live(): Promise<LiveSubscription[]>             // rejects with ApiError status 404, code "legacy_error" on hosts without a provider
+KirokuClient.deadLetters.page(subscription, { member?, from?: KirokuNameCursor, limit? }): Promise<Page<DeadLetter, KirokuNameCursor>>
+KirokuClient.metrics.all(): Promise<MetricsSnapshot>
+KirokuClient.health.live(): Promise<{ status: number; body: Liveness }>    // 200 or 503, never thrown
 
-useKirokuEventTail({ enabled, fromPosition?: bigint, category?, onEvent, onOverflow, onError }): { status: "idle" | "connecting" | "live" | "error" }
-useKirokuMetricsFeed({ enabled }): { snapshot?: KirokuMetrics }
+useKirokuEventTail({ enabled?, fromPosition: bigint, category?, limit?, onOverflow?, onError? }):
+  { status: "idle" | "connecting" | "live" | "reconnecting" | "error"; events: KirokuEvent[] }
+useKirokuMetricsFeed(): { status }        // writes snapshots into the useKirokuMetrics() cache entry
 ```
 
-Field names follow the wire exactly except that pages expose `nextCursor` and the client's
-typed records map `int64()` fields (`globalPosition`, `streamVersion`, `originalVersion`,
-`version`, `truncate_before`, `store_position`, `checkpoint_position`, `global_position`,
-`last_known_position`, `lag`) to `bigint`; whether the client keeps snake_case or converts to
-camelCase for TypeScript property names is plan 11's decision, and this plan uses whatever it
-exports.
+Field names follow the wire exactly (plan 11 never renames fields; kiroku's event keys stay
+camelCase and everything newer stays snake_case), pages expose `nextCursor`, and the
+`int64()` fields (`globalPosition`, `streamVersion`, `originalVersion`, `version`,
+`truncate_before`, `store_position`, `checkpoint_position`, `global_position`,
+`last_known_position`, `lag`) are `bigint`. Cursors are branded (`KirokuNameCursor`,
+`KirokuPositionCursor`); the URL holds their string form and the page converts back when
+calling the client.
 
-**Consumed from `@keiro-ui/client-core` (plan 10).** `useSurfaceQuery(surface, key, fn,
-options)`, `useCursorPages({ key, from, fetchPage })` returning `{ items, nextCursor, status,
-refetch }`, `useLiveness()` returning `{ paused, pause, resume, refreshAll }`, `ApiError`, and
-the `Page<T, Cursor>` type (`{ items: T[]; nextCursor?: Cursor }`).
+**Consumed from `@keiro-ui/client-core` (plan 10).** `useSurfaceQuery({ surface, queryKey,
+queryFn, poll?, ... })` (TanStack `useQuery` options plus the surface), `useLiveness()`
+returning `{ paused, pausedSince, pause, resume, refreshAll }`, `ApiError`, and the
+`Page<T, Cursor>` type (`{ items: T[]; nextCursor?: Cursor }`). `useCursorPages` is not
+used in this section.
 
 **Consumed from the shell (plan 8).** `registerSheet("event", EventDetailSheet)` and
-`useRightSheet().open({ kind: "event", ref: uuid })`; `useRegisterCommands([...])` with
-commands `{ id, title, match: (input) => ..., run: (navigate) => ... }`; `useRecordVisit({
-kind, ref, title, href })`; `links.stream(name)`, `links.streamEvents(name, search)`,
-`links.category(name)`, `links.categoryEvents(name, search)`, `links.allEvents(search)`,
-`links.event(id)`, `links.subscriptions()`, `links.subscription(name, search)`; and
-`format.relativeTime`, `format.bigint`, `format.formatPositionDistance`. The `sheet` search
-parameter is validated by `_shell.tsx`; child schemas in this plan must not redeclare it.
+`useRightSheet().open({ kind: "event", ref: uuid })`; `registerFeature` from
+`shell/features.ts` and `useRegisterCommands([...])` with commands
+`{ id, group, label, hint?, keywords?, run }` for static entries (the parsed jumps are the
+shell's); `useRecordVisit({ kind, label, href })` from `shell/recent.ts`;
+`links.stream(name)`, `links.streamEvents(name, search)`, `links.category(name)`,
+`links.categoryEvents(name, search)`, `links.allEvents(search)`, `links.event(id)`,
+`links.subscriptions()`, `links.subscription(name)`; and `formatRelativeTime`, `formatInt`,
+`formatPositionDistance` from `lib/format.ts`. The `sheet` search parameter is validated by
+`_shell.tsx`; child schemas in this plan must not redeclare it.
 
 **UI primitives** come only from `@keiro-ui/ui/components/*` (`table`, `badge`, `tabs`,
 `toggle-group`, `collapsible`, `scroll-area`, `tooltip`, `kbd`, `sonner`, `input`, `select`,
@@ -634,5 +672,7 @@ title?: string; defaultMode?: "tree" | "raw" }`), `apps/console/src/components/C
 (`{ nextCursor?: string; onNavigate: (from?: string) => void }`),
 `apps/console/src/components/PositionBadge.tsx` (`{ position: bigint; label?: string }`),
 `apps/console/src/components/LiveTailControls.tsx` (`{ status; newCount; onJumpToTop; onRefresh }`),
-and the `event` sheet kind, which any page opens with `useRightSheet().open({ kind: "event",
-ref: uuid })`.
+`apps/console/src/features/streams/EventDetailSheet.tsx` (the `event` sheet kind, which any
+page opens with `useRightSheet().open({ kind: "event", ref: uuid })`); the four components
+under `src/components/` are the shared ones the MasterPlan names, and the sheet stays in
+this feature directory.

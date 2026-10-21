@@ -16,6 +16,17 @@ provenance:
       at: 2026-10-21T15:56:48Z
       mode: "update"
       note: "Switch workspace tooling from pnpm to bun; vitest and Playwright kept on Node 22"
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T18:42:29Z
+      mode: "update"
+      note: "Round 2: align to owning-plan spellings, correct audited upstream facts, e2e layout, light theme where applicable"
+  reviews:
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T18:42:29Z
+      verdict: "changes-requested"
+      note: "Round 2 review against upstream trees and the owning plans; findings applied in the same pass"
 ---
 
 # Build the console app shell, navigation, and command palette
@@ -100,12 +111,21 @@ surface and, later, the store head), and nothing here can mutate anything; see
   "paused since" text makes the distinction visible.
   Date: 2026-10-21
 
-- Decision: Liveness and health are consumed through `apps/console/src/shell/liveness.tsx`
-  and `apps/console/src/shell/health.ts`, which this plan implements locally and later
-  turns into re-exports of `@keiro-ui/client-core` without changing any consumer import.
+- Decision: Liveness is consumed through `apps/console/src/shell/liveness.tsx`, which this
+  plan implements locally and later turns into a re-export of `@keiro-ui/client-core`'s
+  `LivenessProvider` and `useLiveness` without changing any consumer import; the health
+  probe in `apps/console/src/shell/health.ts` stays shell-owned permanently.
   Rationale: the client core (`docs/plans/10-implement-the-client-core-for-http-cursors-int64-websocket-and-live-queries.md`)
   may land after this plan; the shell must be verifiable alone, and screens must never
-  depend on which of the two shipped first.
+  depend on which of the two shipped first. The probe is a plain `fetch` plus one TanStack
+  Query and needs nothing from the client core.
+  Date: 2026-10-21
+
+- Decision: The theme is light by default. `ThemeProvider` and `useTheme()` come from
+  `apps/console/src/shell/theme.tsx`, created by plan 7; this plan adds only the palette
+  action and passes the resolved theme to the `Toaster`.
+  Rationale: user directive on 2026-10-21 (no dark mode by default; prioritize the light
+  theme); one provider in one place.
   Date: 2026-10-21
 
 
@@ -190,9 +210,11 @@ keiro     /keiro     9093       /keiro/health            /keiro/ws
 ```
 
 keiro has no `/health/live`; its `GET /health` answers 200 with
-`{"status":"ok","schema_drift":[],"mutations_enabled":false}` or 503 when the live schema
-drifts. The other three answer `/health/live` with 200 `{"alive":true}` without touching
-the database.
+`{"status":"ok","schema_drift":[],"mutations_enabled":false}`, 503 with
+`{"status":"schema_drift","schema_drift":[...],"mutations_enabled":...}` when the live
+schema drifts under the host's default refuse-on-drift policy, or 503
+`{"status":"unavailable","message":...}` when the database is unreachable. The other three
+answer `/health/live` with 200 `{"alive":true}` without touching the database.
 
 
 ## Plan of Work
@@ -207,8 +229,8 @@ At the end of this milestone the console has its four regions and every page in 
 map exists as a placeholder. Run `bun run dev` and open `http://localhost:5173`: the rail,
 sidebar, bottom bar, and a page header are visible; clicking a rail icon changes the
 section and the sidebar's entries; the sidebar collapses to icons with its own trigger and
-stays collapsed after a reload; the theme follows the system and can be forced light or
-dark.
+stays collapsed after a reload; the theme is light by default and can be switched to dark
+or set to follow the operating system.
 
 **`apps/console/src/routes/__root.tsx`** becomes the provider stack. It is created with
 `createRootRouteWithContext<{ queryClient: QueryClient }>()` so route loaders can reach
@@ -216,9 +238,12 @@ the query client, and renders, in this order: `QueryClientProvider` (the client 
 `src/router.tsx`, where plan 7 created it; if plan 7 did not, create it in
 `src/query-client.ts` with `defaultOptions.queries.retry` set to 1 and `staleTime` 0),
 `ThemeProvider`, `ConnectionProfileProvider`, `LivenessProvider`, `CommandRegistryProvider`,
-`StatusSlotProvider`, then `<Outlet />`, then the `Toaster` from `@keiro-ui/ui/components/sonner`,
-and `TanStackRouterDevtools` only when `import.meta.env.DEV`. It also sets the document
-`<title>` pattern "keiro console" via `head`.
+`StatusSlotProvider`, then `<Outlet />`, then the `Toaster` from `@keiro-ui/ui/components/sonner`
+(given `theme={resolved}` from `useTheme()`), and `TanStackRouterDevtools` from
+`@tanstack/react-router-devtools` only when `import.meta.env.DEV`. It also sets the
+document `<title>` pattern "keiro console" through the route's `head` option and renders
+`<HeadContent />` from `@tanstack/react-router` in its component — without that element the
+`head` output is never written to the document.
 
 **`apps/console/src/routes/_shell.tsx`** is the pathless layout route for every page except
 nothing — all pages live under it; it exists as a separate route (rather than putting the
@@ -282,9 +307,11 @@ pages "Instances" `/process-managers` and "Timers" `/timers`); Projections & Rea
 (`/streams`, also `/categories`, `/events`, `/subscriptions`; pages "Streams", "Categories",
 "All events" `/events`, "Subscriptions"); Queues & Processors (`/queues`, also `/processors`;
 pages "Queues", "Processors"); Settings (`/settings`, page "Connections"
-`/settings/connections`). Screen plans append entries to `pages` when they add pages; they
-do not restructure sections. Icons come from `lucide-react` (already a dependency of
-`packages/ui`).
+`/settings/connections`). The page table is complete here, because every page in the link
+map already has a route file; screen plans add preset entries (for example a "Running"
+filter under Workflows) and recents through `registerFeature`'s `navigation` field, never
+by editing this file, and they do not restructure sections. Icons come from `lucide-react`
+(already a dependency of `packages/ui`).
 
 **`apps/console/src/shell/rail.tsx`** renders one `Tooltip`-wrapped icon button per section
 in order, with Settings pinned to the bottom, each a TanStack `Link` with `activeProps` so
@@ -316,11 +343,15 @@ export function useStatusSlot(id: StatusSlotId, content: React.ReactNode): void
 `useStatusSlot` registers the node on mount and clears it on unmount; a screen that knows
 the kiroku store head (the Streams plan) calls `useStatusSlot("store-head", <StoreHead />)`.
 
-**`apps/console/src/shell/theme.tsx`** exports `ThemeProvider`, `useTheme()` returning
-`{ theme: "light" | "dark" | "system", resolved: "light" | "dark", setTheme }`, applies
-the `dark` class to `document.documentElement` (the `.dark` custom variant in
-`packages/ui/src/styles/globals.css` is what the tokens switch on), listens to
-`prefers-color-scheme` when `system`, and persists under `keiro-ui.theme.v1`.
+**`apps/console/src/shell/theme.tsx`** already exists from plan 7 and is reused unchanged:
+`ThemeProvider` and `useTheme()` returning
+`{ theme: "light" | "dark" | "system", resolved: "light" | "dark", setTheme }`, defaulting
+to `light` (the console does not follow the operating-system preference unless the operator
+picks `system`), applying the `dark` class to `document.documentElement` only when
+`resolved` is `dark` (the `.dark` custom variant in `packages/ui/src/styles/globals.css` is
+what the tokens switch on), listening to `prefers-color-scheme` only while `theme` is
+`system`, and persisting under `keiro-ui.theme.v1`. This plan adds the palette action
+("Toggle theme", cycling light → dark → system) and nothing else to it.
 
 **`apps/console/src/shell/features.ts`** exports `registerFeature(feature: { id: string; sheets?: Record<string, React.ComponentType<{ ref: string }>>; commands?: Command[]; navigation?: Partial<Record<SectionId, SidebarEntry[]>> })`, a thin aggregator over `registerSheet`, the command registry, and the navigation registry, plus `registerAllFeatures()` which `apps/console/src/features/index.ts` fills with one `register<Section>Feature()` call per screen plan (`registerStreamsFeature`, `registerQueuesFeature`, `registerWorkflowsFeature`, `registerAggregatesFeature`, `registerProjectionsFeature`). `__root.tsx` calls `registerAllFeatures()` once before rendering, so a screen plan adds one line to `features/index.ts` and never touches the shell.
 
@@ -460,7 +491,10 @@ Milestone 5 completes the builders): `workflow <name>/<id>`, `aggregate <type>/<
 `pm <name>/<correlation>`, `timer <id>`, `projection <group>`, `stream <name>`,
 `category <name>`, `event <uuid>`, `subscription <name>`, `queue <name>`,
 `message <queue>/<id>`, `processor <id>`. `parseJump` splits the input on its first space,
-matches the prefix case-insensitively, and delegates the remainder.
+matches the prefix case-insensitively, and delegates the remainder. These twelve parsers
+are owned here because they need nothing but `links`; screen plans do not register parsed
+commands of their own — each verifies the parser for its entity kinds in its end-to-end
+suite and registers only static or preset commands.
 
 **`apps/console/src/shell/recent.ts`** exports:
 
@@ -561,31 +595,33 @@ with a "Manage…" link to this page.
 **`apps/console/src/shell/health.ts`** exports:
 
 ```typescript
-export type HealthStatus = "up" | "down" | "unknown"
+export type HealthStatus = "up" | "degraded" | "down" | "unknown"
 export interface HealthProbe { surface: Surface; status: HealthStatus; httpStatus?: number; latencyMs?: number; checkedAt: string; body?: unknown }
 export const healthProbePaths: Record<Surface, string>   // "/health/live" ×3, keiro "/health"
 export async function probeHealth(surface: Surface, baseUrl: string, signal?: AbortSignal): Promise<HealthProbe>
 export function useSurfaceHealth(surface: Surface): HealthProbe
 ```
 
-`probeHealth` performs a single `fetch` with a 5 s timeout, treats 200 as `up`, any other
-response as `down` with the status, and a network failure as `down` without one; it parses
-the JSON body when present so keiro's `mutations_enabled` and `schema_drift` are available
-to the actions plan later. `useSurfaceHealth` is a TanStack Query with key
-`["shell", "health", surface, baseUrl]`, `refetchInterval` 30 000 ms, and
-`refetchIntervalInBackground` false; it keeps polling while liveness is paused (see Decision
-Log). The bottom bar renders one dot per surface — green `up`, red `down`, gray `unknown` —
-with a tooltip "kiroku · up · 12 ms · checked 3 s ago" and the probed URL.
+`probeHealth` performs a single `fetch` with a 5 s timeout, treats 200 as `up`, a keiro 503
+whose body says `"status":"schema_drift"` as `degraded`, any other non-200 response as
+`down` with the status, and a network failure as `down` without one; it parses the JSON
+body when present so keiro's `mutations_enabled` and `schema_drift` are available to the
+actions plan later. `HealthStatus` is therefore `"up" | "degraded" | "down" | "unknown"`.
+`useSurfaceHealth` is a TanStack Query with key `["shell", "health", surface, baseUrl]`,
+`refetchInterval` 30 000 ms, and `refetchIntervalInBackground` false; it keeps polling while
+liveness is paused (see Decision Log). The bottom bar renders one dot per surface — green
+`up`, amber `degraded`, red `down`, gray `unknown` — with a tooltip
+"kiroku · up · 12 ms · checked 3 s ago" and the probed URL.
 
 **`apps/console/src/shell/liveness.tsx`** exports the liveness contract:
 
 ```typescript
 export interface LivenessController {
   paused: boolean
-  pausedAt: Date | null
+  pausedSince: Date | null
   pause(): void
-  resume(): void          // also refreshes everything immediately
-  refreshAll(): void      // queryClient.invalidateQueries() for all non-shell queries
+  resume(): void             // also refreshes everything immediately
+  refreshAll(): Promise<void> // invalidates every surface's query-key prefix (["kiroku"], ["pgmq"], ...)
 }
 export function LivenessProvider(props: { children: React.ReactNode }): React.JSX.Element
 export function useLiveness(): LivenessController
@@ -596,15 +632,18 @@ This plan implements it as a React context over `useState` plus the query client
 `refetchIntervalFor` returns `false` when paused and `defaultMs` otherwise; every polling
 query a screen writes passes `refetchInterval: refetchIntervalFor(paused, 5000)` (or the
 adaptive interval once the client core exists). The bottom bar's toggle shows "Live" with a
-pulsing dot or "Paused 02:14" (elapsed since `pausedAt`, updating each second); clicking
+pulsing dot or "Paused 02:14" (elapsed since `pausedSince`, updating each second); clicking
 flips it; the palette's action does the same. **Stub-then-swap:** when
 `docs/plans/10-implement-the-client-core-for-http-cursors-int64-websocket-and-live-queries.md`
-ships `LivenessProvider`, `useLiveness`, `refetchIntervalFor`, and `probeHealth` from
-`@keiro-ui/client-core`, replace the bodies of `liveness.tsx` and `health.ts` with
-re-exports of those names; consumers keep importing from `@/shell/liveness` and
-`@/shell/health`, and the Playwright tests below must still pass unchanged. The interface
-above is therefore the contract the client core must honor; record any divergence in both
-plans' Decision Logs.
+ships `LivenessProvider` and `useLiveness` from `@keiro-ui/client-core` (its `useLiveness`
+returns exactly `{paused, pausedSince, pause, resume, refreshAll}`), replace the body of
+`liveness.tsx` with re-exports of those two names; consumers keep importing from
+`@/shell/liveness`, and the Playwright tests below must still pass unchanged. `health.ts`
+stays shell-owned permanently, and `refetchIntervalFor` remains a shell-local helper used
+by the shell's own test query until screens poll through the client core's
+`useSurfaceQuery`, which applies the pause itself. The `LivenessController` shape above is
+therefore the contract the client core must honor; record any divergence in both plans'
+Decision Logs.
 
 Acceptance (with nothing running on the four ports): the bottom bar shows four red dots whose
 tooltips name the probed URLs `http://localhost:5173/kiroku/health/live`, `.../shibuya/health/live`,
@@ -641,7 +680,7 @@ export const links = {
   timers: (search?: { manager?: string; correlation?: string; tab?: "pending" | "stuck" }) => ({ to: "/timers", search }),
   projections: () => ({ to: "/projections" }),
   projection: (group: string) => ({ to: "/projections/$group", params: { group } }),
-  shards: () => ({ to: "/shards" }),
+  shards: (search?: { subscription?: string }) => ({ to: "/shards", search }),
   streams: (search?: { category?: string; prefix?: string }) => ({ to: "/streams", search }),
   stream: (name: string) => ({ to: "/streams/$name", params: { name } }),
   streamEvents: (name: string, search?: { from?: string; direction?: "forward" | "backward" }) => ({ to: "/streams/$name", params: { name }, search }),
@@ -665,16 +704,19 @@ export function hrefOf(target: LinkTarget): string   // via router.buildLocation
 ```
 
 Search-parameter shapes named here (`status_class`, `workflow_name`, `manager`,
-`correlation_id`, `category`, `prefix`, `from`, `direction`, `tab`) are the ones the screen
-plans will validate on their routes; this plan declares them as optional strings on the
-placeholder routes so the builders typecheck now. Positions and ids that are `bigint` on
+`correlation`, `subscription`, `category`, `prefix`, `from`, `direction`, `tab`) are the
+ones the screen plans will validate on their routes; this plan declares them as optional
+strings on the placeholder routes so the builders typecheck now. The builders' argument
+shapes are the contract: `links.workflow(name, id)` and the other entity builders take
+positional strings, and search objects use the keys above (`correlation`, not
+`correlation_id`). Positions and ids that are `bigint` on
 the wire are passed to builders as their decimal string (`String(position)`), because URL
 parameters are strings. The MasterPlan's link map is implemented by these builders as
 follows: workflow → `links.allEvents({ from: String(globalPosition - 1n) })` and, when the
 journal stream name is known, `links.stream(name)`; kiroku dead letter → `links.event(eventId)`
 and `links.subscription(name)`; aggregate → `links.stream(streamName)` and
 `links.category(category)`; process manager → `links.stream(journalStreamName)` and
-`links.timers({ manager, correlation_id })`; timer → `links.processManager(manager, correlationId)`;
+`links.timers({ manager, correlation })`; timer → `links.processManagerInstance(manager, correlationId)`;
 projection group → `links.subscription(subscriptionName)`; queue message and processor carry
 no cross-surface link (the adapter's queue-context request is still proposed upstream), and
 the Processors screen states "queue context unavailable".
@@ -820,8 +862,9 @@ shows eight icons (seven sections plus Settings at the bottom); the active one i
 highlighted according to the pathname. The sidebar lists the active section's pages and
 collapses to icons via its trigger or the `[` key; after a reload it is in the same state.
 Every path in the Milestone 1 table renders a page header and a placeholder without a
-console error. The theme toggle in the palette cycles light → dark → system, and the
-`dark` class appears on `<html>` accordingly.
+console error. The console loads in the light theme regardless of the operating-system
+preference; the theme toggle in the palette cycles light → dark → system, and the `dark`
+class appears on `<html>` accordingly.
 
 **Right sheet.** Running the "About this console" palette action opens the right sheet and
 sets `?sheet=about%3Aconsole`; reloading restores it; Escape and the backdrop close it and
@@ -851,8 +894,9 @@ vocabulary test proves `apps/console/src/lib/format.ts` contains neither "lag" n
 "backlog".
 
 **Integration check with plan 10 (required once both plans exist).** After the client core
-ships, `liveness.tsx` and `health.ts` are re-exports and the `shell` Playwright project
-still passes without modification. This is the second early producer/consumer check in the
+ships, `liveness.tsx` is a re-export of its `LivenessProvider` and `useLiveness`, the
+bottom bar's pause toggle stops a real `useSurfaceQuery` poll and resume triggers an
+immediate refetch, and the `shell` Playwright project still passes without modification. This is the second early producer/consumer check in the
 MasterPlan's Integration Points.
 
 **Not required by this plan (proposals for later).** A mobile layout beyond the shadcn
@@ -882,7 +926,8 @@ the last commit to confirm the baseline before resuming.
 `buildLocation`); `@tanstack/react-query` 5 (the shell's health queries and the liveness
 contract's `invalidateQueries`); `zod` 4 (search schemas and the profile schema — no
 TanStack adapter is needed for zod 4); `@keiro-ui/ui` (every primitive, per ADR-8);
-`lucide-react` for icons; `sonner` through `@keiro-ui/ui/components/sonner` for toasts.
+`lucide-react` for icons; `sonner` through `@keiro-ui/ui/components/sonner` for toasts;
+`@tanstack/react-router-devtools` in development only.
 Versions are pinned by plan 7's workspace; do not add `cmdk`, `react-hotkeys-hook`, or a
 state library — the palette is React Aria's `Autocomplete`, the shortcuts hook is thirty
 lines, and the stores are `useSyncExternalStore` over localStorage.
@@ -895,6 +940,7 @@ lines, and the stores are `useSyncExternalStore` over localStorage.
 `shell/status-slots.tsx` (`useStatusSlot`), `shell/search.ts` (`shellSearchSchema`),
 `shell/liveness.tsx` (`LivenessController`, `useLiveness`, `refetchIntervalFor`),
 `shell/health.ts` (`probeHealth`, `useSurfaceHealth`, `healthProbePaths`),
+`shell/theme.tsx` (from plan 7: `ThemeProvider`, `useTheme`),
 `settings/connection-profiles.ts` (`Surface`, `surfacePrefixes`, `ConnectionProfile`,
 `useConnectionProfiles`, `useSurfaceBaseUrl`, `useWebSocketUrl`), `lib/links.ts` (`links`,
 `LinkTarget`, `hrefOf`), `lib/format.ts` (the formatters and `POSITION_DISTANCE_LABEL`),

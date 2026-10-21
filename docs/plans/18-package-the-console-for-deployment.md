@@ -16,6 +16,17 @@ provenance:
       at: 2026-10-21T15:56:48Z
       mode: "update"
       note: "Switch workspace tooling from pnpm to bun; vitest and Playwright kept on Node 22"
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T18:42:29Z
+      mode: "update"
+      note: "Round 2: align to owning-plan spellings, correct audited upstream facts, e2e layout, light theme where applicable"
+  reviews:
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T18:42:29Z
+      verdict: "changes-requested"
+      note: "Round 2 review against upstream trees and the owning plans; findings applied in the same pass"
 ---
 
 # Package the console for deployment
@@ -155,6 +166,8 @@ type ConnectionProfile = {
   name: string
   mode: "same-origin" | "separate"
   origins: { kiroku: string; shibuya: string; pgmq: string; keiro: string }
+  processManagerNames?: string[]   // used by the process-manager screens
+  deadLetterQueueSuffix?: string   // used by the actions plan
 }
 ```
 
@@ -330,15 +343,23 @@ upgrades without extra configuration. This is the content of `dev/caddy/Caddyfil
 ```
 
 No server has CORS enabled in this recipe, and the default same-origin connection profile
-needs no configuration. Give the nginx equivalent beside it: a `location /console/` block
-with `alias`, `try_files $uri $uri/ /console/index.html;`, and one `location /<prefix>/`
-block per surface with `proxy_pass http://127.0.0.1:<port>/;` (the trailing slash strips the
-prefix), `proxy_http_version 1.1;`, `proxy_set_header Upgrade $http_upgrade;` and
-`proxy_set_header Connection "upgrade";` so WebSockets pass.
+needs no configuration. One rule keeps keiro's WebSocket working without an allow-list:
+keiro-ops-http admits an upgrade whose `Origin` equals `scheme://Host` of the request it
+receives, so the proxy must pass the browser's `Host` header through unchanged. Caddy does
+this by default. Give the nginx equivalent beside it: a `location /console/` block with
+`alias`, `try_files $uri $uri/ /console/index.html;`, and one `location /<prefix>/` block
+per surface with `proxy_pass http://127.0.0.1:<port>/;` (the trailing slash strips the
+prefix), `proxy_http_version 1.1;`, `proxy_set_header Host $host;` (nginx's default
+`$proxy_host` would make every `/keiro/ws` upgrade a 403 `origin_not_allowed`),
+`proxy_set_header Upgrade $http_upgrade;` and `proxy_set_header Connection "upgrade";` so
+WebSockets pass. If a deployment cannot preserve `Host`, the alternative is
+`keiro-ops-http --allow-origin https://console.example` as in recipe C.
 
 **Recipe B — one origin, the application already composes the surfaces.** The Haskell host
 runs keiro's `composeSurfaces`, so `/keiro`, `/kiroku`, `/shibuya` and `/pgmq` already answer
-on one port (say 9000) and `GET /` lists them. The proxy then has one `handle_path /console/*`
+on one port (say 9000) and `GET /` lists them (an unmounted prefix answers 404
+`surface_not_mounted`; the shipped `keiro-ops-http-compose-example` mounts only `/keiro`
+and `/kiroku`, so a host composing all four is the application's own code). The proxy then has one `handle_path /console/*`
 block for the bundle and a single `reverse_proxy 127.0.0.1:9000` for everything else. Point
 the reader at keiro's guide `docs/guides/compose-runtime-inspection-surfaces.md`
 (`mori://shinzui/keiro`, artifact-level URI pending) for the host side and note that
@@ -369,7 +390,7 @@ Add `caddy` to the Nix development shell so the command is available to every co
 Add `apps/console/playwright.production.config.ts` and the root script
 `bun run test:e2e:production`. Its `webServer` runs `caddy run --config dev/caddy/Caddyfile`
 (with `reuseExistingServer` outside CI) and its `baseURL` is `http://127.0.0.1:8080/console/`.
-Tests live in `apps/console/tests/production/`.
+Tests live in `apps/console/e2e/production/`, beside the other sections' specs.
 
 Tier 1 (always runs, no backend required): the page at `/console/` renders the shell; a
 direct navigation to `/console/workflows` renders the Workflows route (the shell's section

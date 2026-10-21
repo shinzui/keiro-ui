@@ -15,6 +15,17 @@ provenance:
       at: 2026-10-21T15:56:48Z
       mode: "update"
       note: "Switch workspace tooling from pnpm to bun; vitest and Playwright kept on Node 22"
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T18:42:29Z
+      mode: "update"
+      note: "Round 2 corrections: endpoint inventory, origin/port rules, shell and client-core contracts, light theme default, interface-ownership decision"
+  reviews:
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T18:42:29Z
+      verdict: "changes-requested"
+      note: "Round 2: upstream wire facts (kiroku overflow, keiro health/mutations/origin), toolchain errors (data-table, preset, devtools), and cross-plan interface drift; all applied in the same pass"
 ---
 
 # Build the keiro runtime console
@@ -180,8 +191,14 @@ legacy `{"error": "<string>"}` shape. Event JSON keeps its published camelCase p
 (`eventId`, `globalPosition`, ...) plus the newer snake_case `original_stream_name`. Two
 WebSocket paths: `/ws/metrics` (snapshot on connect, then periodic) and `/ws/events`
 (`subscribe_events {from_position?, category?}` → `event_stream_started`, `event` frames;
-`error {code, message}` with `event_stream_overflowed` carrying the dropped count;
-`unsubscribe_events`, `unsubscribe_metrics`, `ping`/`pong`, `goodbye`). CORS is explicit
+`error {code, message}` — or the older uncoded `error {message}` — with
+`event_stream_overflowed` whose message text names a dropped *batch* count but carries no
+structured field, so no client parses it; `unsubscribe_events`, `unsubscribe_metrics`,
+`ping`/`pong`, `goodbye`). Streams and the prefix filter are byte-ordered; category
+enumeration keeps the database collation. `truncate_before` is always present (`0` means
+nothing truncated). The standalone `kiroku-inspect` mounts the live registry, so
+`/subscriptions` answers `200 []` there; the legacy 404 appears only on embedded hosts
+without a provider. CORS is explicit
 origins only, default off. No OpenAPI document exists; the contract is
 `docs/guides/building-an-inspection-ui.md` and `docs/user/metrics.md` in the kiroku
 repository, whose wire rules the client must follow (parse int64 losslessly; ignore unknown
@@ -220,25 +237,36 @@ envelope is **flat**: `{"error": "<text>", "code": "<snake_case>", ...context}`.
 gated by `enableControl` (default off → 403 `control_disabled`), and a POST carrying an
 `Origin` header must match the configured CORS origins even when CORS is otherwise off.
 WebSocket `/ws`: `subscribe_all`/`subscribe {processors}`/`unsubscribe {processors}`/`ping`
-→ `snapshot {metrics}`, `update {processor, metrics}`, new `terminal {processor, status, error?, messageId?}`,
-`pong`, `error {code, message}` (`invalid_message`, `subscription_limit_exceeded`,
-`queue_overflow` followed by a replacement snapshot), `goodbye`; updates omit age-only
-changes, so clients extrapolate `ageSeconds` locally; no replay cursor. No OpenAPI. Local
-runners are weak: `shibuya-example` exits after about five seconds, and the
-shibuya-pgmq-adapter example consumer builds against Hackage shibuya-metrics 0.10.0.0 (no
-unreleased features). **shibuya-pgmq-adapter IR-2 and IR-3 are still `proposed`**: there is
+→ `snapshot {metrics}`, `update {processor, metrics}`, new `terminal {processor, status}`
+for `stopped` and `terminal {processor, status, error, messageId}` for `failed` (`messageId`
+a string or `null`), `pong`, `error {code, message}` (`invalid_message`,
+`subscription_limit_exceeded`, `queue_overflow` followed by a replacement snapshot),
+`goodbye`; updates omit age-only changes, so clients extrapolate `ageSeconds` locally; no
+replay cursor. No OpenAPI. Local runners are weak: there is no standalone server
+executable (the `bench/` executables are bounded load fixtures), `shibuya-example` exits
+after about five seconds, and the shibuya-pgmq-adapter example consumer builds against the
+Hackage 0.10.0.x release (`^>=0.10.0.0`), which predates every Unreleased feature. **shibuya-pgmq-adapter IR-2 and IR-3 are still `proposed`**: there is
 no queue-context or dead-letter browse/redrive surface; dead-letter payloads written by the
 adapter carry `dead_letter_reason_code`, `dead_letter_reason_detail`, and (opt-in)
 `read_count`, which the console renders when it sees them in a pgmq message.
 
-**keiro — `keiro-ops-http` 0.21.0.0 (in tree, Unreleased; MasterPlan 45 in the keiro
-repository records all six functional surfaces implemented at `5893c7eb`, release pending).**
+**keiro — `keiro-ops-http` 0.21.0.0 in tree, Unreleased (MasterPlan 45 in the keiro
+repository records all six functional surfaces implemented at `5893c7eb` and its release
+plan publishes the cohort as 0.22.0.0; keiro's MasterPlan 46, created 2026-10-21 with its
+child plans 317–319 Not Started, changes the unreleased HTTP contract before publication —
+403 `origin_not_allowed` for cross-origin HTTP mutations, 415 `unsupported_media_type`, a
+30 s delivery deadline, `/health` allowed to answer 503 `inspection_busy`, a replacement
+default-order list cursor kind whose old tokens fail closed as `invalid_cursor`, and
+`provenance_status: "unavailable"` as the norm — so the keiro-facing plans re-audit when
+those land).**
 IR-32 is `completed`; IR-27, IR-28, IR-29, IR-31 are `accepted` and IR-26, IR-30
 `in-progress` even though their code is merged — frontmatter lags the tree. Routes are
 generated from the `keiro-ops` command grammar (ADR-53): path segments are command words,
 query keys are `snake_case` flags, reads are GET and mutations POST, a successful read
 returns the command's JSON unwrapped. Read families: `GET /health`
-(`{status, schema_drift, mutations_enabled}`); workflows `/wf/inspect/list`
+(`{status, schema_drift, mutations_enabled}`, answering **503** with `status: schema_drift`
+under the host's default refuse-on-drift policy and 503 `status: unavailable` without a
+database); workflows `/wf/inspect/list`
 (`status_class[]`, `workflow_name`, time windows, `ordering`, `limit` ≤ 500, `after`),
 `/wf/inspect/header|journal|steps|children|awakeables/{NAME}/{ID}` with pages
 `{observed_at, items, next_cursor?}`; aggregates `/aggregate/types|list|show|snapshot`
@@ -251,16 +279,29 @@ not exist there); timers `/timer/pending/list`, `/timer/stuck/list`; projections
 snapshots, outbox, inbox reads. Cursors are opaque base64url strings bound to one read
 kind (`cursor_generation_mismatch` on misuse). Mutations are 403 `mutations_disabled` by
 default; when enabled, `POST <path>` with an empty body returns `{"outcome":"preview", ...}`
-and `POST <path>` with exactly `{"confirm":"execute"}` executes; schema drift returns 409
-`schema_drift` for reads too. Errors use the nested envelope with a documented code table.
+and `POST <path>` with exactly `{"confirm":"execute"}` executes (a mutation's exit code is
+reported only in the body's `exit_code`; the `Keiro-Ops-Exit-Code` header is for reads);
+schema drift returns 409 `schema_drift` for reads too. Two mutation facts the actions plan
+depends on: a timer requeue or cancel preview of an unknown or ineligible timer is a 200
+with a `disposition` (`not_found`, `not_firing`, `already_terminal`, `would_requeue`,
+`would_cancel`), not a 422, and its execution reports `outcome: transitioned | not_transitioned`;
+and `/pgmq/dlq/redrive?queue=&limit=` takes the **logical** job queue name — keiro derives
+`<queue>_dlq` itself and rejects a name already ending in `_dlq` — returning
+`{available, would_affect_at_most}` on preview and `{affected}` on execution. Errors use the
+nested envelope with a documented code table.
 WebSocket `/ws` (`/keiro/ws` when composed): feeds `workflows`, `timers`,
 `projection_groups`; `subscribe {feed, ...filters}` → `snapshot {feed, sequence, trigger, observed_at, items}`
 then `update {..., changed, removed}` keyed by `{workflow_name, workflow_id}`, `{timer_id}`,
 `{group_id}`; first page only; `queue_overflow` or a sequence gap means re-subscribe.
 Composition: `composeSurfaces` mounts surfaces under `/keiro`, `/kiroku`, `/shibuya`,
-`/pgmq`, with `GET /` listing mounted prefixes; **static asset serving is not implemented
-and by ADR-40 will not be**. CORS is explicit origins, default off. No OpenAPI. Local
-runners: `keiro-ops-http --database-url ... --port 9093` and the
+`/pgmq`, with `GET /` listing mounted prefixes and 404 `surface_not_mounted` for an absent
+one (the shipped compose example mounts only `/keiro` and `/kiroku`); **static asset
+serving is not implemented and by ADR-40 will not be**. CORS is explicit origins, default
+off, but the WebSocket upgrade admits an `Origin` only when it is allow-listed or equals
+the request's own `scheme://Host`, so any proxy that rewrites `Host` (the Vite dev proxy
+does) needs `--allow-origin` for the console's origin. No OpenAPI. Local runners:
+`keiro-ops-http --database-url ... --port 9093 --allow-origin http://localhost:5173`
+(`--port` is mandatory because the executable's own default is 9092, pgmq's port) and the
 `keiro-ops-http-compose-example` (behind the `compose-example` cabal flag), both without
 aggregate or process-manager hooks; sample data via `just jitsurei-all` in the keiro
 repository.
@@ -371,11 +412,15 @@ shell import UI primitives only from `@keiro-ui/ui/components/<name>`; `react-ar
 is a dependency of `packages/ui` alone. A screen that needs a primitive not yet present runs
 `bunx shadcn@latest add <name>` inside `packages/ui` (the `components.json` there
 selects the `aria-nova` style) and commits the generated source. This is the discipline
-ADR-8 records. Two package facts EP-7 fixed: shadcn 4.x components import `cn` from the
-`cn` package and the stylesheet imports `shadcn/tailwind.css`, so `cn` and `shadcn` are
-runtime dependencies of `packages/ui`; and the generated `sonner` wrapper is edited to take
-a `theme` prop instead of depending on `next-themes`, so EP-8's theme provider passes the
-theme in.
+ADR-8 records. Package facts EP-7 fixed: shadcn 4.x components import `cn` from the `cn`
+package, a runtime dependency of `packages/ui`; the stylesheet imports `shadcn/tailwind.css`
+and `tw-animate-css`, both dev dependencies as the registry's `aria` manifest declares
+them; the registry has no `data-table` item, so `@tanstack/react-table` is installed by
+hand and lists are composed per shadcn's data-table recipe; and the generated `sonner`
+wrapper is edited to take a `theme` prop (default `"light"`) instead of depending on
+`next-themes`. The theme provider itself lives in `apps/console/src/shell/theme.tsx`,
+created by EP-7 and reused unchanged by EP-8: light by default, dark behind the toggle,
+and following the operating system only as an explicit `system` choice.
 
 **Local ports and the composed-prefix convention** (fixed here; implemented by EP-7's Vite
 proxy, EP-9's stack recipes, and EP-8's default connection profile). The four surfaces are
@@ -397,10 +442,16 @@ console   vite dev server            5173       /          (application routes)
 
 The Vite dev server proxies each prefix to its port with the prefix stripped and `ws: true`,
 so no CORS configuration is needed in development and application routes must never start
-with one of the four prefixes. One exception: the proxy forwards the browser's `Origin`
-header, and shibuya requires that origin in `corsAllowedOrigins` for control POSTs even when
-CORS is otherwise off, so a local shibuya host with `enableControl = True` must list
-`http://localhost:5173` (EP-9 recipe, EP-19 tests). In the composed deployment the host mounts the surfaces at
+with one of the four prefixes. Two exceptions, both because the proxy forwards the
+browser's `Origin` header while rewriting `Host`: shibuya requires that origin in
+`corsAllowedOrigins` for control POSTs even when CORS is otherwise off, so a local shibuya
+host with `enableControl = True` must list `http://localhost:5173` (EP-9 recipe, EP-19
+tests); and keiro-ops-http admits a WebSocket upgrade (and, once keiro's MasterPlan 46
+lands, an HTTP mutation) only when the `Origin` is allow-listed or equals the request's
+`scheme://Host`, so the local keiro host is always started with
+`--allow-origin http://localhost:5173` (EP-9 recipe). Behind a reverse proxy that preserves
+`Host` — Caddy by default, nginx with `proxy_set_header Host $host` — no keiro allow-list
+is needed (EP-18). In the composed deployment the host mounts the surfaces at
 the same prefixes and serves the console's static bundle (EP-18); in the separate-origins
 deployment the connection profile holds four absolute origins and each server's CORS
 allowlist includes the console's origin.
@@ -412,9 +463,12 @@ allowlist includes the console's origin.
 `/aggregates`, `/workflows`, `/process-managers` and `/timers`, `/projections` and `/shards`,
 `/streams`, `/categories`, `/events`, `/subscriptions`, `/queues`, `/processors`,
 `/settings`); `shell/navigation.ts` (the rail sections and each section's sidebar entries,
-which screen plans extend); `shell/commands.ts` (`useRegisterCommands` for pages and
-parsed "go to entity" commands, plus the recent-entities store that screens feed with
-`useRecordVisit`); `shell/right-sheet.tsx` (`registerSheet(kind, Component)` and
+which screen plans extend); `shell/commands.ts` (`useRegisterCommands` for static page and
+preset commands, and the `jumpParsers` table that owns every parsed "go to entity" command
+— one parser per entity kind, built on `lib/links.ts`, so screen plans verify rather than
+register them); `shell/recent.ts` (the recent-entities store that screens feed with
+`useRecordVisit({kind, label, href})`); `shell/theme.tsx` (created by EP-7, light by
+default, reused unchanged); `shell/right-sheet.tsx` (`registerSheet(kind, Component)` and
 `useRightSheet().open({kind, ref})`, mirrored to the `sheet` search parameter so sheets are
 URL-addressable); `shell/status-bar.tsx` (slots for connection, per-surface health,
 liveness, visible store head, version); `shell/features.ts` (`registerFeature` and
@@ -426,23 +480,32 @@ optional `processManagerNames` (EP-16) and `deadLetterQueueSuffix` (EP-19) field
 `useSurfaceBaseUrl(surface)` hook, and localStorage persistence); `lib/links.ts` (typed route
 builders used for every cross-entity hyperlink, including `processManager(name)` versus
 `processManagerInstance(name, correlation)`, `streamEvents`, `categoryEvents`,
-`archivedMessage`, and `timers({manager?, correlation?, tab?})`); and `lib/format.ts` (relative time,
-durations, bigint display, and the position-distance label). EP-8 also fixes the keyboard
+`archivedMessage`, `shards({subscription?})`, and `timers({manager?, correlation?, tab?})`;
+entity builders take positional strings, `links.workflow(name, id)`); and `lib/format.ts`
+(`formatRelativeTime`, `formatDuration`, `formatTimestamp`, `formatInt`, and
+`formatPositionDistance`; every screen plan uses exactly these spellings). EP-8 also fixes the keyboard
 contract: ⌘K/Ctrl+K opens the palette, `[` toggles the sidebar, `?` shows shortcuts, Escape
 closes the right sheet. The bottom bar's version slot reads the `__APP_VERSION__` and `__GIT_COMMIT__` globals,
-declared as placeholders by EP-8 and given their real values by EP-18's build. Three
-conventions EP-8 sets that screen plans must follow: the
-per-surface health probe is `/health/live` for kiroku, pgmq, and shibuya but `/health` for
-keiro (keiro-ops-http has no `/health/live`); tabbed detail pages carry the active tab in a
-`tab` search parameter; and EP-8 creates placeholder route files for every route in the
-link map (including `/queues/$name/archive/$id`, which pgmq-inspect's separate archive
-lookup needs) so `lib/links.ts` is typed from day one — screen plans replace placeholder
-components and never create or rename route files.
+declared as placeholders by EP-8 and given their real values by EP-18's build. Five
+conventions EP-8 sets that screen plans must follow: the per-surface health probe is
+`/health/live` for kiroku, pgmq, and shibuya but `/health` for keiro (keiro-ops-http has no
+`/health/live`), and a keiro 503 whose body says `schema_drift` is `degraded` (amber), not
+down; tabbed detail pages carry the active tab in a `tab` search parameter; EP-8 creates
+placeholder route files for every route in the link map (including
+`/queues/$name/archive/$id`, which pgmq-inspect's separate archive lookup needs) so
+`lib/links.ts` is typed from day one — screen plans replace placeholder components and
+never create or rename route files, and regenerate the tree with
+`bun run --filter @keiro-ui/console generate-routes` (EP-7's script); list screens keep
+their page cursor in the URL and fetch one page per query through `useSurfaceQuery`, while
+"load more" views (the workflow detail tabs, the projections table) use `useCursorPages`;
+and Playwright specs live under `apps/console/e2e/<section>/` (the production smoke under
+`apps/console/e2e/production/`).
 
 **Shared screen components** (owner EP-13; consumers EP-14, EP-15, EP-16, EP-17, EP-19).
 EP-13 introduces, under `apps/console/src/components/`: `JsonViewer`, `CursorPager`,
-`PositionBadge`, `LiveTailControls`, and `EventDetailSheet` (sheet kind `event`). Later
-screen plans import them from there; a plan that runs before EP-13 lands ships a minimal
+`PositionBadge`, and `LiveTailControls`, and under `apps/console/src/features/streams/`
+the `EventDetailSheet` (sheet kind `event`). Later screen plans import them from those
+paths; a plan that runs before EP-13 lands ships a minimal
 local copy at the same path, which EP-13 replaces. EP-16 adds
 `apps/console/src/features/shared/{SplitPane,HydrationBadge,NotMountedState}.tsx` for the
 hook-gated sections and EP-17's Overview reuses `NotMountedState`.
@@ -478,7 +541,7 @@ cursors back untouched); `feed.ts` (the ADR-2 WebSocket core: a `Dialect` descri
 subscribe/unsubscribe builders and the `snapshot`/`update`/`event`/`error`/`goodbye`/`pong`
 frame types, reconnect with backoff, `goodbye` handling, and an `onResync` callback fired on
 overflow codes so the owning query refetches); `live.ts` (`LivenessProvider`,
-`useLiveness()` with `paused`, `pause`, `resume`, `refreshAll`; `useSurfaceQuery` applying
+`useLiveness()` with `paused`, `pausedSince`, `pause`, `resume`, `refreshAll`; `useSurfaceQuery` applying
 per-surface polling defaults and the adaptive clamp `clamp(10s, 10 × last fetch, 60s)`;
 `useFeedSubscription(dialect, applyToCache)` layering a feed onto the query cache); and
 `query-keys.ts` (key factories per surface). Validation uses zod 4 schemas exported by each
@@ -491,7 +554,10 @@ and binding on EP-11 and EP-12: `createHttpClient` takes a required `surface` so
 `pageSchema` accepts an extra schema for page-level fields such as keiro's `observed_at`,
 `generation`, and `visible_store_head`; a `Dialect.subscribe` may return `null` for feeds
 that push on connect (kiroku `/ws/metrics`); `useFeedSubscription` takes the query-key
-prefix it invalidates on resync, and a reconnect always counts as a resync.
+prefix it invalidates on resync, and a reconnect always counts as a resync. EP-10's
+Interfaces and Dependencies section is the binding spelling of every signature named here;
+EP-11, EP-12, and the screen plans restate it verbatim, and any change is made in EP-10
+first and cascaded to them in the same commit, never absorbed silently at an import site.
 
 **Client packaging convention** (owner EP-11 for the pattern; EP-12 follows it). Every
 client package exports `create<Surface>Client({baseUrl, fetch?})`, a
@@ -521,10 +587,15 @@ workflow list with a time window or non-default ordering is poll-only; `timers.s
 returns a bare array rather than the `{observed_at, items}` envelope. The keiro
 client exposes read families as namespaces (`workflows`, `aggregates`, `processManagers`,
 `timers`, `projections`, `shards`, `streams`, `outbox`, `inbox`, `health`), typed cursors
-branded per read kind, the three feed dialects, and a `mutations` namespace whose
-`preview(path, args)` and `execute(path, args)` encode the empty-body and
-`{"confirm":"execute"}` protocol and surface `mutations_disabled` and `schema_drift` as
-typed refusals; EP-19 renders those refusals, it never re-implements the protocol.
+branded per read kind, the feed hooks `useWorkflowsFeed`, `useTimersFeed`, and
+`useProjectionGroupsFeed` (each `(filters, {enabled?, onResync?})`, doing the cache merge
+with `mergeFeedFrame` themselves so screens only decide `enabled`), and a `./mutations`
+entry point whose three typed wrappers — `timers.requeue(id)`, `timers.cancel(id)`, and
+`pgmq.dlqRedrive({queue, limit?})` with `queue` the logical job queue name — encode the
+empty-body and `{"confirm":"execute"}` protocol, decode the timer `disposition`/`outcome`
+and redrive `available`/`affected` results, and surface `mutations_disabled`,
+`schema_drift`, `origin_not_allowed`, and the other codes as typed refusals; EP-19 renders
+those results and refusals, it never re-implements the protocol or builds command paths.
 
 **Vocabulary and display rules** (owner EP-8 for helpers; enforced by EP-16 and EP-17).
 keiro-facing screens label position differences "global position distance" and pass
@@ -537,8 +608,11 @@ shown under their published camelCase names; pgmq's `queue_length` and
 with EP-9 — the client core fetches kiroku `/capabilities` and a pgmq message page whose
 `msg_id` exceeds 2^53 through the Vite proxy and round-trips the id exactly; this is the
 int64 rule's proof and must pass before EP-11 generates the pgmq client. (2) EP-8 with
-EP-10 — the bottom bar's pause toggle stops a real polling query and resume triggers an
-immediate refetch, proving the liveness contract before screens adopt it. (3) EP-12 with
+EP-10 — once `shell/liveness.tsx` re-exports the client core's `LivenessProvider` and
+`useLiveness` (the `{paused, pausedSince, pause, resume, refreshAll}` shape both plans
+declare; the shell's health probe stays shell-owned), the bottom bar's pause toggle stops a
+real `useSurfaceQuery` poll and resume triggers an immediate refetch, proving the liveness
+contract before screens adopt it. (3) EP-12 with
 EP-15 — the `workflows` feed's `snapshot`/`update`/`removed` reconcile against
 `/wf/inspect/list` on the live stack before the `timers` and `projection_groups` feeds are
 wired. (4) EP-18 with EP-9 — the built console served at `/console/` behind a reverse
@@ -599,9 +673,36 @@ Cross-plan gates with their own acceptance:
   in shibuya records and inside kiroku event payloads). The client core normalizes errors
   and never renames fields.
 - Audit (2026-10-21): pgmq-hs ships a served OpenAPI 3.0 document with a checked-in golden
-  (`pgmq-inspect/test/golden/openapi.json`) and a dependency-free Node client generated
-  from it; the others publish prose contracts and golden JSON only. EP-11 generates the pgmq
-  types with `openapi-typescript` and hand-writes the rest.
+  (`pgmq-inspect/test/golden/openapi.json`) and a dependency-free Node test fixture
+  generated from it (under `test/client/`, not a published client); the others publish
+  prose contracts and golden JSON only. EP-11 generates the pgmq types with
+  `openapi-typescript` and hand-writes the rest.
+- Review round 2 (2026-10-21), verified against the four upstream working trees: kiroku's
+  `event_stream_overflowed` frame carries no structured count (its message text names a
+  dropped batch count and is documented as not a contract), `/categories` keeps the
+  database collation while `/streams` is byte-ordered, `truncate_before` is never null, and
+  the standalone `kiroku-inspect` mounts the live registry; pgmq's overflow error frame has
+  `queue: null` and its OpenAPI types `read_ct` as `int64`; shibuya's `terminal` frame
+  carries `error` and `messageId` (nullable) only on the `failed` variant; keiro's
+  `/health` answers 503 for `schema_drift` under the default policy, a timer requeue or
+  cancel preview answers 200 with a `disposition` rather than 422, `pgmq dlq redrive`
+  takes the logical queue name and derives `_dlq` itself, the exit-code header is for
+  reads only, the WebSocket upgrade checks `Origin` against the allow-list or the request's
+  `Host` (so the Vite proxy needs `--allow-origin`), the compose example mounts only
+  `/keiro` and `/kiroku`, `keiro-ops-http` defaults to port 9092, and keiro's MasterPlan 46
+  will change the unreleased contract before it ships as 0.22.0.0. All of these were
+  corrected in the affected child plans in the same pass.
+- Review round 2 (2026-10-21), toolchain: shadcn's registry has no `data-table` item (the
+  recipe composes `table` with `@tanstack/react-table`), the init preset is `nova` (the
+  CLI derives `aria-nova`), `@tanstack/router-devtools` is deprecated in favour of
+  `@tanstack/react-router-devtools`, TanStack Router's `head` needs `<HeadContent />`,
+  `tw-animate-css` and `shadcn` are dev dependencies of `packages/ui`, and the
+  `generate-routes` script (`tsr generate` from `@tanstack/router-cli`) the screen plans
+  call had not been created by EP-7. Corrected in EP-7 and EP-8.
+- Review round 2 (2026-10-21): the mori registrations of keiro, pgmq-hs, and shibuya are
+  stale (many changed inputs), so `mori registry concepts --id` does not yet resolve
+  keiro ADR-53 through ADR-57 even though the files exist with the cited titles; the
+  handles in this document are correct in shape and will resolve after a registry refresh.
 - Drafting (2026-10-21): keiro's `jitsurei` example starts no shibuya-metrics server and its
   dev PostgreSQL is socket-only, so the shibuya baseline for the local stack is the
   shibuya-pgmq-adapter example consumer on its own database, and EP-9's recipes must pass
@@ -702,6 +803,28 @@ Cross-plan gates with their own acceptance:
   Rationale: the user selected Skip when asked.
   Date: 2026-10-21
 
+- Decision: The console's theme is light by default; dark stays available behind the
+  theme toggle and following the operating-system preference is an explicit `system`
+  choice, never the default. One provider, `apps/console/src/shell/theme.tsx`, is created
+  by EP-7 and reused unchanged by EP-8 (storage key `keiro-ui.theme.v1`).
+  Rationale: user directive on 2026-10-21 ("I don't want dark mode by default; let's
+  prioritize a light theme"); the first draft had two providers with two storage keys and a
+  `system` default, which this decision collapses.
+  Date: 2026-10-21
+
+- Decision: Shared interface spellings are owned by the earliest plan in dependency order
+  and restated verbatim downstream: the client core's signatures (EP-10) in the client and
+  screen plans, the shell's module paths, link builders, formatter names, and `jumpParsers`
+  (EP-8) in every screen plan, and the client packages' method and hook names (EP-11,
+  EP-12) in the screens that consume them. A change is made in the owning plan first and
+  cascaded in the same commit; "adapt at the import site if names differ" is no longer an
+  acceptable instruction in a child plan.
+  Rationale: the review round found four spellings of the format helpers, three of
+  `useSurfaceQuery`, two theme providers, two Playwright directories, and five plans
+  re-registering parsers the shell already owns; every one was a drift between a plan
+  written against the MasterPlan's prose and the owning plan's later detail.
+  Date: 2026-10-21
+
 - Decision: Static asset serving stays outside keiro; the console is packaged as a static
   bundle with reverse-proxy recipes (Caddy and nginx) for the single-origin deployment and a
   documented CORS allowlist recipe for separate origins. A request to keiro for an optional
@@ -716,6 +839,17 @@ Revision note (2026-10-21): after creation, the workspace tooling was switched f
 bun on the user's directive; every child plan's commands, manifests, and Nix notes were
 updated in the same change, vitest and Playwright were kept, and the component library was
 reconfirmed as shadcn/ui on the React Aria base (ADR-8), so no other section changed.
+
+Revision note (2026-10-21, review round 2): before implementation started, every child
+plan was re-audited against the four upstream working trees and the frontend toolchain,
+and the cross-plan interfaces were reconciled. The MasterPlan's endpoint inventory, port
+and origin rules, shell and client-core contracts, and keiro client specifics were
+corrected as recorded in Surprises & Discoveries; the light-theme default was fixed by
+decision; and every child plan now restates the owning plan's spellings (EP-10 for the
+client core, EP-8 for shell paths, links, formatters, and parsers, EP-11 and EP-12 for
+client methods and hooks), uses `apps/console/e2e/<section>/` for Playwright specs, and
+fills the route files EP-8 creates. The decomposition, registry, and dependency graph are
+unchanged.
 
 
 ## Outcomes & Retrospective

@@ -16,6 +16,17 @@ provenance:
       at: 2026-10-21T15:56:48Z
       mode: "update"
       note: "Switch workspace tooling from pnpm to bun; vitest and Playwright kept on Node 22"
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T18:42:29Z
+      mode: "update"
+      note: "Round 2: align to owning-plan spellings, correct audited upstream facts, e2e layout, light theme where applicable"
+  reviews:
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T18:42:29Z
+      verdict: "changes-requested"
+      note: "Round 2 review against upstream trees and the owning plans; findings applied in the same pass"
 ---
 
 # Build the Projections and Overview screens
@@ -71,7 +82,7 @@ section with the same numbers in the table.
   host", "unreachable") render exactly as specified below.
 - [ ] M4: Sidebar entries, `projection <group>` command, recent-entity recording, the full
   Playwright suite, and the live-stack integration gate: the manual walkthrough below is
-  completed against the EP-9 stack with evidence recorded here, `tests/e2e/live.spec.ts`
+  completed against the EP-9 stack with evidence recorded here, `e2e/live.spec.ts`
   passes under `KEIRO_UI_LIVE=1`, and the gate checkbox in
   `docs/masterplans/2-build-the-keiro-runtime-console.md` is ticked with the date.
 
@@ -134,10 +145,13 @@ four runtime surfaces under `/kiroku`, `/shibuya`, `/pgmq`, `/keiro` to local po
 9090, 9092, 9093. `docs/plans/8-build-the-console-app-shell-navigation-and-command-palette.md`
 built the shell: the rail, the collapsible sidebar, the bottom status bar, the right sheet,
 the ⌘K palette, connection profiles, and — under `apps/console/src/` — `shell/navigation.ts`
-(sections and their sidebar entries), `shell/commands.ts` (`useRegisterCommands`,
-`useRecordVisit`), `shell/status-bar.tsx` (status slots, including the visible store head),
-`lib/links.ts` (typed route builders), and `lib/format.ts` (time, duration, bigint, and
-position-distance formatting). `docs/plans/10-implement-the-client-core-for-http-cursors-int64-websocket-and-live-queries.md`
+(sections and their sidebar entries), `shell/features.ts` (`registerFeature`, through
+which this plan registers its presets and static commands), `shell/commands.ts`
+(`useRegisterCommands` for static entries; the parsed `projection <group>` jump already
+exists in the shell's `jumpParsers`), `shell/recent.ts` (`useRecordVisit({kind, label, href})`),
+`shell/status-bar.tsx` (status slots, including the visible store head), `lib/links.ts`
+(typed route builders), and `lib/format.ts` (`formatRelativeTime`, `formatDuration`,
+`formatInt`, `formatTimestamp`, and `formatPositionDistance`). `docs/plans/10-implement-the-client-core-for-http-cursors-int64-websocket-and-live-queries.md`
 built `@keiro-ui/client-core`: `useSurfaceQuery` (polling with the adaptive clamp
 `clamp(10s, 10 × last fetch, 60s)` and per-surface defaults), `useLiveness` (pause, resume,
 refresh), `useFeedSubscription` (a WebSocket feed layered on the query cache), `ApiError`,
@@ -180,8 +194,13 @@ command grammar, reads are GET and return the command's JSON unwrapped):
   and a server-computed `global_position_distance`.
 - `GET /keiro/shard/list` → `{observed_at, items: [{subscription, shard_counts, buckets_total, buckets_live, buckets_expired, buckets_unowned, live_owners}]}`
   and `GET /keiro/shard/status?subscription=<name>` → `{subscription, observed_at, shard_counts, ownership: [{bucket, owner, lease_expires_at, lease_state, heartbeat_at, updated_at, lease_age_seconds}]}`.
-- `GET /keiro/health` → `{status: "ok" | "schema_drift", schema_drift: [...], mutations_enabled}`,
-  or HTTP 503 `{status: "unavailable", message}`.
+- `GET /keiro/health` → 200 `{status: "ok", schema_drift: [], mutations_enabled}`; under
+  the host's default refuse-on-drift policy a drifted schema answers **503** with
+  `{status: "schema_drift", schema_drift: [...], mutations_enabled}` (200 with that body
+  only when the host allows drift); an unreachable database answers 503
+  `{status: "unavailable", message}`; keiro's MasterPlan 46 also lets it answer 503
+  `inspection_busy`. The keiro client's `health.get()` resolves with the body for all of
+  these.
 - `GET /keiro/wf/inspect/list?ordering=created_desc&limit=500` → a page of workflow
   instances with `status_class` per item (`running`, `retrying`, `sleeping`, `awaiting`,
   `completed`, `cancelled`, `failed`).
@@ -247,17 +266,21 @@ Create `features/projections/distance.ts` exporting
 `{kind: "caught-up"}` when `head - applied === 0n`, else `{kind: "behind", distance: bigint}`
 (and `{kind: "ahead", distance}` if a served position exceeds the head, which the UI
 renders with a warning glyph rather than hiding). Display goes through
-`formatPositionDistance` from `lib/format.ts`; if EP-8 shipped it with a two-argument
-signature, extend it additively to accept the union. Create `features/projections/queries.ts`
-with `useProjectionStatus(search)` wrapping `useSurfaceQuery("keiro", keys.projections.status(search), () => keiro.projections.status(search))`
-and `useProjectionGroupsLive()` which calls `useFeedSubscription(keiro.feeds.projectionGroups, applyProjectionFrame)`
-where `applyProjectionFrame` replaces the cached first page on `snapshot`, upserts
-`changed` items by `group_id` and deletes `removed` keys on `update`, and writes the frame's
-`visible_store_head` into the cache's page header. Build `features/projections/projection-table.tsx`
-on `@keiro-ui/ui/components/table` (or `data-table` if EP-13 established it as the list
-primitive): columns group, lifecycle (a `badge` coloured per phase), access (two small
-badges "reads"/"writes" dimmed when false), serving revision and epoch, basis, applied
-position (a `bigint` rendered with `formatInt64`), distance (`DistanceCell`), rebuild
+`formatPositionDistance` from `lib/format.ts`; EP-8 ships it with the two-argument
+signature `(visibleStoreHead, position)`, so extend it additively to accept the union.
+Create `features/projections/queries.ts` with `useProjectionStatus(search)` wrapping
+`useSurfaceQuery({ surface: "keiro", queryKey: keiroKeys.projections.status(search), queryFn: () => keiro.projections.status(search) })`
+and `useProjectionGroupsLive(enabled)` which calls the keiro client's
+`useProjectionGroupsFeed({ enabled })` from `@keiro-ui/client-keiro/feeds`; that hook
+already replaces the cached first page on `snapshot`, upserts `changed` items by
+`group_id` and deletes `removed` keys on `update`, stores the frame's `visible_store_head`
+in the cache's page header, and refetches on overflow or a sequence gap, so this plan
+supplies only the `enabled` rule (first page, liveness not paused). Build
+`features/projections/projection-table.tsx` on `@keiro-ui/ui/components/table` (composed
+with `@tanstack/react-table` the way shadcn's data-table recipe does, as EP-13's lists do):
+columns group, lifecycle (a `badge` coloured per phase), access (two small badges
+"reads"/"writes" dimmed when false), serving revision and epoch, basis, applied position
+(a `bigint` rendered with `formatInt`), distance (`DistanceCell`), rebuild
 (empty unless `active_run_id` is set; then the candidate revision and a progress ratio
 `candidate_rebuild_position / candidate_rebuild_head` as a `progress` bar with both
 numbers in its label, and `rebuild_started_at` as relative time), query models (count with
@@ -286,7 +309,7 @@ set, `useProjectionPosition(subscription)` calls `keiro.projections.position({su
 and renders `store_position`, `visible_store_head`, `maximum_global_position_distance`,
 `minimum_checkpoint_position`, and a members table (member, checkpoint position, the
 server's `global_position_distance`, checkpoint updated at), plus a link built with
-`links.subscriptions({subscription})` to the kiroku checkpoint row. When unset, a muted
+`links.subscription(subscription)` to the kiroku checkpoint page. When unset, a muted
 note reads "keiro does not expose which subscription feeds this group; enter it to see
 checkpoints" — that sentence is the acceptance for the limitation. A `command_failed`
 `ApiError` (unknown subscription) renders inline as the server's message. No controls
@@ -327,13 +350,13 @@ glyph, and a `link` built from `lib/links.ts`) fed by one hook in
   `/projections`. This hook also publishes `visible_store_head` to the status bar's store
   head slot via EP-8's slot API, so the bottom bar shows it on every page once the Overview
   or a projections page has run.
-- **Processors** → `shibuya.health.ready()`. The client resolves this call with the body
-  for both 200 and 503 (`ready` false); if EP-11 instead throws an `ApiError` carrying the
-  body in `details`, read it from there. Headline: `application` state; subtitle: "total 4
-  · healthy 3 · failed 0 · stuck 1 · paused 0". Links to `/processors`.
+- **Processors** → `shibuya.health.ready()`, which resolves with `{status, body}` for both
+  200 and 503 (`body.ready` false on 503) — EP-11's declared contract. Headline:
+  `body.application` state; subtitle: "total 4 · healthy 3 · failed 0 · stuck 1 · paused 0".
+  Links to `/processors`.
 - **Store** → `kiroku.checkpoints.inventory()` for `store_position` (headline, labelled
   "store position") and the number of distinct subscriptions (subtitle), and
-  `kiroku.metrics.get()` for `subscriptions_dead_lettered` rendered as "dead letters seen:
+  `kiroku.metrics.all()` for `subscriptions_dead_lettered` rendered as "dead letters seen:
   <n>" when the call succeeds and omitted when `/metrics` is disabled or legacy-errors
   (`kiroku-inspect` reports zero because it runs no subscriptions; say so in a tooltip).
   Links to `/subscriptions`.
@@ -346,9 +369,12 @@ glyph, and a `link` built from `lib/links.ts`) fed by one hook in
   `/timers`.
 
 `HealthStrip` renders four dots from `kiroku.health.live()`, `pgmq.health.live()`,
-`shibuya.health.live()`, and `keiro.health.get()`: green when the call succeeds and reports
-alive/ok, amber for keiro `schema_drift`, red for a 503 body, grey with the text
-"unreachable" when the request fails at the network level. The keiro health card shows
+`shibuya.health.live()` (each resolving `{status, body}`), and `keiro.health.get()`: green
+when the call succeeds with 200 and reports alive/ok, amber for keiro's `schema_drift` body
+(which arrives with HTTP 503 under the default refuse-on-drift policy, so the body, not the
+status code, decides amber), red for any other 503 body, grey with the text "unreachable"
+when the request fails at the network level. This is the same rule the shell's bottom-bar
+probe applies (`degraded` for keiro drift). The keiro health card shows
 `status`, the `schema_drift` list in a `collapsible` when non-empty, and the line
 "mutations: disabled on server" or "mutations: enabled on server" from `mutations_enabled`
 — this is a fact about the server and never a control.
@@ -366,15 +392,17 @@ the bottom bar stops the cards' refetch counter in the MSW request log; resuming
 
 ### Milestone 4 — navigation, commands, the Playwright suite, and the live-stack gate
 
-Extend `shell/navigation.ts` with the Projections section's sidebar entries (Projections,
-Shards) and give the Overview section none. Register the command `projection <group>` via
-`useRegisterCommands` (parsed input navigates to `/projections/<group>`) and call
-`useRecordVisit({kind: "projection", id: group_id, label})` on the detail page so recent
-groups appear in the palette. Add Playwright specs under `apps/console/tests/e2e/`:
-`overview.spec.ts` (each card links to its section; "not mounted" state; pause stops
-polling), `projections.spec.ts` (distance cell values for the three fixture cases; load
-more; feed update changes a row), `shards.spec.ts` (selecting a subscription shows
-ownership rows), and `live.spec.ts`.
+`registerProjectionsFeature()` (one `registerFeature` call wired into
+`apps/console/src/features/index.ts`) adds the Projections section's recents group and a
+static "Projections" palette entry; the page entries "Status" and "Shards" are the shell's
+own, the Overview section has none, and the parsed `projection <group>` jump is the
+shell's (`jumpParsers`), verified here rather than re-registered. Call
+`useRecordVisit({kind: "projection", label: group_id, href})` on the detail page so recent
+groups appear in the palette. Add Playwright specs under `apps/console/e2e/`:
+`overview/overview.spec.ts` (each card links to its section; "not mounted" state; pause
+stops polling), `projections/projections.spec.ts` (distance cell values for the three
+fixture cases; load more; feed update changes a row), `projections/shards.spec.ts`
+(selecting a subscription shows ownership rows), and `live.spec.ts`.
 
 The live-stack integration gate is verified in two parts. First the manual walkthrough:
 with the EP-9 stack up (`just stack-up` in this repository, which starts PostgreSQL with
@@ -386,9 +414,11 @@ confirming each list screen shows rows from the seeded database (or the honest
 "not mounted on this host" message where the host lacks hooks) and that the bottom bar's
 health dots are green for all four surfaces; then run the client core's int64 round-trip
 check exactly as `docs/plans/10-...` defines it (its live contract test under
-`KEIRO_UI_LIVE=1`). Second, `tests/e2e/live.spec.ts`, which is skipped unless
+`KEIRO_UI_LIVE=1`). Second, `e2e/live.spec.ts`, which is skipped unless
 `KEIRO_UI_LIVE=1`, automates the same visits through `playwright.live.config.ts`
-(baseURL `http://127.0.0.1:5173`, reusing the running dev server) and asserts at least one
+(baseURL `http://localhost:5173`, reusing the running dev server; `localhost`, not
+`127.0.0.1`, so the browser's `Origin` matches the one keiro-ops-http allow-lists) and
+asserts at least one
 row or the not-mounted message on every list, and four healthy dots. Record the walkthrough
 date, the stack's package versions, and the spec's pass line in this plan's Progress, then
 tick the "Live-stack integration gate" checkbox in
@@ -433,7 +463,7 @@ Expected transcript shape for the live specification:
 
 ```text
 Running 1 test using 1 worker
-  ✓  tests/e2e/live.spec.ts:12:5 › every section renders against the live stack (9.8s)
+  ✓  e2e/live.spec.ts:12:5 › every section renders against the live stack (9.8s)
 1 passed (10.1s)
 ```
 
@@ -516,28 +546,28 @@ specifics" fixes them; if EP-12 exported a different identifier, adapt the impor
 behaviour): `projections.status({limit?, after?})`, `projections.position({subscription})`,
 `shards.list()`, `shards.status({subscription})`, `health.get()`,
 `workflows.list({ordering, limit, after?})`, `timers.pending({limit, after?})`,
-`timers.stuck({})`, `aggregates.types()`, and the feed dialect `feeds.projectionGroups`
-used through `useProjectionGroupsFeed()` (this plan's thin wrapper over
-`useFeedSubscription`). Positions are `bigint`; cursors are opaque strings echoed back
-unchanged.
+`timers.stuck({})`, `aggregates.types()`, `health.get()` (resolves with the body on 200 and
+503), the `keiroKeys` factory, and `useProjectionGroupsFeed({enabled?, onResync?})` from
+`@keiro-ui/client-keiro/feeds` (EP-12's hook, which does the cache merge). Positions are
+`bigint`; cursors are opaque strings echoed back unchanged.
 
 **Consumed from `@keiro-ui/client-kiroku`**: `checkpoints.inventory()`,
-`metrics.get()` (may reject with an `ApiError` whose code is `legacy_error` when `/metrics`
-is disabled), `health.live()`. From `@keiro-ui/client-pgmq`: `metrics.all()`,
-`health.live()`. From `@keiro-ui/client-shibuya`: `health.ready()` (resolves with the
-readiness body on 200 and 503), `health.live()`.
+`metrics.all()` (may reject with an `ApiError` whose code is `legacy_error` when `/metrics`
+is disabled), `health.live()` (resolves `{status, body}`). From `@keiro-ui/client-pgmq`:
+`metrics.all()`, `health.live()`. From `@keiro-ui/client-shibuya`: `health.ready()` and
+`health.live()` (each resolves `{status, body}` on 200 and 503).
 
 **Consumed from `@keiro-ui/client-core`**: `useSurfaceQuery`, `useLiveness`,
-`useFeedSubscription`, `ApiError`, the cursor-page adapter, and the per-surface query key
-factories.
+`useCursorPages` (the "load more" adapter, for the projections table), `ApiError`, and the
+per-surface query key factories.
 
-**Consumed from the shell (`apps/console/src/shell/*`, `lib/*`)**: `navigation.ts`
-section registration, `commands.ts` (`useRegisterCommands`, `useRecordVisit`),
-`status-bar.tsx`'s store-head slot, `lib/links.ts` builders (`links.projections`,
-`links.projection({group})`, `links.shards({subscription?})`, `links.subscriptions({subscription})`,
-`links.queues`, `links.workflows`, `links.processors`, `links.aggregates`, `links.timers`),
-and `lib/format.ts` (`formatPositionDistance`, `formatInt64`, `formatDuration`,
-`formatRelative`).
+**Consumed from the shell (`apps/console/src/shell/*`, `lib/*`)**: `features.ts`
+(`registerFeature`), `commands.ts` (`useRegisterCommands`), `recent.ts` (`useRecordVisit`),
+`status-slots.tsx` (`useStatusSlot("store-head", ...)`), `lib/links.ts` builders
+(`links.projections()`, `links.projection(group)`, `links.shards({subscription?})`,
+`links.subscription(name)`, `links.queues()`, `links.workflows()`, `links.processors()`,
+`links.aggregates()`, `links.timers()`), and `lib/format.ts` (`formatPositionDistance`,
+`formatInt`, `formatDuration`, `formatRelativeTime`).
 
 **Provided to later plans**: `features/overview/stat-card.tsx` (`StatCard`),
 `features/overview/health-strip.tsx` (`HealthStrip`), `features/projections/distance-cell.tsx`

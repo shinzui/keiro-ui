@@ -16,6 +16,17 @@ provenance:
       at: 2026-10-21T15:56:48Z
       mode: "update"
       note: "Switch workspace tooling from pnpm to bun; vitest and Playwright kept on Node 22"
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T18:42:29Z
+      mode: "update"
+      note: "Round 2: align to owning-plan spellings, correct audited upstream facts, e2e layout, light theme where applicable"
+  reviews:
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T18:42:29Z
+      verdict: "changes-requested"
+      note: "Round 2 review against upstream trees and the owning plans; findings applied in the same pass"
 ---
 
 # Build the Aggregates, Process Managers, and Timers screens
@@ -190,16 +201,19 @@ same prefixes):
 **Packages and contracts this plan depends on.**
 
 - `packages/client-keiro` (`docs/plans/12-implement-the-keiro-typed-client.md`) exports
-  `createKeiroClient({baseUrl})` with namespaces `aggregates` (`types()`, `list({name, limit, after})`,
-  `show({name, id})`, `snapshot({name, id})`), `processManagers` (`list({name, limit, after})`,
-  `show({name, correlation, timerLimit})`), and `timers` (`pending({manager, correlation, after, limit})`,
-  `stuck({minAge, minAttempts})`), query-key factories, the hook `useTimersFeed(filters, applyToCache)`
-  built on the client core's `useFeedSubscription`, zod schemas for every response, and the
-  typed refusals `RouteUnavailable` (unknown command word), `SchemaDrift`, and
-  `MutationsDisabled` as subclasses of the client core's `ApiError`. If any of these names
-  differ when EP-12 lands, this plan's implementer adapts to EP-12's exports and records
-  the difference in Surprises & Discoveries; the contract, not the spelling, is fixed by
-  the MasterPlan.
+  `createKeiroClient({baseUrl})` with namespaces `aggregates` (`types()`, `list({name, limit?, after?})`,
+  `show({name, id})`, `snapshot({name, id})`), `processManagers` (`list({name, limit?, after?})`,
+  `show({name, correlation, timer_limit?})`), and `timers` (`pending({manager?, correlation?, after?, limit?})`,
+  `stuck({min_age?, min_attempts?})`) — every flag object uses the wire's `snake_case`
+  keys — the `keiroKeys` query-key factory, the hook `useTimersFeed(filters, {enabled?, onResync?})`
+  from `@keiro-ui/client-keiro/feeds` (it applies `snapshot`/`update` frames to the
+  `keiroKeys.timers.pending(filters)` cache entry itself with `mergeFeedFrame` and
+  invalidates that query on overflow, sequence gap, or reconnect; it returns
+  `{status: "live" | "reconnecting" | "read_failed" | "off"}`), zod schemas for every
+  response, and the typed refusals `RouteUnavailable` (a 400 `invalid_request` on a request
+  that began with the command word `aggregate` or `pm`), `SchemaDrift`, and
+  `MutationsDisabled` as subclasses of the client core's `ApiError`. These spellings are
+  copied from EP-12's declared interface, which owns them; a change there is cascaded here.
 - `packages/client-kiroku` (`docs/plans/11-implement-the-kiroku-pgmq-and-shibuya-typed-clients.md`)
   exports `createKirokuClient({baseUrl})` with `streams.events(...)` and the `Event` schema.
 - `packages/client-core` (`docs/plans/10-implement-the-client-core-for-http-cursors-int64-websocket-and-live-queries.md`)
@@ -208,18 +222,23 @@ same prefixes):
   `useFeedSubscription`.
 - The shell (`docs/plans/8-build-the-console-app-shell-navigation-and-command-palette.md`)
   provides, under `apps/console/src/`: `routes/_shell.tsx` (the layout every section
-  mounts under), `shell/navigation.ts` (rail sections and sidebar entries),
-  `shell/commands.ts` (`useRegisterCommands`, `useRecordVisit`, the recents store),
+  mounts under) and the placeholder route files this plan fills (listed under Plan of
+  Work; this plan never creates or renames a route file), `shell/navigation.ts` (rail
+  sections and sidebar entries; this plan adds presets through `registerFeature` in
+  `shell/features.ts`), `shell/commands.ts` (`useRegisterCommands` for static entries; the
+  parsed `aggregate <type>/<id>`, `pm <name>/<correlation>`, and `timer <id>` jumps already
+  exist in the shell's `jumpParsers`), `shell/recent.ts` (`useRecordVisit({kind, label, href})`,
+  the recents store),
   `shell/right-sheet.tsx` (`registerSheet(kind, Component)`, `useRightSheet().open({kind, ref})`,
   mirrored to the `sheet` search parameter), `lib/links.ts` (typed route builders),
   `lib/format.ts` (relative time, durations, bigint display), `settings/connection-profiles.ts`
   (the `ConnectionProfile` type and `useSurfaceBaseUrl`), and the `EmptyState` composition.
 - `docs/plans/13-build-the-streams-and-subscriptions-screens.md` (soft) introduces
-  `EventDetailSheet` (sheet kind `event`, ref `<eventId>`), `JsonViewer`, and `CursorPager`
-  under `apps/console/src/features/streams/`. If EP-13 is not complete when this plan
-  starts, ship minimal local versions under `apps/console/src/features/shared/` and
-  reconcile to EP-13's components when both exist (record the reconciliation in the
-  Decision Log).
+  `JsonViewer`, `CursorPager`, and `PositionBadge` under `apps/console/src/components/` and
+  `EventDetailSheet` (sheet kind `event`, ref `<eventId>`) under
+  `apps/console/src/features/streams/`. If EP-13 is not complete when this plan starts,
+  ship minimal local versions at those same paths and let EP-13 replace them (record the
+  swap in the Decision Log).
 - `packages/testing` (`docs/plans/9-provision-the-local-runtime-stack-and-recorded-fixtures.md`, soft)
   provides fixtures at `packages/testing/fixtures/keiro/` and `packages/testing/fixtures/kiroku/`,
   MSW handlers, and scripted feeds under `packages/testing/src/feeds/keiro.ts`. Because no
@@ -258,9 +277,11 @@ parameter so it can be shared.
 
 ## Plan of Work
 
-All application code lives in `apps/console/src/`. Routes go under `routes/aggregates/`,
-`routes/process-managers/`, and `routes/timers/` as file-based TanStack routes mounted
-under the shell layout; feature code goes under `features/aggregates/`,
+All application code lives in `apps/console/src/`. The routes are the placeholder files
+the shell plan created under `routes/_shell/aggregates/`, `routes/_shell/process-managers/`,
+and `routes/_shell/timers/` (file-based TanStack routes mounted under the shell layout);
+this plan replaces their components and never creates or renames a route file. Feature
+code goes under `features/aggregates/`,
 `features/process-managers/`, and `features/timers/`; shared pieces introduced here go
 under `features/shared/`. Every list route validates its search parameters with a zod 4
 schema passed as `validateSearch`, so filters, cursors, tabs, and the `sheet` parameter are
@@ -271,23 +292,24 @@ all in the URL.
 Scope: three routes and the side-by-side browser. At the end an operator can navigate kind
 → instance → browser, and the browser shows raw events and folded state together.
 
-`routes/aggregates/index.tsx` (`/aggregates`) queries `aggregates.types()` through
+`routes/_shell/aggregates/index.tsx` (`/aggregates`) queries `aggregates.types()` through
 `useSurfaceQuery` and renders a table (`@keiro-ui/ui/components/table`) with columns name,
 category (linking to `/categories/<category>` via `links.category`), snapshots configured
 (a badge), and snapshot policy; each row links to `links.aggregateType(name)`. A
 `RouteUnavailable` refusal renders the not-mounted state described in M4 (build the
 component here, reuse it later).
 
-`routes/aggregates/$type.tsx` (`/aggregates/$type`) validates search `{after?: string, limit?: number}`
-and pages `aggregates.list({name: type, limit, after})` with the client core's cursor
-adapter and `CursorPager`. Columns: aggregate id (link to the browser), stream name (link to
+`routes/_shell/aggregates/$type/index.tsx` (`/aggregates/$type`) validates search
+`{after?: string, limit?: number}` and pages `aggregates.list({name: type, limit, after})`
+through `useSurfaceQuery` keyed by the URL's cursor (one page per query) with
+`CursorPager`. Columns: aggregate id (link to the browser), stream name (link to
 `links.stream(stream_name)`), stream version, created at and deleted at (relative time with
 the absolute value in a tooltip), truncate before. Above the table a one-line caption reads
 "N streams in category <category> skipped: not instances of <type>" when `skipped > 0`,
 with a tooltip explaining that keiro lists the category's streams and skips those whose
 name does not parse as this aggregate kind.
 
-`routes/aggregates/$type.$id.tsx` (`/aggregates/$type/$id`) renders `features/aggregates/AggregateBrowser.tsx`:
+`routes/_shell/aggregates/$type/$id.tsx` (`/aggregates/$type/$id`) renders `features/aggregates/AggregateBrowser.tsx`:
 a `SplitPane` (`features/shared/SplitPane.tsx`, built on `@keiro-ui/ui/components/resizable`,
 persisting its ratio under the localStorage key `keiro-ui.split.aggregate-browser` and
 tolerating a missing or throwing storage) whose left pane is `features/aggregates/StreamEventsPane.tsx`
@@ -320,7 +342,7 @@ version 1.
 
 Scope: the index with the discovery decision, instance paging, and the instance detail.
 
-`routes/process-managers/index.tsx` (`/process-managers`) does not call keiro: it lists the
+`routes/_shell/process-managers/index.tsx` (`/process-managers`) does not call keiro: it lists the
 names from the active connection profile's optional `processManagerNames: string[]`
 (added to the `ConnectionProfile` type in `settings/connection-profiles.ts` as an optional
 field — coordinate with EP-8's owner; the settings page gains a text area for it) merged
@@ -332,15 +354,16 @@ submit. The index never sends a request with a blank name (keiro rejects it with
 request to `/keiro/pm/*` returns `RouteUnavailable`, so the index itself is always
 reachable.
 
-`routes/process-managers/$name.tsx` (`/process-managers/$name`) validates `{after?, limit?}`
-and pages `processManagers.list({name, limit, after})`: columns correlation id (link to the
+`routes/_shell/process-managers/$name/index.tsx` (`/process-managers/$name`) validates
+`{after?, limit?}` and pages `processManagers.list({name, limit, after})` through
+`useSurfaceQuery` keyed by the URL's cursor: columns correlation id (link to the
 detail), stream name (link to `links.stream`), stream version, created at, deleted at,
 truncate before, with the same `skipped` caption as M1 (here: "streams in the category that
 are not journals of this manager").
 
-`routes/process-managers/$name.$correlation.tsx` (`/process-managers/$name/$correlation`)
+`routes/_shell/process-managers/$name/$correlation.tsx` (`/process-managers/$name/$correlation`)
 validates `{timer_limit?: number}` (default 20, 1..500) and queries
-`processManagers.show({name, correlation, timerLimit})`. A JSON `null` response renders
+`processManagers.show({name, correlation, timer_limit})`. A JSON `null` response renders
 the empty state "No instance of <name> with correlation <correlation>". Otherwise
 `features/process-managers/InstanceDetail.tsx` lays out: a header with `state_label`,
 `HydrationBadge`, `state_version`, `stream_version`, `observed_head_version`, and
@@ -350,7 +373,9 @@ panel (`features/process-managers/WaitingForPanel.tsx`) listing `waiting_for` as
 `event_type`, `event_id` (link to `links.event`), `stream_version`, `global_position` (shown
 under that name), `recorded_at`, then `provenance_status` as a badge — `available`,
 `truncated` ("provenance bounded; some entries omitted"), or `unavailable` ("this reaction
-predates provenance recording or the host opted out", per ADR-55) — and, when
+predates provenance recording or the host opted out", per ADR-55; keiro's MasterPlan 46
+makes `unavailable` with `provenance: null` the ordinary case, so this badge must read as
+neutral information, not as a warning) — and, when
 `provenance` is present, its `family`, source event (link), `source_global_position`,
 `source_stream_name` (link), the `dispatched_commands` table (emit index, target stream
 link, event id link, witness `event_present`/`not_observed` badge), and `timer_ids` each
@@ -365,28 +390,33 @@ pending view and a "View all in Timers" link to `links.timers({manager: name, co
 
 Scope: the pending ledger with live updates, the stuck tab, and the timer sheet.
 
-`routes/timers/index.tsx` (`/timers`) validates
+`routes/_shell/timers/index.tsx` (`/timers`) validates
 `{tab?: "pending" | "stuck", manager?: string, correlation?: string, after?: string, limit?: number, min_age?: string, min_attempts?: number, sheet?: string}`.
 A filter bar (`@keiro-ui/ui/components/input-group` and `field`) edits `manager` and
 `correlation`; submitting replaces the search params and resets `after`. The pending tab
-pages `timers.pending({manager, correlation, after, limit})` through the cursor adapter and
-shows the page's `observed_at` as "as of <relative>" next to the liveness indicator;
+pages `timers.pending({manager, correlation, after, limit})` through `useSurfaceQuery`
+keyed by the URL's cursor (the feed below mirrors only page one) and shows the page's
+`observed_at` as "as of <relative>" next to the liveness indicator;
 columns: timer id (opens the `timer` sheet), manager (link to `links.processManager(name)`),
 correlation (link to the instance detail), fire at (relative text built from
 `due_in_seconds` — "due in 2m" / "overdue by 40s" — with the absolute `fire_at` in a
 tooltip), status (badge), attempts, last error (truncated, full text in the sheet), fired
 event (link to `links.event(fired_event_id)` when present).
 
-Live updates: `features/timers/useLiveTimers.ts` calls `useTimersFeed({manager, correlation_id: correlation, limit}, applyToCache)`
-only when `after` is undefined (the feed covers the first page only; deeper pages poll).
-`applyToCache` replaces the page on `snapshot`, upserts `changed` and deletes `removed`
-by `timer_id` on `update`, updates the displayed `observed_at` from the frame, and on
-`queue_overflow` or a `sequence` gap calls the query's refetch and re-subscribes (the client
-core's `onResync`). The server refreshes this feed at most every 5 s, so the "as of" stamp
-is what tells the operator how fresh the ledger is; polling continues underneath per ADR-3
-and the shell's pause control stops both.
+Live updates: `features/timers/useLiveTimers.ts` calls
+`useTimersFeed({manager, correlation_id: correlation, limit}, {enabled})` with `enabled`
+true only when `after` is undefined (the feed covers the first page only; deeper pages poll)
+and liveness is not paused. The hook itself replaces the page on `snapshot`, upserts
+`changed` and deletes `removed` by `timer_id` on `update`, carries the frame's
+`observed_at` into the cache entry, and on `queue_overflow`, a `sequence` gap, or reconnect
+refetches the query and re-subscribes; this plan only decides `enabled` and renders the
+hook's `status`. keiro's feed driver re-reads the view at least once a second (1 s fallback
+and minimum refresh, 5 s read timeout) and strips `due_in_seconds` before comparing, so a
+clock-only tick produces no `update`; the "as of" stamp is therefore what tells the
+operator how fresh the ledger is, and the screen recomputes "due in" locally from
+`fire_at`. Polling continues underneath per ADR-3 and the shell's pause control stops both.
 
-The stuck tab (`tab=stuck`) polls `timers.stuck({minAge: min_age, minAttempts: min_attempts})`
+The stuck tab (`tab=stuck`) polls `timers.stuck({min_age, min_attempts})`
 with a small form for `min_age` (free text validated against keiro's duration syntax such
 as `5m`, `1h`; invalid input is rejected client-side with the same message keiro would
 return) and `min_attempts`; it renders timer id, manager, correlation, fire at (absolute,
@@ -416,12 +446,15 @@ host that mounts them. The Overview card for this section (owned by
 plan exports `aggregatesMountedQuery()` from `features/aggregates/queries.ts` so EP-17 can
 reuse the probe.
 
-Navigation: extend `shell/navigation.ts` with the Aggregates section (sidebar: "Aggregate
-kinds", recent aggregates) and the Process managers & Timers section (sidebar: "Process
-managers", "Timers", "Stuck timers" → `/timers?tab=stuck`, recent instances). Commands:
-register `aggregate <type>/<id>`, `pm <name>/<correlation>`, and `timer <id>` parsed
-commands with `useRegisterCommands`, plus static entries for the four pages. Recents: call
-`useRecordVisit` on the aggregate browser, the instance detail, and the timer sheet.
+Navigation: `registerAggregatesFeature()` (one `registerFeature` call wired into
+`apps/console/src/features/index.ts`) adds the Aggregates section's recents group and the
+Process managers & Timers section's preset "Stuck timers" → `/timers?tab=stuck` and
+recents group (the page entries "Aggregate kinds", "Process managers", and "Timers" are
+the shell's own), registers the `timer` sheet, and registers static palette entries for
+the four pages. The parsed `aggregate <type>/<id>`, `pm <name>/<correlation>`, and
+`timer <id>` jumps are the shell's (`jumpParsers`) and are verified, not re-registered.
+Recents: call `useRecordVisit({kind, label, href})` on the aggregate browser, the instance
+detail, and the timer sheet.
 Formatting: positions and versions display through `lib/format.ts`'s bigint helpers; the
 word "lag" never appears.
 
@@ -475,7 +508,7 @@ Run the unit tests and the end-to-end suite in mock mode:
 
 ```bash
 bun run --filter @keiro-ui/console test -- aggregates process-managers timers
-VITE_MOCK=1 bun run --filter @keiro-ui/console test:e2e -- tests/e2e/aggregates.spec.ts tests/e2e/process-managers.spec.ts tests/e2e/timers.spec.ts
+VITE_MOCK=1 bun run --filter @keiro-ui/console test:e2e -- e2e/aggregates e2e/process-managers e2e/timers
 ```
 
 Expected transcript tail:
@@ -545,11 +578,12 @@ sheet with the payload JSON and no action buttons.
 `/aggregates` shows the not-mounted state naming `/keiro/aggregate/types` and linking to
 `dev/README.md`; the same for `/process-managers/<name>` via `/keiro/pm/list`. The sidebar
 shows the entries listed in M4; ⌘K with `timer 7b…` opens `/timers` with the sheet; the
-three recents appear after visiting. Playwright: `tests/e2e/aggregates.spec.ts` (kind →
-instance → browser with both panes and the split persisted), `tests/e2e/process-managers.spec.ts`
-(detail panels and the null state), `tests/e2e/timers.spec.ts` (filter round trip, feed
-update, stuck tab, sheet), and `tests/e2e/not-mounted.spec.ts`. The live-stack smoke is
-recorded in Progress with the routes exercised.
+three recents appear after visiting. Playwright: `e2e/aggregates/aggregates.spec.ts` (kind →
+instance → browser with both panes and the split persisted),
+`e2e/process-managers/process-managers.spec.ts` (detail panels and the null state),
+`e2e/timers/timers.spec.ts` (filter round trip, feed update, stuck tab, sheet), and
+`e2e/aggregates/not-mounted.spec.ts`. The live-stack smoke is recorded in Progress with
+the routes exercised.
 
 Required acceptance is the four milestones above. Proposals that are not required:
 virtualized event lists for very long streams; a "diff against snapshot" view; any action.
@@ -583,18 +617,20 @@ Consumed interfaces, by full path:
   `StuckTimer[]`.
 - `packages/client-kiroku/src/index.ts`: `createKirokuClient`, `streams.events`, `Event`.
 - `packages/client-core/src/live.ts`: `useSurfaceQuery`, `useFeedSubscription`, `useLiveness`.
-- `apps/console/src/shell/{navigation,commands,right-sheet}.ts(x)`, `apps/console/src/lib/{links,format}.ts`,
-  `apps/console/src/settings/connection-profiles.ts` (extended here with
-  `processManagerNames?: string[]`).
+- `apps/console/src/shell/{navigation,commands,recent,right-sheet,features}.ts(x)`,
+  `apps/console/src/lib/{links,format}.ts` (`formatRelativeTime`, `formatDuration`,
+  `formatInt`, `formatTimestamp`), `apps/console/src/settings/connection-profiles.ts` (its
+  optional `processManagerNames?: string[]`, which EP-8 already declares; this plan gives it
+  the settings text area).
 
 Provided interfaces, by full path, for later plans: `apps/console/src/features/shared/SplitPane.tsx`,
 `apps/console/src/features/shared/HydrationBadge.tsx`, `apps/console/src/features/shared/NotMountedState.tsx`,
 `apps/console/src/features/process-managers/WaitingForPanel.tsx`,
 `apps/console/src/features/timers/TimerSheet.tsx` (sheet kind `timer`, ref `<timer_id>`),
 `apps/console/src/features/aggregates/queries.ts` (`aggregatesMountedQuery`, used by EP-17's
-Overview card), and the link builders this plan asks EP-8 to add if absent:
-`links.aggregateType`, `links.aggregate`, `links.processManager`, `links.processManagerInstance`,
-`links.timers({manager?, correlation?, tab?})`.
+Overview card). The link builders this plan uses — `links.aggregateType`,
+`links.aggregate`, `links.processManager`, `links.processManagerInstance`,
+`links.timers({manager?, correlation?, tab?})` — are all declared by EP-8.
 
 Prerequisites declared by the parent: `docs/plans/8-build-the-console-app-shell-navigation-and-command-palette.md`,
 `docs/plans/11-implement-the-kiroku-pgmq-and-shibuya-typed-clients.md`, and

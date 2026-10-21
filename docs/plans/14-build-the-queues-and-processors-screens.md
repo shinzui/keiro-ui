@@ -16,6 +16,17 @@ provenance:
       at: 2026-10-21T15:56:48Z
       mode: "update"
       note: "Switch workspace tooling from pnpm to bun; vitest and Playwright kept on Node 22"
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T18:42:29Z
+      mode: "update"
+      note: "Round 2: align to owning-plan spellings, correct audited upstream facts, e2e layout, light theme where applicable"
+  reviews:
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T18:42:29Z
+      verdict: "changes-requested"
+      note: "Round 2 review against upstream trees and the owning plans; findings applied in the same pass"
 ---
 
 # Build the Queues and Processors screens
@@ -165,7 +176,7 @@ and the shibuya pgmq adapter moved to another queue with a structured reason. A 
 an opaque value the server hands back for the next page; the UI echoes it and never does
 arithmetic on it. An *int64* is a 64-bit integer; JavaScript numbers lose precision above
 2^53, so the client core represents these as `bigint` and the UI renders them with
-`format.int64()`.
+`formatInt()` from `lib/format.ts`.
 
 **The pgmq surface (`pgmq-inspect`, in tree, unreleased; audited 2026-10-21).** It is
 reached at the `/pgmq` prefix on the console's origin (the Vite dev proxy forwards it to
@@ -259,16 +270,18 @@ hidden or worked around. [ADR-8](../adr/0008-shadcn-ui-on-the-react-aria-base-is
 counts come after.
 
 **Shell contracts consumed (owned by EP-8, under `apps/console/src/`).** `shell/navigation.ts`
-declares the rail section and its sidebar entries; this plan adds the entries "Queues" and
-"Processors" and recent-entity groups for both. `shell/commands.ts` exports
-`useRegisterCommands(commands)` and `useRecordVisit(entity)`. `shell/right-sheet.tsx`
-exports `registerSheet(kind, Component)` and `useRightSheet()` whose `open({kind, ref})`
-mirrors the sheet into the `sheet` search parameter (`kind:ref`), so a sheet URL such as
-`/queues/orders?tab=messages&sheet=queue-message:orders/42` reopens the sheet on load.
-`lib/links.ts` exports the typed route builders (`links.queue(name)`,
-`links.queueMessage(name, id)`, `links.processor(id)` — added by this plan if EP-8 did not
-pre-declare them). `lib/format.ts` exports `format.relativeTime`, `format.duration`,
-`format.int64`, and `format.timestamp`. The keyboard contract is the shell's: Escape closes
+declares the rail section and its sidebar entries ("Queues" and "Processors" already exist
+there); this plan adds recent-entity groups for both through `registerFeature` in
+`shell/features.ts`. `shell/commands.ts` exports `useRegisterCommands(commands)` for static
+entries and already owns the parsed `queue <name>`, `message <queue>/<id>`, and
+`processor <id>` jump commands; `shell/recent.ts` exports `useRecordVisit({kind, label, href})`.
+`shell/right-sheet.tsx` exports `registerSheet(kind, Component)` and `useRightSheet()`
+whose `open({kind, ref})` mirrors the sheet into the `sheet` search parameter (`kind:ref`),
+so a sheet URL such as `/queues/orders?tab=messages&sheet=queue-message:orders/42` reopens
+the sheet on load. `lib/links.ts` exports the typed route builders (`links.queue(name, search?)`,
+`links.queueMessage(queue, id)`, `links.archivedMessage(queue, id)`, `links.processor(id)`,
+all declared by EP-8). `lib/format.ts` exports `formatRelativeTime`, `formatDuration`,
+`formatInt`, and `formatTimestamp`. The keyboard contract is the shell's: Escape closes
 the sheet.
 
 **Client contracts consumed (owned by EP-10 and EP-11).** From `@keiro-ui/client-core`:
@@ -293,10 +306,12 @@ against real servers (`bun run dev`).
 `apps/console/src/routes/_shell/queues/index.tsx` and `apps/console/src/routes/_shell/queues/$name.tsx`
 and the feature module `apps/console/src/features/queues/`. In `queries.ts`, wrap the pgmq
 client: `useQueueInventory()` fetches `/pgmq/queues` and `/pgmq/metrics` with
-`useSurfaceQuery` (surface `pgmq`, poll interval 5 s, `minInterval` 5 s so the adaptive
-clamp can slow it but never speed it up) and joins them on `queue_name` into one array;
-`useQueueMetrics(name)` fetches `/pgmq/queues/{name}/metrics` and layers
-`usePgmqQueueMetricsFeed(name)` on top so the header shows the newest of poll and feed. The
+`useSurfaceQuery` (surface `pgmq`, `poll: 5000`; the client core's adaptive clamp only ever
+lengthens an interval after a slow fetch and never shortens it below the base) and joins
+them on `queue_name` into one array; `useQueueMetrics(name)` reads `usePgmqQueueMetrics(name)`
+(the authoritative poll) and mounts `usePgmqQueueMetricsFeed(name)`, which writes each feed
+frame into that same cache entry and returns `{status, source, push}` for the header's
+indicator, so the header shows the newest of poll and feed from one cache entry. The
 list route validates its search params with zod 4 (`q` text filter, `sort` in
 `oldest | newest | visible | total | name`, `dir` in `asc | desc`, defaults `oldest`/`desc`);
 `sort.ts` implements the comparators with nulls (empty queues) last. `queue-table.tsx`
@@ -317,8 +332,10 @@ numbers without a page reload.
 **M2 — tabs, message sheet, message page, dead-letter panel.** Extend the detail route's
 search schema with `tab` in `messages | archive | bindings` (default `messages`), `from`
 (an optional decimal string, the int64 cursor), and `limit` (optional, 1–500). Build
-`queue-messages-tab.tsx` and `queue-archive-tab.tsx` over `useCursorPages` with columns
-Message id (`format.int64`), Reads (`read_ct`), Enqueued, Last read, Visible at (`vt`, with
+`queue-messages-tab.tsx` and `queue-archive-tab.tsx` over `useSurfaceQuery` keyed by the
+URL's `from` cursor (one page per query; the client core's `useCursorPages` is the "load
+more" adapter and does not fit a URL-addressed page) with columns Message id (`formatInt`),
+Reads (`read_ct`), Enqueued, Last read, Visible at (`vt`, with
 a tooltip explaining that a future value means leased or delayed; rendered as relative time
 with "in …" or "… ago"), Headers (a one-line summary), and for the archive, Archived at.
 "Next page" navigates with `from = page.nextCursor`; "First page" clears it. Clicking a row
@@ -327,8 +344,10 @@ calls `useRightSheet().open({kind: "queue-message", ref: `${name}/${msg_id}`})`.
 load (imported from the section's route file so it is registered whenever the section is
 loaded) and fetches `/pgmq/queues/{queue}/messages/{id}`, falling back to the archive route
 when the messages route returns `message_not_found`; it shows the timing fields, headers, the
-payload in the JSON viewer from `@keiro-ui/ui`, the dead-letter panel when applicable, and a
-link "Open full page" to `links.queueMessage(name, id)`. `queue-bindings-tab.tsx` lists
+payload in `JsonViewer` from `apps/console/src/components/JsonViewer.tsx` (EP-13's shared
+component, or this plan's minimal copy at the same path when EP-13 has not landed), the
+dead-letter panel when applicable, and a link "Open full page" to
+`links.queueMessage(name, id)`. `queue-bindings-tab.tsx` lists
 `/pgmq/queues/{queue}/bindings` (pattern, compiled_regex, bound_at), and `routing-test.tsx`
 is a small form (`@keiro-ui/ui/components/input` plus a button) that calls
 `/pgmq/routing/test?routing_key=` and lists the matching queues as links; an
@@ -351,12 +370,16 @@ reloads to the same page.
 
 **M3 — processors list.** Create `apps/console/src/routes/_shell/processors/index.tsx` and
 `apps/console/src/features/processors/`. `queries.ts` wraps the shibuya client:
-`useProcessors()` polls `/shibuya/metrics` (surface default 5 s) and layers
-`useShibuyaProcessorsFeed()` — `snapshot` replaces the map, `update` upserts one entry,
-`terminal` marks the entry with its terminal status and error so the table moves it into a
-"Terminal" group, and the client core's handling of `queue_overflow` (take the replacement
-snapshot) and reconnect (fresh snapshot) needs no screen code; `useReadiness()` polls
-`/shibuya/health/ready`. `state-badge.tsx` maps `state.status` to a badge
+`useProcessors()` reads `useShibuyaProcessors()` (the poll of `/shibuya/metrics` at the
+shibuya surface default of 2 s) and mounts `useShibuyaProcessorsFeed()`, which writes into
+that cache entry — `snapshot` replaces the map, `update` upserts one entry, `terminal` sets
+the entry's `state` to its terminal status — and returns `{status, terminal, receivedAt}`;
+the `terminal` map (status, error, and `messageId`) is what moves a row into the table's
+"Terminal" group with its error text, and `receivedAt` feeds the age extrapolation. The
+client core's handling of `queue_overflow` (take the replacement snapshot) and reconnect
+(fresh snapshot) needs no screen code; `useReadiness()` polls `/shibuya/health/ready`
+through the client's `health.ready()`, which resolves with `{status, body}` for both 200
+and 503. `state-badge.tsx` maps `state.status` to a badge
 (`@keiro-ui/ui/components/badge`) with distinct variants for idle, processing, paused,
 failed, stopped. `processor-table.tsx` renders Processor, State, Received, Processed
 (labelled "processed (includes retries)"), Failed, In flight (`inFlight / maxConcurrency`
@@ -390,14 +413,16 @@ message. Acceptance: the fixture processor with detailed metrics shows 18 bars, 
 three estimates; a processor without `latency` shows "latency detail not enabled on this
 host"; the control card reflects `enabled` from the fixture.
 
-**M5 — navigation, commands, recents, end-to-end tests.** Add the sidebar entries and
-recent-entity groups in `shell/navigation.ts`; register the commands `queue <name>`
-(navigates to `links.queue(name)`) and `processor <id>` through `useRegisterCommands` from
-the section's route module, and record visits with `useRecordVisit` on the queue detail,
-message page, and processor detail. Write the Playwright suite
-`apps/console/tests/e2e/queues.spec.ts` and `apps/console/tests/e2e/processors.spec.ts`
-against the MSW browser mode. Acceptance: the four end-to-end scenarios listed in
-Validation pass; ⌘K then "queue orders" lands on `/queues/orders`.
+**M5 — navigation, commands, recents, end-to-end tests.** Register the section's
+recent-entity groups and static commands through `registerQueuesFeature()` (one
+`registerFeature` call wired into `apps/console/src/features/index.ts`); the parsed
+`queue <name>`, `message <queue>/<id>`, and `processor <id>` jumps already exist in the
+shell's `jumpParsers` and are verified, not re-registered. Record visits with
+`useRecordVisit` on the queue detail, message page, and processor detail. Write the
+Playwright suite `apps/console/e2e/queues/queues.spec.ts` and
+`apps/console/e2e/queues/processors.spec.ts` against the MSW browser mode. Acceptance: the
+five end-to-end scenarios listed in Validation pass; ⌘K then "queue orders" lands on
+`/queues/orders`.
 
 
 ## Concrete Steps
@@ -468,7 +493,7 @@ copying the owning repository's golden file and editing it minimally; name the s
 6. Create the M5 wiring and the end-to-end suite; run it:
 
     ```bash
-    bun run --filter @keiro-ui/console test:e2e -- tests/e2e/queues.spec.ts tests/e2e/processors.spec.ts
+    bun run --filter @keiro-ui/console test:e2e -- e2e/queues
     ```
 
     Expected: all scenarios pass; Playwright prints `N passed`.
@@ -566,46 +591,48 @@ docs/plans/13-build-the-streams-and-subscriptions-screens.md provides — if tha
 not landed, this plan ships a minimal local copy at the same path and EP-13 replaces it), `msw` through `@keiro-ui/testing`, `vitest`,
 `@playwright/test`. No charting library.
 
-**Client interfaces assumed** (defined by EP-10 and EP-11; adapt `queries.ts` if names
-differ and record it in the Decision Log):
+**Client interfaces consumed** (copied from EP-10's and EP-11's declared interfaces, which
+own them; a change there is cascaded here, and `queries.ts` is the one file that would
+move):
 
 ```typescript
-// @keiro-ui/client-core
-useSurfaceQuery<T>(opts: { surface: "pgmq" | "shibuya"; queryKey: readonly unknown[];
-  queryFn: () => Promise<T>; pollMs?: number; minIntervalMs?: number }): UseQueryResult<T>
-useCursorPages<T, C>(opts: { queryKey: readonly unknown[]; from?: C;
-  fetchPage: (from?: C) => Promise<Page<T, C>> }): { items: T[]; nextCursor?: C; ... }
-useLiveness(): { paused: boolean; pause(): void; resume(): void; refreshAll(): void }
-class ApiError extends Error { surface: string; status: number; code: string; details?: unknown }
+// @keiro-ui/client-core (plan 10's declared interface)
+useSurfaceQuery<T>(opts: UseQueryOptions<T, ApiError> & { surface: "pgmq" | "shibuya"; poll?: number | false }): UseQueryResult<T, ApiError>
+useLiveness(): { paused: boolean; pausedSince: Date | null; pause(): void; resume(): void; refreshAll(): Promise<void> }
+class ApiError extends Error { surface: Surface; status: number; code: string; details?: unknown; raw: unknown; headers: Headers }
+// useCursorPages (the "load more" adapter) is not used in this section
 
-// @keiro-ui/client-pgmq (int64 fields are bigint)
-createPgmqClient(opts: { baseUrl: string }): PgmqClient
+// @keiro-ui/client-pgmq (plan 11's declared interface; int64 fields are bigint)
+createPgmqClient(opts: { baseUrl: string; fetch?: typeof fetch }): PgmqClient
 interface PgmqClient {
-  queues: { list(): Promise<Queue[]>; get(name: string): Promise<Queue>;
-            metrics(name: string): Promise<QueueMetrics>; bindings(name: string): Promise<TopicBinding[]> }
-  metrics: { all(): Promise<QueueMetrics[]> }
-  messages: { page(queue: string, p: { from?: bigint; limit?: number }): Promise<Page<Message, bigint>>;
-              get(queue: string, id: bigint): Promise<Message> }
-  archive:  { page(queue: string, p: { from?: bigint; limit?: number }): Promise<Page<ArchivedMessage, bigint>>;
-              get(queue: string, id: bigint): Promise<ArchivedMessage> }
+  service(): Promise<ServiceDescriptor>
+  queues:   { list(): Promise<Queue[]>; get(name: string): Promise<Queue>; metrics(name: string): Promise<QueueMetrics> }
+  metrics:  { all(): Promise<QueueMetrics[]> }
+  messages: { page(queue: string, p: { from?: PgmqMessageCursor; limit?: number }): Promise<Page<Message, PgmqMessageCursor>>;
+              get(queue: string, msgId: bigint): Promise<Message> }
+  archive:  { page(queue: string, p: { from?: PgmqMessageCursor; limit?: number }): Promise<Page<ArchivedMessage, PgmqMessageCursor>>;
+              get(queue: string, msgId: bigint): Promise<ArchivedMessage> }
+  bindings: { forQueue(queue: string): Promise<TopicBinding[]>; all(): Promise<TopicBinding[]> }
   routing:  { test(routingKey: string): Promise<RoutingMatch[]> }
   notify:   { throttles(): Promise<NotifyInsertThrottle[]> }
-  health:   { ready(): Promise<Readiness> }
+  health:   { live(): Promise<{ status: number; body: Liveness }>; ready(): Promise<{ status: number; body: Readiness }> }
 }
-usePgmqQueueMetricsFeed(queue: string): { metrics?: QueueMetrics; source?: "poll" | "notify";
-  push?: boolean; status: "connecting" | "live" | "paused" | "error" }
+usePgmqQueueMetrics(queue: string): UseQueryResult<QueueMetrics, ApiError>   // the poll; the feed writes into this entry
+usePgmqQueueMetricsFeed(queue: string): { status: FeedStatus; source?: "poll" | "notify"; push?: boolean }
 
-// @keiro-ui/client-shibuya (fields keep their camelCase wire names)
-createShibuyaClient(opts: { baseUrl: string }): ShibuyaClient
+// @keiro-ui/client-shibuya (plan 11's declared interface; fields keep their camelCase wire names)
+createShibuyaClient(opts: { baseUrl: string; fetch?: typeof fetch }): ShibuyaClient
 interface ShibuyaClient {
-  metrics: { all(): Promise<Record<string, ProcessorMetrics>>; get(id: string): Promise<ProcessorMetrics> }
-  health:  { ready(): Promise<ReadinessStatus> }
-  control: { status(): Promise<{ enabled: boolean; operations: string[] }> }
+  metrics: { all(): Promise<ProcessorMap>; processor(id: string): Promise<ProcessorMetrics> }
+  health:  { live(): Promise<{ status: number; body: Liveness }>; ready(): Promise<{ status: number; body: ReadinessStatus }>;
+             combined(): Promise<{ status: number; body: CombinedHealth }> }
+  control: { status(): Promise<ControlStatus> }   // { enabled: boolean; operations: string[] }
 }
-useShibuyaProcessorsFeed(): { processors: Record<string, ProcessorMetrics>;
+useShibuyaProcessors(): UseQueryResult<ProcessorMap, ApiError>               // the poll; the feed writes into this entry
+useShibuyaProcessorsFeed(): { status: FeedStatus;
   terminal: Record<string, { status: "stopped" | "failed"; error?: string; messageId: string | null }>;
-  receivedAt: Record<string, number>; status: "connecting" | "live" | "paused" | "error" }
-extrapolateAge(oldest: { ageSeconds: number }, receivedAtMs: number, nowMs: number): number
+  receivedAt: Record<string, number> }
+extrapolateAge(oldest: { ageSeconds: number }, receivedAt: Date, now: Date): number
 ```
 
 **Fixtures this plan expects in `packages/testing/fixtures/`** (owner EP-9; added here if
@@ -627,5 +654,4 @@ update, a terminal frame).
 and `dead-letter-panel.tsx` (reused by EP-19 when redrive becomes available upstream);
 `apps/console/src/features/processors/control-status.tsx` (EP-19 replaces its caption with
 the pause/resume actions); `apps/console/src/features/processors/latency-histogram.tsx` and
-`state-badge.tsx` (reusable by EP-17's Overview); the sheet kind `queue-message`; the link
-builders `links.queue`, `links.queueMessage`, `links.processor`.
+`state-badge.tsx` (reusable by EP-17's Overview); and the sheet kind `queue-message`.

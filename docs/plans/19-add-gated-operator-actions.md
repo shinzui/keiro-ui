@@ -16,6 +16,17 @@ provenance:
       at: 2026-10-21T15:56:48Z
       mode: "update"
       note: "Switch workspace tooling from pnpm to bun; vitest and Playwright kept on Node 22"
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T18:42:29Z
+      mode: "update"
+      note: "Round 2: align to owning-plan spellings, correct audited upstream facts, e2e layout, light theme where applicable"
+  reviews:
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T18:42:29Z
+      verdict: "changes-requested"
+      note: "Round 2 review against upstream trees and the owning plans; findings applied in the same pass"
 ---
 
 # Add gated operator actions
@@ -151,20 +162,22 @@ The repository is a bun workspace. The pieces this plan touches, by path:
   This plan uses `alert-dialog`, `dialog`, `button`, `input`, `badge`, `alert`, `sheet`,
   `kbd`, and `sonner` (the toast component). If one is missing, add it from inside
   `packages/ui` with `bunx shadcn@latest add <name>` and commit the generated file.
-- `packages/client-core` — `createHttpClient({baseUrl})` with `get` and `post`, the
-  `ApiError {surface, status, code, message, details}` class that normalizes the three
+- `packages/client-core` — `createHttpClient({surface, baseUrl})` with `get` and `post`,
+  the `ApiError {surface, status, code, message, details}` class that normalizes the three
   error envelopes on the wire, and the TanStack Query helpers (`useSurfaceQuery`,
   `useLiveness`, query-key factories).
 - `packages/client-shibuya` — the typed shibuya-metrics client from
   `docs/plans/11-implement-the-kiroku-pgmq-and-shibuya-typed-clients.md`. This plan adds
   its `control` namespace.
 - `packages/client-keiro` — the typed keiro-ops-http client from
-  `docs/plans/12-implement-the-keiro-typed-client.md`. Its `mutations` namespace already
-  implements the preview/confirm wire protocol (`preview(path, args)` and
-  `execute(path, args)`) and its `health` namespace reads `/health`. **This plan calls those
-  functions; it never re-implements the protocol.** If the exact function signatures in
-  `packages/client-keiro/src/mutations.ts` differ from the names used below, adapt the call
-  sites to the client, not the other way round.
+  `docs/plans/12-implement-the-keiro-typed-client.md`. Its `./mutations` entry point
+  already implements the preview/confirm wire protocol and exposes exactly three typed
+  wrappers — `timers.requeue(timerId)`, `timers.cancel(timerId)`, and
+  `pgmq.dlqRedrive({queue, limit?})`, each returning `{ preview(), execute() }` with the
+  result types `TimerMutationPreview`, `TimerMutationResult`, `DlqRedrivePreview`,
+  `DlqRedriveResult` — plus the refusal classes; its `health` namespace reads `/health`.
+  **This plan calls those wrappers; it never re-implements the protocol or builds command
+  paths by hand.**
 - `packages/testing` — recorded fixtures and MSW (Mock Service Worker, a library that
   intercepts `fetch` in tests and in the browser) handlers from
   `docs/plans/9-provision-the-local-runtime-stack-and-recorded-fixtures.md`;
@@ -236,22 +249,37 @@ with the artifact-level URI pending). Routes are the `keiro-ops` command words
 A mutation POST with an **empty body** is a preview and returns
 `{"outcome":"preview","result":<json>,"cli_reinvocation":"keiro-ops ... --json --force"}`
 without changing anything; the same POST with exactly `{"confirm":"execute"}` (at most
-1 KiB) executes and returns `{"outcome":"executed","result":<json>,"exit_code":<int>?}`,
-with the `Keiro-Ops-Exit-Code` response header on non-zero exits. Refusals use the nested
-envelope `{"error":{"code","message","details"?}}`:
+1 KiB; larger is 413 `inspection_request_too_large`) executes and returns
+`{"outcome":"executed","result":<json>,"exit_code":<int>?}`; the exit code of a mutation is
+reported only in that body field (the `Keiro-Ops-Exit-Code` header exists for reads only).
+Refusals use the nested envelope `{"error":{"code","message","details"?}}`:
 
 ```text
 403  mutations_disabled          gate off; returned before any schema work, even on a confirmed request
+403  origin_not_allowed          (arriving with keiro MasterPlan 46) a cross-origin POST whose Origin is not allow-listed
 409  schema_drift                details.drift lists the differences; applies to reads too
 400  invalid_confirmation        body was neither empty nor exactly {"confirm":"execute"}
-422  command_failed              the command ran and refused (unknown timer, wrong state, ...)
+415  unsupported_media_type      (arriving with keiro MasterPlan 46) confirmation body is not JSON
+413  inspection_request_too_large confirmation body over 1 KiB
+422  command_failed              the command ran and failed (a store error); NOT how an unknown or ineligible timer answers
 504  mutation_outcome_unknown    the deadline passed; the outcome is not known — re-read before retrying
 503  inspection_busy             admission refused; retry later
 ```
 
 The two timer mutations are `POST /timer/requeue/{TIMER_ID}` and `POST /timer/cancel/{TIMER_ID}`
-(`keiro-ops/src/Keiro/Ops/Timer.hs`). The dead-letter redrive is `POST /pgmq/dlq/redrive?queue=<name>`
-(`keiro-ops/src/Keiro/Ops/Pgmq.hs`); it is keiro's **job-level** redrive — it understands
+(`keiro-ops/src/Keiro/Ops/Timer.hs`). An unknown or ineligible timer is **not a refusal**:
+the preview answers 200 with
+`result: {preview: true, operation, disposition: "not_found" | "not_firing" | "already_terminal" | "would_requeue" | "would_cancel", timer: <item> | null}`,
+and the execution answers
+`result: {operation, outcome: "transitioned" | "not_transitioned", transitioned: <bool>, timer}`.
+The console renders the `disposition` and `outcome` as the headline of the preview and
+result views. The dead-letter redrive is `POST /pgmq/dlq/redrive?queue=<logical>&limit=<n>`
+(`keiro-ops/src/Keiro/Ops/Pgmq.hs`); `queue` is the **logical job queue name** — keiro
+derives the dead-letter queue (`<queue>_dlq`, with its own sanitizing and hashing of long
+names) and rejects a name that already ends in `_dlq` — and `limit` is the number of
+messages moved per execution (server default 100). Its preview result is
+`{preview: true, operation, queue, available, would_affect_at_most}` and its executed
+result `{operation, queue, affected}`. It is keiro's **job-level** redrive — it understands
 keiro's `Job` envelope and re-enqueues to the original queue — and is distinct from the
 adapter-level redrive requested in shibuya-pgmq-adapter IR-3, which does not exist. Under the
 composed prefix these are `/keiro/timer/...` and `/keiro/pgmq/dlq/redrive`. keiro's
@@ -328,18 +356,25 @@ result sequence, and the timer actions use it.
 Create `apps/console/src/features/actions/mutation-flow.tsx`. Its props are the action's
 title, a human description, the target label the operator must retype (for example the
 timer id), the two functions to call (`preview: () => Promise<PreviewResult>` and
-`execute: () => Promise<ExecuteResult>`, both built by the caller from
-`packages/client-keiro`'s `mutations.preview(path, args)` and `mutations.execute(path, args)`),
+`execute: () => Promise<ExecuteResult>`, both taken from one of the keiro client's typed
+wrappers — `timers.requeue(id)`, `timers.cancel(id)`, `pgmq.dlqRedrive({queue, limit})` —
+never built from command words by hand), a `summarize(result)` function that turns the
+preview result into a one-line headline and says whether executing would change anything,
 the query keys to invalidate afterwards, and an optional `renderResult`. It renders as a
 `dialog` with three states. **Preview**: on open it calls `preview()` immediately and shows a
-spinner, then the returned `result` as formatted JSON (reusing the JSON viewer the Streams
-screens introduced in `apps/console/src/features/streams/json-view.tsx`) and the
-`cli_reinvocation` string in a copyable code block labelled "equivalent CLI command"; the
-confirm step is not offered until the preview has rendered. **Confirm**: an `input` with the
-instruction "Type `<target>` to confirm" and an **Execute** button enabled only when the
-typed value equals the target exactly. **Result**: the executed `result` JSON, the
-`exit_code` when present, a success toast, and automatic invalidation of the given keys
-(ADR-3: re-read, do not trust a feed). A **Close** button is available in every state.
+spinner, then the headline from `summarize` (for a timer, the `disposition`: "would
+requeue", "would cancel", or the no-change cases "not found", "not firing", "already
+terminal"; for a redrive, "N messages available, at most M would move"), the returned
+`result` as formatted JSON (`JsonViewer` from `apps/console/src/components/JsonViewer.tsx`,
+the Streams plan's shared component) and the `cli_reinvocation` string in a copyable code
+block labelled "equivalent CLI command"; the confirm step is not offered until the preview
+has rendered, and when `summarize` reports that nothing would change the **Execute** path
+stays disabled with that reason. **Confirm**: an `input` with the instruction "Type
+`<target>` to confirm" and an **Execute** button enabled only when the typed value equals
+the target exactly. **Result**: the headline from the executed result (a timer's `outcome`
+and `transitioned`; a redrive's `affected`), the `result` JSON, the `exit_code` when
+present, a success toast, and automatic invalidation of the given keys (ADR-3: re-read, do
+not trust a feed). A **Close** button is available in every state.
 
 Refusals in any state render inside the dialog, never as a bare toast: `mutations_disabled`
 → "Mutations are disabled on this keiro host (start keiro-ops-http with --enable-mutations)"
@@ -349,8 +384,11 @@ and is logged to the console too); `command_failed` → the server message verba
 `code` badge; `mutation_outcome_unknown` → "The outcome is unknown. The timer/queue is being
 re-read; check its state before retrying." followed by an automatic invalidation of the
 owning queries and the **Execute** button disabled until the dialog is reopened;
-`inspection_busy` → the message with a **Retry preview** button. Any other `ApiError` renders
-its `message` and `code`.
+`inspection_busy` → the message with a **Retry preview** button; `origin_not_allowed` →
+the message plus a pointer to `docs/deployment.md` (the keiro host must allow-list this
+console's origin, or the proxy must preserve `Host`); `unsupported_media_type` and
+`inspection_request_too_large` → the message (both indicate a client bug and are logged).
+Any other `ApiError` renders its `message` and `code`.
 
 Gate rendering is shared by every keiro action: a `useKeiroMutationsGate()` hook in
 `apps/console/src/features/actions/gate.ts` reads `health.get()`'s `mutations_enabled`
@@ -363,30 +401,39 @@ is shown on hover.
 Wire the timer actions in `apps/console/src/features/timers/timer-actions.tsx`: a row action
 menu on `/timers` (from `@keiro-ui/ui/components/dropdown-menu`) and buttons in the `timer`
 right sheet, each opening `MutationFlow` with `preview`/`execute` bound to
-`mutations.preview(["timer","requeue", timerId])` and the `cancel` counterpart, target label
-the `timer_id`, invalidating `['keiro','timers']` and the process-manager detail keys. The
-sheet's header states the timer's `status`, `fire_at`, and `attempts`, so the operator sees
-the state they are acting on.
+`timers.requeue(timerId)` or `timers.cancel(timerId)` from
+`@keiro-ui/client-keiro/mutations`, target label the `timer_id`, invalidating
+`keiroKeys.timers.pending()` and the process-manager detail keys. The sheet's header states
+the timer's `status`, `fire_at`, and `attempts`, so the operator sees the state they are
+acting on, and the preview's `disposition` is the first thing the dialog shows.
 
 ### Milestone 3 — dead-letter redrive from the queue page
 
 Scope: a queue page for a dead-letter queue offers keiro's redrive through the same flow.
 
-Add `deadLetterQueueSuffix: string` (default `"_dlq"`) to `ConnectionProfile` in
-`apps/console/src/settings/connection-profiles.ts` and an input for it on the connection
-settings page; migrate stored profiles by filling the default when the field is absent. In
+`ConnectionProfile` in `apps/console/src/settings/connection-profiles.ts` already declares
+the optional `deadLetterQueueSuffix?: string` (EP-8); this plan gives it the default
+`"_dlq"`, an input on the connection settings page, and a read-side helper that fills the
+default when a stored profile lacks the field. In
 `apps/console/src/features/queues/dead-letter-redrive.tsx` render, on `/queues/$name` when
 the name ends with the suffix, a card titled "Dead letters" with the sentence "Redrive moves
 these messages back to their original queue using keiro's job-level redrive
-(`/keiro/pgmq/dlq/redrive`). Adapter-level redrive is not available on this stack." and a
-**Redrive** button gated by `useKeiroMutationsGate()`. The button opens `MutationFlow` bound
-to `mutations.preview(["pgmq","dlq","redrive"], {queue: name})` and its `execute`
-counterpart, target label the queue name, invalidating the pgmq queue metrics, message page,
-and archive keys for both this queue and — when the preview result names it — the original
-queue. The queue's message tab already renders the adapter-written reason fields
-(`dead_letter_reason_code`, `dead_letter_reason_detail`, `read_count`) when present; show
-the count of messages (`queue_length`) in the card so the preview can be compared with what
-the operator sees.
+(`/keiro/pgmq/dlq/redrive`). Adapter-level redrive is not available on this stack.", the
+derived logical queue name ("original queue: `<name without the suffix>`, derived from the
+suffix in the connection profile; keiro sanitizes and hashes long queue names, so a
+derived name can be wrong for such queues — the preview shows the queue keiro will act
+on"), a `limit` field (default 100, the number of messages one execution moves), and a
+**Redrive** button gated by `useKeiroMutationsGate()`. The button opens `MutationFlow`
+bound to `pgmq.dlqRedrive({queue: logicalName, limit})` from
+`@keiro-ui/client-keiro/mutations` — the **logical** name, never the `_dlq` name, because
+keiro derives the dead-letter queue itself — with the target label the dead-letter queue
+name the operator is looking at, invalidating the pgmq queue metrics, message page, and
+archive keys for both this queue and the logical queue. The preview headline reads from
+`available` and `would_affect_at_most`; the result headline from `affected`. The queue's
+message tab already renders the adapter-written reason fields (`dead_letter_reason_code`,
+`dead_letter_reason_detail`, `read_count`) when present; show the count of messages
+(`queue_length`) in the card so the preview's `available` can be compared with what the
+operator sees.
 
 ### Milestone 4 — refusal matrix tests, deployment paragraph, session audit, ADR note
 
@@ -403,10 +450,13 @@ from the matrix. Write vitest tests beside the components
 `apps/console/src/features/timers/timer-actions.test.tsx`,
 `apps/console/src/features/queues/dead-letter-redrive.test.tsx`) and for the client
 (`packages/client-shibuya/src/control.test.ts`) asserting the rendered text for every
-branch. Write `apps/console/tests/e2e/actions.spec.ts` for Playwright against MSW: the
-disabled-gate rendering on `/processors/orders` and `/timers`; preview → typed confirm →
-executed on a timer; a `schema_drift` refusal rendered with its drift list. Add an opt-in
-live test file `apps/console/tests/e2e/actions.live.spec.ts`, skipped unless
+branch, including every timer `disposition` (the three no-change dispositions must leave
+**Execute** disabled with the reason) and both `outcome` values. Write
+`apps/console/e2e/actions/actions.spec.ts` for Playwright against MSW: the disabled-gate
+rendering on `/processors/orders` and `/timers`; preview → typed confirm → executed on a
+timer whose preview disposition is `would_requeue`; a `not_found` preview that never offers
+Execute; a `schema_drift` refusal rendered with its drift list. Add an opt-in live test
+file `apps/console/e2e/actions/actions.live.spec.ts`, skipped unless
 `KEIRO_UI_LIVE_MUTATIONS=1`, that pauses and resumes a processor and requeues a timer against
 a scratch database; its header comment and the `justfile` recipe that runs it both warn that
 it mutates the target stack and must never point at production.
@@ -476,16 +526,17 @@ Milestone 4, end to end:
 
 ```bash
 bun run test
-bun run test:e2e -- actions.spec.ts
+bun run test:e2e -- e2e/actions
 ```
 
 Expected tail of the Playwright run:
 
 ```text
   ✓ actions › disabled gates render disabled controls with the server reason
-  ✓ actions › timer requeue: preview, typed confirmation, executed
+  ✓ actions › timer requeue: preview (would_requeue), typed confirmation, executed (transitioned)
+  ✓ actions › timer requeue: a not_found preview never offers Execute
   ✓ actions › schema drift refusal lists the drift
-  3 passed
+  4 passed
 ```
 
 Optional live verification (mutates the target stack; use a scratch database only). In the
@@ -495,7 +546,7 @@ shibuya-pgmq-adapter checkout, a consumer whose metrics server has
 ports the MasterPlan fixes (keiro 9093, shibuya 9090); then:
 
 ```bash
-KEIRO_UI_LIVE_MUTATIONS=1 bun run test:e2e -- actions.live.spec.ts
+KEIRO_UI_LIVE_MUTATIONS=1 bun run test:e2e -- e2e/actions/actions.live.spec.ts
 ```
 
 Expected: the live spec pauses and resumes `orders` and requeues one pending timer, and each
@@ -515,19 +566,25 @@ Required acceptance, all observable in the browser or in test output:
 2. With keiro's mutations disabled, every timer action and the redrive button render
    disabled with "Mutations are disabled on this keiro host (start keiro-ops-http with
    --enable-mutations)". With mutations enabled, opening **Requeue** on a timer immediately
-   shows the preview JSON and the `cli_reinvocation` string; no **Execute** control exists
-   until then; **Execute** stays disabled until the operator types the exact timer id; after
-   executing, the result JSON and `exit_code` (when present) are shown, the `/timers` row
-   reflects the new `status` after invalidation, and the session audit count increments.
+   shows the preview's `disposition` as the headline, the preview JSON, and the
+   `cli_reinvocation` string; no **Execute** control exists until then; for `not_found`,
+   `not_firing`, or `already_terminal` the dialog says nothing would change and never
+   enables **Execute**; otherwise **Execute** stays disabled until the operator types the
+   exact timer id; after executing, the `outcome` headline, the result JSON, and
+   `exit_code` (when present) are shown, the `/timers` row reflects the new `status` after
+   invalidation, and the session audit count increments.
 3. Each refusal in both matrices renders its server message verbatim with its code; a
    `schema_drift` refusal lists each `details.drift` entry; a `mutation_outcome_unknown`
    refusal triggers an automatic re-read and disables **Execute** until the dialog is
    reopened.
 4. On `/queues/<name>_dlq`, the Dead letters card states that redrive is keiro's job-level
-   operation and that adapter-level redrive is unavailable; **Redrive** follows the same
-   preview → typed confirmation → result sequence and the queue's `queue_length` is re-read
-   afterwards. On a queue whose name does not end with the profile's suffix the card is
-   absent.
+   operation and that adapter-level redrive is unavailable, names the derived logical
+   queue `<name>`, and offers a `limit` field; **Redrive** follows the same preview → typed
+   confirmation → result sequence, the request carries `queue=<name>` (the logical name,
+   asserted in the MSW test) and the chosen `limit`, the preview headline shows `available`
+   and `would_affect_at_most`, the result headline shows `affected`, and the queue's
+   `queue_length` is re-read afterwards. On a queue whose name does not end with the
+   profile's suffix the card is absent.
 5. `bun run test` and `bun run test:e2e -- actions.spec.ts` pass; `bun run check` is clean.
 6. `docs/deployment.md` contains the `Origin` paragraph for shibuya control.
 7. A grep proves the scope boundary: no call site outside this plan's three actions invokes
@@ -542,9 +599,10 @@ Expected: no output.
 
 Early interaction check: before building M2's dialog states, prove the protocol end to end
 once with a single `curl` pair against a mutation-enabled keiro host (empty body → outcome
-`preview`; `{"confirm":"execute"}` → outcome `executed`) and against the default host
-(403 `mutations_disabled`), and confirm the keiro client's `mutations.preview`/`execute`
-produce the same outcomes in a vitest contract test against those recorded responses. Do
+`preview` with a timer `disposition`; `{"confirm":"execute"}` → outcome `executed` with
+`transitioned`) and against the default host (403 `mutations_disabled`), and confirm the
+keiro client's typed wrappers produce the same outcomes in a vitest contract test against
+those recorded responses. Do
 this before writing any UI for refusals, because the whole plan's rendering depends on the
 client surfacing the typed refusals the MasterPlan's "keiro client specifics" promise.
 
@@ -589,12 +647,13 @@ Interfaces this plan defines, by full path:
 - `apps/console/src/features/actions/session-audit.ts` — `recordAction(entry)`,
   `useSessionAudit(): AuditEntry[]`; `session-audit-sheet.tsx` registers sheet kind
   `actions`.
-- `apps/console/src/settings/connection-profiles.ts` — the added field
-  `deadLetterQueueSuffix: string` (default `"_dlq"`).
+- `apps/console/src/settings/connection-profiles.ts` — the default `"_dlq"` and settings
+  input for the optional `deadLetterQueueSuffix` field EP-8 declared.
 
-Interfaces this plan consumes and must not redefine: `packages/client-keiro`'s
-`mutations.preview(path, args)` / `mutations.execute(path, args)` and the typed refusal
-union they expose, and `health.get()`; `packages/client-core`'s `ApiError` and
+Interfaces this plan consumes and must not redefine: `packages/client-keiro`'s typed
+wrappers `timers.requeue`, `timers.cancel`, `pgmq.dlqRedrive` with their result types and
+refusal classes (from `@keiro-ui/client-keiro/mutations`), and `health.get()`;
+`packages/client-core`'s `ApiError` and
 `createHttpClient`; the shell's `registerSheet`, `useRightSheet`, `useRegisterCommands`,
 and the status-bar slot API from `apps/console/src/shell/`; the timer sheet kind and
 `/timers` rows from EP-16; the processor Control card and queue page from EP-14; the keiro

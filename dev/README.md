@@ -45,3 +45,25 @@ A simulator sends a small `orders` batch every 30 s so the processors have work.
   listens on `.dev/process-compose.sock`, not on TCP.
 - Start over on pgmq: stop the stack, `dropdb`/`createdb` `pgmq_dev` in
   `$STACK_PGMQ_SOCKET_DIR`, and start it again.
+
+## The mori profile
+
+`just stack-up mori` runs the same four surfaces against a local
+[mori](mori://shinzui/mori) dev database instead of jitsurei and `pgmq_dev`, and supervises
+`mori automate daemon` beside them. mori runs 17 reactors, 3 timers, 14 kiroku subscriptions
+with durable checkpoints, and four keiro-pgmq job queues with dead-letter queues, so the
+Streams & Subscriptions, Queues, and Process Managers & Timers screens see a live
+application rather than a demo seed. It has no durable workflows and, like every runnable
+keiro host today, no aggregate or process-manager hooks; use the default profile for those.
+The shibuya baseline keeps consuming `pgmq_dev` in both profiles.
+
+```bash
+just stack-seed-mori        # once: start mori's PostgreSQL, migrate, bootstrap and ingest its fixture repos
+just stack-up mori          # the stack plus mori's daemon (its live registry on :9191)
+just stack-check mori       # every probe, plus the daemon's /subscriptions
+just stack-drive-mori       # push one change through mori's automations (repeatable)
+```
+
+The recorded fixtures in `packages/testing/fixtures/` come from the default (jitsurei)
+profile only: positions, stream names, and the keiro aggregate and workflow fixtures must
+all refer to one `$all` log, so mori's data is for live testing, not mixed into fixtures.

@@ -46,10 +46,11 @@ processes:
 
   # No runnable host ships a standalone shibuya-metrics server, so the baseline is the
   # shibuya-pgmq-adapter example consumer (Hackage shibuya-metrics ^>=0.10.0.0: basic metrics
-  # only), consuming its demo queues in the same pgmq_dev database pgmq-inspect reads.
+  # only), consuming its demo queues in pgmq_dev (the database pgmq-inspect reads in the
+  # jitsurei profile).
   shibuya-consumer:
     command: >-
-      env DATABASE_URL="$STACK_PGMQ_DATABASE_URL" METRICS_PORT=$STACK_SHIBUYA_PORT
+      env DATABASE_URL="$STACK_SHIBUYA_DATABASE_URL" METRICS_PORT=$STACK_SHIBUYA_PORT
       dev/bin/shibuya-pgmq-consumer
     readiness_probe:
       http_get: { host: 127.0.0.1, port: 9090, path: /health/live }
@@ -60,7 +61,7 @@ processes:
   shibuya-simulator:
     command: >-
       bash -c 'while true; do
-      env DATABASE_URL="$STACK_PGMQ_DATABASE_URL" dev/bin/shibuya-pgmq-simulator --queue orders --count 20 --rate 5 || true;
+      env DATABASE_URL="$STACK_SHIBUYA_DATABASE_URL" dev/bin/shibuya-pgmq-simulator --queue orders --count 20 --rate 5 || true;
       sleep 30; done'
     depends_on:
       shibuya-consumer: { condition: process_healthy }

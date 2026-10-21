@@ -1,0 +1,16 @@
+# Merged over dev/process-compose.yaml by `just stack-up mori`: the console demo queues are
+# not seeded into mori (the shibuya baseline keeps pgmq_dev), and mori's daemon runs
+# subscriptions, timers, and job workers against the database the surfaces read.
+version: "0.5"
+processes:
+  pgmq-seed:
+    command: 'echo "mori profile - console demo queues are not seeded"'
+  mori-daemon:
+    command: >-
+      bash -c 'cd "$MORI_REPO" && nix develop --quiet -c "$(nix develop --quiet -c cabal list-bin -v0 exe:mori | tail -n 1)"
+      automate daemon --metrics-port $STACK_MORI_METRICS_PORT'
+    readiness_probe:
+      http_get: { host: 127.0.0.1, port: 9191, path: /health/live }
+      period_seconds: 5
+      initial_delay_seconds: 10
+    availability: { restart: on_failure, max_restarts: 3 }

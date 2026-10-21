@@ -63,15 +63,31 @@ stack-seed: stack-db-up
 stack-build target="all":
     bash dev/build.sh {{target}}
 
-# Run all four surfaces under process-compose (foreground; Ctrl-C stops them)
-stack-up: stack-db-up
+# Run all four surfaces under process-compose (foreground; Ctrl-C stops them).
+# `just stack-up mori` points them at the mori dev database and runs mori's daemon.
+stack-up profile="jitsurei": stack-db-up
     mkdir -p .dev
-    process-compose --unix-socket .dev/process-compose.sock up --tui=false -f dev/process-compose.yaml -e dev/.env
+    if [ "{{profile}}" = "mori" ]; then \
+      bash dev/mori.sh db-up && \
+      process-compose --unix-socket .dev/process-compose.sock up --tui=false \
+        -f dev/process-compose.yaml -f dev/process-compose.mori.yaml -e dev/.env -e dev/profiles/mori.env; \
+    else \
+      process-compose --unix-socket .dev/process-compose.sock up --tui=false -f dev/process-compose.yaml -e dev/.env; \
+    fi
+
+# Seed the mori profile: mori's fixture repositories, registered and ingested
+stack-seed-mori:
+    bash dev/mori.sh db-up
+    bash dev/mori.sh seed
+
+# Push one change through mori's automations (signals, reactions, timers, job queues)
+stack-drive-mori:
+    bash dev/mori.sh drive
 
 # Stop a stack started by stack-up from another terminal
 stack-down:
     process-compose --unix-socket .dev/process-compose.sock down || true
 
 # Probe every surface over HTTP and attempt every WebSocket upgrade
-stack-check:
-    bash dev/check.sh
+stack-check profile="jitsurei":
+    bash dev/check.sh {{profile}}

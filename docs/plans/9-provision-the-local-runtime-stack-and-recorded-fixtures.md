@@ -116,10 +116,14 @@ every scripted feed plays snapshot-then-delta in order).
   mounting jitsurei's aggregate and process-manager hooks; keiro `7ee722a7`) and
   `mori://shinzui/shibuya/okf/improvement-requests/concepts/IR-9` (long-running example with
   detailed metrics and configurable control and CORS; shibuya `7adbd94`).)
-- [ ] M6 — mori profile: `just stack-up mori` points kiroku-inspect, pgmq-inspect, and
-  keiro-ops-http at a seeded local mori database with `mori automate daemon` running, and
-  the kiroku subscription, checkpoint, dead-letter and pgmq job-queue fixtures are
-  re-recorded from it in place of the derived ones.
+- [x] M6 — mori profile: `just stack-up mori` points kiroku-inspect, pgmq-inspect, and
+  keiro-ops-http at a seeded local mori database with `mori automate daemon` running.
+  (2026-10-21: `just stack-check mori` all `ok`, including the daemon's live
+  `/subscriptions` on :9191 with 14 `live` subscriptions; keiro `/health` `ok` with no drift
+  against mori's keiro `e6ef560` schema; `/subscription-checkpoints` lists real checkpoints;
+  pgmq lists `scheduled_actions`, `webhook_deliveries`, `scheduled_reactions`,
+  `queued_reactions` and three `_dlq` queues; one `just stack-drive-mori` moved the head from
+  105 to 128. The fixtures were *not* re-recorded from mori — see the Decision Log.)
 
 
 ## Surprises & Discoveries
@@ -166,6 +170,18 @@ every scripted feed plays snapshot-then-delta in order).
 
 
 ## Decision Log
+
+- Decision: The committed fixtures stay single-source (the jitsurei profile); the mori
+  profile is for live testing. This narrows the earlier decision to re-record the kiroku
+  subscription and pgmq job-queue fixtures from mori.
+  Rationale: fixtures must describe one `$all` log. mori's checkpoints point at positions up
+  to 105+ while the recorded `$all` log, the kirokuLog mock, and keiro's workflow journal,
+  aggregate, and process-manager fixtures all refer to jitsurei's 30 events; mixing them
+  would show checkpoints beyond the store head and break the cross-entity links. mori also
+  produced no kiroku dead letters and its job queues were empty when inspected, so it would
+  not have replaced those derived fixtures anyway. A separate, selectable mori fixture set is
+  possible later.
+  Date: 2026-10-21
 
 - Decision: Add a second stack profile backed by mori (`mori://shinzui/mori`), seeded with
   its automation test repositories and running `mori automate daemon`, and record the kiroku
@@ -270,7 +286,21 @@ every scripted feed plays snapshot-then-delta in order).
 
 ## Outcomes & Retrospective
 
-(To be filled during and after implementation.)
+2026-10-21 — complete. `dev/` runs the four inspection surfaces (shibuya 9090, kiroku 9091,
+keiro 9093, pgmq 9095) under process-compose against keiro's jitsurei database and a pgmq
+dev database, or against mori with `just stack-up mori`. `@keiro-ui/testing` holds 79
+recorded and 24 derived fixtures with `_meta.json`, a recorder and a derivation script, MSW
+handlers that serve every fixture byte for byte with cursor paging and error scenarios, a
+stateful `kirokuLog`, scripted feeds for all five WebSocket channels, and
+`startMockServer`/`startMockWorker`; `VITE_MOCK=1` serves the console from the worker. The
+package's suite passes (every recorded request, paging, log, and feed tests). Filed
+upstream: keiro IR-55 and shibuya IR-9.
+
+Lessons: the jitsurei seed is thin, so many fixtures are derived, and keiro's hook-gated
+routes are derived from encoders without a server to check them against. Run each owning
+repository's tooling inside its own dev shell (PostgreSQL 18 there, 17 on the host). Re-run
+`bun run fixtures:record` then `bun run --filter @keiro-ui/testing derive` together, in
+that order.
 
 
 ## Context and Orientation

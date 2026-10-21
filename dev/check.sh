@@ -38,4 +38,8 @@ upgrade "ws kiroku /ws/metrics" "http://127.0.0.1:$STACK_KIROKU_PORT/ws/metrics"
 upgrade "ws pgmq /ws" "http://127.0.0.1:$STACK_PGMQ_PORT/ws"
 upgrade "ws keiro /ws" "http://127.0.0.1:$STACK_KEIRO_PORT/ws"
 upgrade "ws shibuya /ws" "http://127.0.0.1:$STACK_SHIBUYA_PORT/ws"
+if [ "${1:-jitsurei}" = "mori" ]; then
+  . "$STACK_ROOT/dev/profiles/mori.env"
+  probe "mori daemon /subscriptions" "http://127.0.0.1:$STACK_MORI_METRICS_PORT/subscriptions"
+fi
 exit $status

@@ -324,7 +324,7 @@ repository.
 |---|-------|------|-----------|-----------|--------|
 | 7 | Scaffold the console workspace and design system | docs/plans/7-scaffold-the-console-workspace-and-design-system.md | None | None | Complete |
 | 8 | Build the console app shell, navigation, and command palette | docs/plans/8-build-the-console-app-shell-navigation-and-command-palette.md | EP-7 | EP-10 | Complete |
-| 9 | Provision the local runtime stack and recorded fixtures | docs/plans/9-provision-the-local-runtime-stack-and-recorded-fixtures.md | None | EP-7 | In Progress |
+| 9 | Provision the local runtime stack and recorded fixtures | docs/plans/9-provision-the-local-runtime-stack-and-recorded-fixtures.md | None | EP-7 | Complete |
 | 10 | Implement the client core for HTTP, cursors, int64, WebSocket, and live queries | docs/plans/10-implement-the-client-core-for-http-cursors-int64-websocket-and-live-queries.md | EP-7 | EP-9 | Not Started |
 | 11 | Implement the kiroku, pgmq, and shibuya typed clients | docs/plans/11-implement-the-kiroku-pgmq-and-shibuya-typed-clients.md | EP-10 | EP-9 | Not Started |
 | 12 | Implement the keiro typed client | docs/plans/12-implement-the-keiro-typed-client.md | EP-10 | EP-9 | Not Started |
@@ -647,7 +647,9 @@ they bite: no rebuild/replay UI; no adapter dead-letter redrive until upstream s
 
 ## Progress
 
-Phase 1 is under way: EP-7 and EP-8 are Complete (2026-10-21); EP-9 and EP-10 are ready.
+Phase 1 is under way: EP-7, EP-8, and EP-9 are Complete (2026-10-21); EP-10 is next. The
+local stack has two profiles (`just stack-up` for jitsurei, `just stack-up mori` for a live
+mori daemon); fixtures come from jitsurei only.
 The EP-8/EP-10 liveness integration check (Integration Points, early check 2) runs when
 EP-10 lands.
 

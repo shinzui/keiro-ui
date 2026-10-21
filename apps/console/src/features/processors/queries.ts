@@ -9,7 +9,7 @@ import {
   useShibuyaProcessors,
   useShibuyaProcessorsFeed,
 } from "@keiro-ui/client-shibuya"
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 
 // Every shibuya call of the Processors screens goes through this file.
 
@@ -75,13 +75,3 @@ export function useMissingProcessor(id: string, missing: boolean) {
 
 export const useReadiness = () => useShibuyaHealth("ready")
 export const useControlStatus = useShibuyaControlStatus
-
-/** The current time, re-rendering every `intervalMs`; a page calls it once and passes `now` down. */
-export function useNow(intervalMs = 1000): number {
-  const [now, setNow] = useState(() => Date.now())
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), intervalMs)
-    return () => clearInterval(timer)
-  }, [intervalMs])
-  return now
-}

@@ -331,7 +331,7 @@ repository.
 | 13 | Build the Streams and Subscriptions screens | docs/plans/13-build-the-streams-and-subscriptions-screens.md | EP-8, EP-11 | EP-9 | Complete |
 | 14 | Build the Queues and Processors screens | docs/plans/14-build-the-queues-and-processors-screens.md | EP-8, EP-11 | EP-9 | Complete |
 | 15 | Build the Workflows screens | docs/plans/15-build-the-workflows-screens.md | EP-8, EP-12 | EP-9, EP-13 | Complete |
-| 16 | Build the Aggregates, Process Managers, and Timers screens | docs/plans/16-build-the-aggregates-process-managers-and-timers-screens.md | EP-8, EP-11, EP-12 | EP-9, EP-13 | Not Started |
+| 16 | Build the Aggregates, Process Managers, and Timers screens | docs/plans/16-build-the-aggregates-process-managers-and-timers-screens.md | EP-8, EP-11, EP-12 | EP-9, EP-13 | Complete |
 | 17 | Build the Projections and Overview screens | docs/plans/17-build-the-projections-and-overview-screens.md | EP-8, EP-11, EP-12 | EP-13, EP-14, EP-15, EP-16 | Not Started |
 | 18 | Package the console for deployment | docs/plans/18-package-the-console-for-deployment.md | EP-8 | EP-9, EP-17 | Not Started |
 | 19 | Add gated operator actions | docs/plans/19-add-gated-operator-actions.md | EP-14, EP-16, EP-17, EP-18 | None | Not Started |
@@ -651,8 +651,8 @@ they bite: no rebuild/replay UI; no adapter dead-letter redrive until upstream s
 Phase 1 is Complete (EP-7, EP-8, EP-9, EP-10 on 2026-10-21), and early checks 1 (int64
 through the dev proxy) and 2 (shell liveness drives a real poll) pass. Phase 2 is Complete (EP-11 and
 EP-12, 2026-10-21), and early check 3 (the workflows feed reconciles with the list on the
-live stack) passes. Phase 3 is under way: EP-13, EP-14, and EP-15 are
-Complete; EP-16 is unblocked. Screen suites run in the Playwright `screens`
+live stack) passes. Phase 3 is under way: EP-13 through EP-16 are Complete; EP-17 (the
+live-stack integration gate) is next. Screen suites run in the Playwright `screens`
 project against the mock worker; component tests render the real route tree through
 `apps/console/src/test/render-route.tsx` (added by EP-14) against `startMockServer()`. The local stack has two profiles (`just stack-up`
 for jitsurei, `just stack-up mori` for a live mori daemon); fixtures come from jitsurei only.
@@ -815,6 +815,13 @@ Cross-plan gates with their own acceptance:
 - EP-15 (2026-10-21): `lib/links.ts` no longer imports the router (`router.tsx` calls
   `bindLinkRouter`), removing an import cycle that broke once a feature registered palette
   commands at module load. EP-16 and EP-17 can register commands safely.
+- EP-16 (2026-10-21): the root of EP-15's zero journal positions is kiroku: single-stream
+  reads select `0` for `global_position` (`kiroku-store` `readStreamForwardSQL`), which its
+  user docs do not say. The console shows a 0 global position as "not reported"
+  (`components/GlobalPosition.tsx`). Candidate kiroku request recorded in EP-16.
+- EP-16 (2026-10-21): two keiro-client defects found by screen tests and fixed in place: the
+  timers feed filter is `correlation_id` on the wire, and stuck-timer rows carry no
+  `last_error`. The client core now retries only network failures and 5xx responses.
 
 ## Decision Log
 

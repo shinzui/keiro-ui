@@ -120,6 +120,22 @@ function ProfileForm({
               {errors[surface] && <FieldError>{errors[surface]}</FieldError>}
             </Field>
           ))}
+        <Field>
+          <FieldLabel htmlFor={`${formId}-pm-names`}>Process manager names</FieldLabel>
+          {/* keiro exposes no list of mounted process managers; the index page offers these. */}
+          <Textarea
+            id={`${formId}-pm-names`}
+            placeholder="One name per line"
+            value={(draft.processManagerNames ?? []).join("\n")}
+            onChange={(event) => {
+              const names = event.target.value.split("\n")
+              update({
+                ...draft,
+                processManagerNames: names.some((n) => n.trim()) ? names : undefined,
+              })
+            }}
+          />
+        </Field>
       </FieldGroup>
       <div className="flex gap-2">
         <Button type="submit">Save</Button>

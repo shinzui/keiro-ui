@@ -21,6 +21,11 @@ provenance:
       at: 2026-10-21T18:42:29Z
       mode: "update"
       note: "Round 2: align to owning-plan spellings, correct audited upstream facts, e2e layout, light theme where applicable"
+    - model: "claude-opus-5-5"
+      harness: "claude-code"
+      at: 2026-10-21T22:10:29Z
+      mode: "implement"
+      note: "M1-M4 implemented: aggregate browser, process managers, timers, not-mounted states, suites"
   reviews:
     - model: "claude-fable-5-1"
       harness: "claude-code"
@@ -70,28 +75,63 @@ Aggregates and Process managers pages say so plainly instead of showing an error
 
 ## Progress
 
-- [ ] M1 — Aggregates: `/aggregates` lists mounted kinds, `/aggregates/$type` pages
-  instances with cursor paging and the explained `skipped` count, and
-  `/aggregates/$type/$id` shows raw kiroku events beside folded state with the hydration
-  badge, snapshot card (mismatch warning visible on an incompatible fixture), persisted
-  split ratio, and the projections note; vitest passes on fixtures.
-- [ ] M2 — Process managers: `/process-managers` explains name discovery and lists
-  configured and recent names, `/process-managers/$name` pages instances, and
-  `/process-managers/$name/$correlation` renders the state, "Waiting for", "Last
-  reaction" (with provenance status), pending-timers, and journal link panels, plus the
-  "no instance" state for a `null` response; vitest passes on fixtures.
-- [ ] M3 — Timers: `/timers` pages pending timers with URL filters, updates live through
-  the `timers` feed with an "as of" stamp, offers the Stuck tab, and opens the `timer`
-  right sheet; vitest passes with the scripted feed.
-- [ ] M4 — Shell integration and end-to-end: not-mounted states for both hook-gated
-  sections (including the Overview card text), sidebar entries, commands, recents, and the
-  Playwright suite pass in mock mode; a live-stack smoke against the EP-9 stack records
-  which routes were exercised.
+- [x] M1 (2026-10-21): `/aggregates`, `/aggregates/$type` (cursor paging, the `skipped`
+  caption), and `/aggregates/$type/$id` (kiroku events beside the folded state, hydration
+  badge, snapshot card with the mismatch warning, a persisted split, the projections note).
+  Evidence: `src/features/aggregates/aggregates.test.tsx` (5 tests, including that the stream
+  read waits for `aggregate show`); `e2e/aggregates/aggregates.spec.ts` (split persisted
+  across a reload).
+- [x] M2 (2026-10-21): `/process-managers` (profile names, recents, open-by-name; never calls
+  keiro), `/process-managers/$name`, and the instance page with state, waiting-for, last
+  reaction with all three provenance statuses, pending timers, and the journal link; the
+  `null` instance state. Evidence: `src/features/process-managers/process-managers.test.tsx`
+  (5 tests); `e2e/process-managers/process-managers.spec.ts`.
+- [x] M3 (2026-10-21): `/timers` with URL filters, the `timers` feed live on page one with an
+  "as of" stamp, the Stuck tab with keiro's duration rule, and the `timer` sheet. Evidence:
+  `src/features/timers/timers.test.tsx` (6 tests: feed change and removal, overflow re-read,
+  filters in the request, stuck validation, sheet); `e2e/timers/timers.spec.ts`.
+- [x] M4 (2026-10-21): not-mounted states for both hook-gated families, the "Stuck timers"
+  preset, the timer sheet registration, recents, and `apps/console/README.md` "Sections".
+  Evidence: `e2e/aggregates/not-mounted.spec.ts`; Playwright screens and shell 45 passed;
+  `bun run test` 523 passed; `bun run check` clean. Live smoke (2026-10-21, jitsurei stack):
+  `/aggregates` and `/process-managers/jitsurei-fulfillment` show the not-mounted state naming
+  `/keiro/aggregate/types` and `/keiro/pm/list` after one request each; `/timers` reads
+  "as of 2 s ago · live" over an empty ledger; the Stuck tab lists none.
 
 
 ## Surprises & Discoveries
 
-(None yet.)
+- kiroku's single-stream reads report `globalPosition: 0`: `readStreamForwardSQL` in
+  `kiroku-store/src/Kiroku/Store/SQL.hs` (`mori://shinzui/kiroku`) selects `0::bigint AS
+  global_position` ("not available without $all join"), while `docs/user/reading-events.md`
+  describes the field as the `$all` position. kiroku-inspect's `/streams/{name}/events`
+  therefore answers 0 (the `$all` and category reads answer the real value), and so does every
+  keiro read built on stream reads (EP-15's journal, this plan's last reaction). The console now
+  renders a 0 global position as "not reported" (`components/GlobalPosition.tsx`) in event
+  tables and the last-reaction card. Candidate kiroku request (not filed): populate the
+  position on stream reads or document the sentinel.
+- The keiro client's timers feed sent the filter as `correlation`; keiro accepts only
+  `manager`, `correlation_id`, and `limit` (`keiro-ops-http/src/Keiro/Ops/Http/Views.hs`
+  `timersView`) and refuses unknown keys. Live: `correlation` → `invalid_subscription`,
+  `correlation_id` → a snapshot. Fixed in `packages/client-keiro/src/feeds/hooks.ts` with a
+  test pinning the wire frame.
+- The keiro client's `StuckTimers` reused the pending item schema, whose `last_error` key the
+  stuck rows (`timerJson`) never carry; zod 4 treats an `unknown()` key as required, so a
+  non-empty stuck list failed to parse. The live stuck list is empty, which hid it. Fixed with
+  a `StuckTimer` schema.
+- The client core retried every non-4xx failure, including keiro's typed `RouteUnavailable`
+  (a 400 wrapped in a non-`ApiError`) and schema failures, so the not-mounted pages showed
+  "Loading…" through two retries. `surfaceRetry` now retries only a network failure or a 5xx,
+  found directly or as a `cause`.
+- The jitsurei seed leaves no pending or stuck timers; `derive.ts` now derives both ledgers
+  from keiro's encoders (recorded empty bodies kept as `*.recorded.json`) and captures the
+  live not-mounted refusals as `aggregate-types.error.json` and `pm-list.error.json`. An error
+  fixture with its default's query is served only through the `fail` scenario.
+- Vite optimized `react-resizable-panels` on first use and reloaded mid-session, leaving a
+  second React copy until the reload ("Invalid hook call"); it is now in `optimizeDeps.include`.
+- The component-test harness used the app's singleton router; once a test left it at a
+  filtered URL, the next test's first render subscribed with the old filters. Each test now
+  gets a fresh router bound through `bindLinkRouter`.
 
 
 ## Decision Log
@@ -126,10 +166,36 @@ Aggregates and Process managers pages say so plainly instead of showing an error
   column difference follows the wire shapes, which the console never pads.
   Date: 2026-10-21
 
+- Decision: No separate `registerAggregatesFeature()`; the section's page entries and
+  palette pages are the shell's, recents are recorded by kind, and the one registration this
+  plan needs (the `timer` sheet and the "Stuck timers" preset) is `registerTimersFeature()`.
+  `useAggregatesMounted()` in `features/aggregates/queries.ts` is the probe EP-17 reuses.
+  Rationale: an empty registration adds nothing; the probe is a hook, matching the other
+  screens' query modules.
+  Date: 2026-10-21
+
+- Decision: The not-mounted state names `dev/README.md` as text rather than linking it: the
+  console cannot know where the repository is hosted.
+  Date: 2026-10-21
+
 
 ## Outcomes & Retrospective
 
-(To be filled during and after implementation.)
+Complete (2026-10-21). The aggregate browser shows raw events beside folded state with
+hydration and snapshot health; process managers open by configured, recent, or typed name and
+show state, waiting-for, last reaction with provenance, pending timers, and the journal; the
+timer ledger is live on its first page with a stuck view and a sheet. Hosts without keiro's
+inspection hooks get an explanatory state, verified live. Nothing mutates.
+
+The section's tests exposed defects beyond it, all fixed here: the timers feed filter key and
+the stuck-timer schema in the keiro client, the client core's retry rule, a Vite
+pre-bundling gap, and the test harness's shared router. kiroku's zero global position on
+stream reads is handled at display time and recorded as a candidate request.
+
+Candidate improvement requests for the MasterPlan to file: keiro, a `pm types` read listing
+mounted process managers; keiro, a per-category projection mapping (the aggregate browser
+links to the Projections section instead); kiroku, stream reads that report the global
+position (or document the 0 sentinel).
 
 
 ## Context and Orientation

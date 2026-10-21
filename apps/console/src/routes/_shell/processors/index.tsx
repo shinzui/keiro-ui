@@ -2,8 +2,9 @@ import { createFileRoute } from "@tanstack/react-router"
 
 import { PageHeader } from "@/components/page-header"
 import { ProcessorTable } from "@/features/processors/processor-table"
-import { useNow, useProcessors } from "@/features/processors/queries"
+import { useProcessors } from "@/features/processors/queries"
 import { ReadinessSummary } from "@/features/processors/readiness-summary"
+import { useNow } from "@/lib/use-now"
 import { shellSearchSchema } from "@/shell/search"
 
 export const Route = createFileRoute("/_shell/processors/")({

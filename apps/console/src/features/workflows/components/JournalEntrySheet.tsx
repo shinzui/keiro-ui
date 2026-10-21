@@ -3,8 +3,9 @@ import { keiroKeys } from "@keiro-ui/client-keiro"
 import { useKirokuEvent } from "@keiro-ui/client-kiroku"
 import { SheetDescription, SheetHeader, SheetTitle } from "@keiro-ui/ui/components/sheet"
 import { Skeleton } from "@keiro-ui/ui/components/skeleton"
-import { type InfiniteData, useQueryClient } from "@tanstack/react-query"
+import { type InfiniteData, type QueryClient, useQueryClient } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
+import { useSyncExternalStore } from "react"
 
 import { JsonViewer } from "@/components/JsonViewer"
 import { PositionBadge } from "@/components/PositionBadge"
@@ -17,6 +18,15 @@ import { parseJournalEntryRef } from "../journal"
 /** keiro's decoded entry, when a loaded journal page holds it. */
 function useCachedEntry(name: string, id: string, eventId: string) {
   const queryClient = useQueryClient()
+  const cache = queryClient.getQueryCache()
+  // Subscribed, so the sheet fills in when the journal page holding the entry loads.
+  return useSyncExternalStore(
+    (onChange) => cache.subscribe(onChange),
+    () => findEntry(queryClient, name, id, eventId),
+  )
+}
+
+function findEntry(queryClient: QueryClient, name: string, id: string, eventId: string) {
   const pages = queryClient.getQueriesData<InfiniteData<{ items: WorkflowJournalEntry[] }>>({
     queryKey: keiroKeys.workflows.journal(name, id).slice(0, -1),
   })

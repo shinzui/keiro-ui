@@ -29,7 +29,7 @@ export default defineConfig({
     {
       name: "screens",
       testMatch:
-        /e2e\/(streams|queues|workflows|aggregates|process-managers|projections|overview)\/.*\.spec\.ts$/,
+        /e2e\/(streams|queues|workflows|aggregates|process-managers|timers|projections|overview)\/.*\.spec\.ts$/,
       use: { ...devices["Desktop Chrome"], baseURL: mockURL },
     },
   ],

@@ -32,6 +32,9 @@ export default defineConfig({
     __GIT_COMMIT__: JSON.stringify(gitCommit()),
   },
   plugins: [tanstackRouter({ target: "react", autoCodeSplitting: true }), react(), tailwindcss()],
+  // Pre-bundled so the first visit to a route that uses it does not trigger a re-optimization
+  // and reload (which left a second React copy in the page until the reload finished).
+  optimizeDeps: { include: ["react-resizable-panels"] },
   server: {
     port: 5173,
     strictPort: true,

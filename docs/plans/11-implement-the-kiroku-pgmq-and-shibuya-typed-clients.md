@@ -26,6 +26,11 @@ provenance:
       at: 2026-10-21T20:30:00Z
       mode: "update"
       note: "Cascade plan 9's testing API: feedScript options, useScenario recorded, pins, kirokuLog, /ws/metrics script"
+    - model: "claude-opus-5-5"
+      harness: "claude-code"
+      at: 2026-10-21T21:12:30Z
+      mode: "implement"
+      note: "Implemented M1-M4: kiroku, pgmq (OpenAPI-generated), shibuya clients, dialects, and hooks"
   reviews:
     - model: "claude-fable-5-1"
       harness: "claude-code"
@@ -67,25 +72,45 @@ that read raw events) consume these packages and never touch `fetch` or frame pa
 
 ## Progress
 
-- [ ] M1 — `@keiro-ui/client-kiroku` covers every kiroku-metrics route with zod schemas and
+- [x] M1 — `@keiro-ui/client-kiroku` covers every kiroku-metrics route with zod schemas and
   passes its contract tests against fixtures (`bun run --filter @keiro-ui/client-kiroku test`)
   and, with `KEIRO_UI_LIVE=1`, against `kiroku-inspect` on port 9091; the smoke script
-  prints the live `/capabilities` document.
-- [ ] M2 — `@keiro-ui/client-pgmq` is generated from the checked-in OpenAPI golden, its zod
+  prints the live `/capabilities` document. (2026-10-21: fixture suite green; live: paged
+  `$all` to the end, read an event, `/ws/events` → `event_stream_started`; smoke prints
+  `kiroku-metrics 0.3.0.1` and `store_position 30`.)
+- [x] M2 — `@keiro-ui/client-pgmq` is generated from the checked-in OpenAPI golden, its zod
   schemas mirror the OpenAPI components (key-set parity test), every fixture validates, a
   message id above 2^53 round-trips as an exact `bigint`, and the live suite confirms the
-  surface is GET-only (HEAD returns 405).
-- [ ] M3 — `@keiro-ui/client-shibuya` decodes the camelCase processor records (basic and
+  surface is GET-only (HEAD returns 405). (2026-10-21: parity over 11 components;
+  `messages.get(queue, 9007199254740994n)` requests exactly `/messages/9007199254740994`;
+  live HEAD `/queues` → 405.)
+- [x] M3 — `@keiro-ui/client-shibuya` decodes the camelCase processor records (basic and
   detailed), health, and the control gate status, with the flat error envelope normalized;
   tests pass against fixtures and against the live server, noting which detail fields the
-  live baseline omits.
-- [ ] M4 — The four feed dialects (kiroku events, kiroku metrics, pgmq queue metrics,
+  live baseline omits. (2026-10-21: live output — `notifications`, `orders`, `payments`: idle;
+  detail fields: none (basic metrics).)
+- [x] M4 — The four feed dialects (kiroku events, kiroku metrics, pgmq queue metrics,
   shibuya processors) and their hooks reconcile snapshot-then-delta into the TanStack Query
   cache, recover from overflow by re-reading the poll path, and are proven against scripted
-  sockets and against the live stack.
+  sockets and against the live stack. (2026-10-21: `useKirokuEventTail` holds all 7 events of
+  `feedScript("kiroku", {append: 4, overflowAfter: 2, dropped: 3})` once each, in order;
+  pgmq and shibuya feeds write into their read hooks' entries and invalidate on overflow;
+  each live suite receives its first frame.)
 
 
 ## Surprises & Discoveries
+
+- 2026-10-21: `openapi-typescript` needs TypeScript 5's JavaScript compiler API, which the
+  workspace's TypeScript 7 (native) does not provide; `scripts/generate.sh` runs it from a
+  throwaway install with `typescript@5.9.3`, and the generated file is committed.
+- 2026-10-21: kiroku's tail needed two fixes found by tests: the catch-up read must merge
+  into whatever the feed appended while it ran (else it overwrites pushed events), and
+  `fromPosition` must be stable across renders (a changing value starts a new tail).
+- 2026-10-21: the feed scenario `{append: 4, overflowAfter: 2, dropped: 3}` appends seven
+  events (four pushed, three dropped), not five as Plan of Work said; the test asserts all
+  seven, each once, in global-position order.
+- 2026-10-21: the local shibuya baseline answers `/control` with 404 (Hackage 0.10.0.x
+  predates it); `control.status()` is tested against the derived fixture only.
 
 (None yet.)
 
@@ -118,6 +143,15 @@ that read raw events) consume these packages and never touch `fetch` or frame pa
 
 
 ## Outcomes & Retrospective
+
+2026-10-21 — complete. Three packages share one layout (`schemas`, `client`, `query-keys`,
+`feeds`, `hooks`, `scripts/smoke.ts`, README): `@keiro-ui/client-kiroku` (every route, branded
+name and position cursors, the event tail with poll-path overflow recovery, the metrics feed),
+`@keiro-ui/client-pgmq` (generated from the served OpenAPI document with a parity test), and
+`@keiro-ui/client-shibuya` (state union, detailed and basic records, terminal frames,
+`extrapolateAge`). Health methods return `{status, body}` for 200 and 503. All fixture and live
+suites pass. client-core gained `webSocketUrlFor` and `useFeedSubscription`'s `onResync`/
+`onError` (recorded in plan 10).
 
 (To be filled during and after implementation.)
 

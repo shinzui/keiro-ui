@@ -1,0 +1,144 @@
+import {
+  type QueryClient,
+  type QueryKey,
+  useQuery,
+  useQueryClient,
+  type UseQueryOptions,
+  type UseQueryResult,
+} from "@tanstack/react-query"
+import {
+  createContext,
+  createElement,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
+
+import { ApiError } from "./errors"
+import { surfaces, type Surface } from "./surface"
+
+// ADR-3: every live view polls; pushes only shorten latency. Paused means polling stops and
+// the screen is explicitly stale.
+
+export interface LivenessController {
+  paused: boolean
+  pausedSince: Date | null
+  pause(): void
+  /** Also refreshes every surface immediately. */
+  resume(): void
+  /** Invalidates every surface's query-key prefix (["kiroku"], ["pgmq"], ...). */
+  refreshAll(): Promise<void>
+}
+
+const LivenessContext = createContext<LivenessController | null>(null)
+
+export function LivenessProvider(props: { children: ReactNode; initialPaused?: boolean }) {
+  const queryClient = useQueryClient()
+  const [pausedSince, setPausedSince] = useState<Date | null>(() =>
+    props.initialPaused ? new Date() : null,
+  )
+  const refreshAll = useCallback(async () => {
+    await Promise.all(
+      surfaces.map((surface) => queryClient.invalidateQueries({ queryKey: [surface] })),
+    )
+  }, [queryClient])
+  const value = useMemo<LivenessController>(
+    () => ({
+      paused: pausedSince !== null,
+      pausedSince,
+      pause: () => setPausedSince((since) => since ?? new Date()),
+      resume: () => {
+        setPausedSince(null)
+        void refreshAll()
+      },
+      refreshAll,
+    }),
+    [pausedSince, refreshAll],
+  )
+  return createElement(LivenessContext.Provider, { value }, props.children)
+}
+
+export function useLiveness(): LivenessController {
+  const value = useContext(LivenessContext)
+  if (!value) throw new Error("useLiveness requires <LivenessProvider>")
+  return value
+}
+
+/** Default polling intervals per surface, in milliseconds. */
+export const surfacePollDefaults: Record<Surface, number> = {
+  kiroku: 5000,
+  pgmq: 5000,
+  shibuya: 2000,
+  keiro: 5000,
+}
+
+/**
+ * Restate's clamp: the base interval while the last fetch took at most 1 s, otherwise
+ * clamp(10 s, 10 × last fetch, 60 s).
+ */
+export function adaptiveInterval(baseMs: number, lastFetchMs: number): number {
+  if (lastFetchMs <= 1000) return baseMs
+  return Math.min(60_000, Math.max(10_000, 10 * lastFetchMs))
+}
+
+/** Shared by useSurfaceQuery and useCursorPages: duration measurement and the interval. */
+export function usePollInterval(surface: Surface, poll: number | false | undefined) {
+  const { paused } = useLiveness()
+  const lastDuration = useRef(0)
+  const base = poll === undefined ? surfacePollDefaults[surface] : poll
+  const measure = useCallback(async <T>(run: () => Promise<T>): Promise<T> => {
+    const started = performance.now()
+    try {
+      return await run()
+    } finally {
+      lastDuration.current = performance.now() - started
+    }
+  }, [])
+  const refetchInterval: false | (() => number) =
+    paused || base === false ? false : () => adaptiveInterval(base, lastDuration.current)
+  return { paused, measure, refetchInterval, lastDuration }
+}
+
+/** Retries at most twice, and never a 4xx (a definite answer from the surface). */
+export function surfaceRetry(failureCount: number, error: unknown): boolean {
+  if (error instanceof ApiError && error.status >= 400 && error.status < 500) return false
+  return failureCount < 2
+}
+
+/**
+ * A polling query with the console's liveness rules: the surface's default interval (or
+ * `poll`), stretched by `adaptiveInterval` after a slow fetch, stopped while paused, and
+ * refetched once immediately on resume.
+ */
+export function useSurfaceQuery<TData, TError = ApiError>(
+  options: UseQueryOptions<TData, TError> & { surface: Surface; poll?: number | false },
+): UseQueryResult<TData, TError> {
+  const { surface, poll, queryFn, ...rest } = options
+  const { paused, measure, refetchInterval } = usePollInterval(surface, poll)
+  const result = useQuery<TData, TError>({
+    retry: surfaceRetry,
+    ...rest,
+    queryFn:
+      typeof queryFn === "function"
+        ? (context) =>
+            measure(async () => (queryFn as (c: typeof context) => TData | Promise<TData>)(context))
+        : queryFn,
+    refetchInterval,
+    refetchIntervalInBackground: false,
+  })
+  const wasPaused = useRef(paused)
+  const { refetch } = result
+  useEffect(() => {
+    // Resume refetches immediately; cancelRefetch false joins the fetch resume() already
+    // started through refreshAll, so the query fetches exactly once.
+    if (wasPaused.current && !paused) void refetch({ cancelRefetch: false })
+    wasPaused.current = paused
+  }, [paused, refetch])
+  return result
+}
+
+export type { QueryClient, QueryKey }

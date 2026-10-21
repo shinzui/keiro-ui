@@ -1,0 +1,1 @@
+{"msg_id":1,"read_ct":0,"enqueued_at":"2026-10-21T20:23:34.862896Z","last_read_at":null,"vt":"2026-10-21T20:23:34.862908Z","message":{"dead_letter_reason_code":"poison_message","dead_letter_reason_detail":"payload failed validation: total must be positive","original_message":{"order_id":"ord-9"},"read_count":5},"headers":null}

@@ -1,0 +1,132 @@
+{
+  "surface": "pgmq",
+  "prefix": "/pgmq",
+  "port_env": "STACK_PGMQ_PORT",
+  "cursor_param": "from",
+  "pins": {
+    "queue": "console_demo",
+    "msg_id": "1",
+    "archived_msg_id": "3",
+    "dlq_queue": "console_demo_dlq",
+    "dlq_msg_id": "1"
+  },
+  "entries": [
+    {
+      "slug": "service",
+      "path": "/"
+    },
+    {
+      "slug": "openapi",
+      "path": "/openapi.json"
+    },
+    {
+      "slug": "queues",
+      "path": "/queues"
+    },
+    {
+      "slug": "queue",
+      "path": "/queues/{queue}"
+    },
+    {
+      "slug": "queue",
+      "path": "/queues/{queue}",
+      "variant": "error",
+      "params": {
+        "queue": "nope"
+      }
+    },
+    {
+      "slug": "queue-metrics",
+      "path": "/queues/{queue}/metrics"
+    },
+    {
+      "slug": "metrics",
+      "path": "/metrics"
+    },
+    {
+      "slug": "queue-messages",
+      "path": "/queues/{queue}/messages",
+      "query": {
+        "limit": "2"
+      },
+      "follow_next_cursor": true
+    },
+    {
+      "slug": "queue-messages",
+      "path": "/queues/{queue}/messages",
+      "query": {
+        "limit": "0"
+      },
+      "variant": "error"
+    },
+    {
+      "slug": "queue-message",
+      "path": "/queues/{queue}/messages/{msg_id}"
+    },
+    {
+      "slug": "queue-message",
+      "path": "/queues/{queue}/messages/{msg_id}",
+      "variant": "error",
+      "params": {
+        "msg_id": "abc"
+      }
+    },
+    {
+      "slug": "queue-message-big-id",
+      "path": "/queues/{queue}/messages/{msg_id}",
+      "params": {
+        "msg_id": "9007199254740994"
+      }
+    },
+    {
+      "slug": "dlq-messages",
+      "path": "/queues/{dlq_queue}/messages",
+      "query": {
+        "limit": "50"
+      }
+    },
+    {
+      "slug": "dlq-message",
+      "path": "/queues/{dlq_queue}/messages/{dlq_msg_id}"
+    },
+    {
+      "slug": "queue-archive",
+      "path": "/queues/{queue}/archive",
+      "query": {
+        "limit": "50"
+      },
+      "follow_next_cursor": true
+    },
+    {
+      "slug": "archived-message",
+      "path": "/queues/{queue}/archive/{archived_msg_id}"
+    },
+    {
+      "slug": "queue-bindings",
+      "path": "/queues/{queue}/bindings"
+    },
+    {
+      "slug": "bindings",
+      "path": "/bindings"
+    },
+    {
+      "slug": "routing-test",
+      "path": "/routing/test",
+      "query": {
+        "routing_key": "console.demo"
+      }
+    },
+    {
+      "slug": "notify-throttles",
+      "path": "/notify/throttles"
+    },
+    {
+      "slug": "health-live",
+      "path": "/health/live"
+    },
+    {
+      "slug": "health-ready",
+      "path": "/health/ready"
+    }
+  ]
+}

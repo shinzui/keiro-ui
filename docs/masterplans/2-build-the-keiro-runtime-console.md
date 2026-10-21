@@ -324,7 +324,7 @@ repository.
 |---|-------|------|-----------|-----------|--------|
 | 7 | Scaffold the console workspace and design system | docs/plans/7-scaffold-the-console-workspace-and-design-system.md | None | None | Complete |
 | 8 | Build the console app shell, navigation, and command palette | docs/plans/8-build-the-console-app-shell-navigation-and-command-palette.md | EP-7 | EP-10 | Complete |
-| 9 | Provision the local runtime stack and recorded fixtures | docs/plans/9-provision-the-local-runtime-stack-and-recorded-fixtures.md | None | EP-7 | Not Started |
+| 9 | Provision the local runtime stack and recorded fixtures | docs/plans/9-provision-the-local-runtime-stack-and-recorded-fixtures.md | None | EP-7 | In Progress |
 | 10 | Implement the client core for HTTP, cursors, int64, WebSocket, and live queries | docs/plans/10-implement-the-client-core-for-http-cursors-int64-websocket-and-live-queries.md | EP-7 | EP-9 | Not Started |
 | 11 | Implement the kiroku, pgmq, and shibuya typed clients | docs/plans/11-implement-the-kiroku-pgmq-and-shibuya-typed-clients.md | EP-10 | EP-9 | Not Started |
 | 12 | Implement the keiro typed client | docs/plans/12-implement-the-keiro-typed-client.md | EP-10 | EP-9 | Not Started |

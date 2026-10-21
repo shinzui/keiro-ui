@@ -5,10 +5,16 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./browser": "./src/browser.ts"
+    "./node": "./src/node.ts",
+    "./browser": "./src/browser.ts",
+    "./scenario": "./src/scenario.ts",
+    "./fixtures/*": "./fixtures/*",
+    "./manifests/*": "./manifests/*"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "record": "bun scripts/record.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "msw": "3.0.3"

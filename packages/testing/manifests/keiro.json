@@ -1,0 +1,163 @@
+{
+  "surface": "keiro",
+  "prefix": "/keiro",
+  "port_env": "STACK_KEIRO_PORT",
+  "cursor_param": "after",
+  "pins": {
+    "workflow_name": "order-fulfillment",
+    "workflow_id": "workflow-20261021202320830171000000",
+    "timer_id": "",
+    "subscription": "",
+    "stream": "order-demo-20261021202320671316000000"
+  },
+  "entries": [
+    {
+      "slug": "health",
+      "path": "/health"
+    },
+    {
+      "slug": "workflows",
+      "path": "/wf/inspect/list",
+      "query": {
+        "limit": "1"
+      },
+      "follow_next_cursor": true
+    },
+    {
+      "slug": "workflows-running",
+      "path": "/wf/inspect/list",
+      "query": {
+        "status_class": "running",
+        "limit": "100"
+      }
+    },
+    {
+      "slug": "workflows-created-desc",
+      "path": "/wf/inspect/list",
+      "query": {
+        "ordering": "created_desc",
+        "limit": "100"
+      }
+    },
+    {
+      "slug": "workflows",
+      "path": "/wf/inspect/list",
+      "query": {
+        "limit": "9999"
+      },
+      "variant": "error"
+    },
+    {
+      "slug": "workflows-bad-cursor",
+      "path": "/wf/inspect/list",
+      "query": {
+        "after": "garbage"
+      },
+      "variant": "error"
+    },
+    {
+      "slug": "workflow-header",
+      "path": "/wf/inspect/header/{workflow_name}/{workflow_id}"
+    },
+    {
+      "slug": "workflow-header",
+      "path": "/wf/inspect/header/{workflow_name}/{workflow_id}",
+      "variant": "error",
+      "params": {
+        "workflow_name": "nope",
+        "workflow_id": "nope"
+      }
+    },
+    {
+      "slug": "workflow-journal",
+      "path": "/wf/inspect/journal/{workflow_name}/{workflow_id}"
+    },
+    {
+      "slug": "workflow-steps",
+      "path": "/wf/inspect/steps/{workflow_name}/{workflow_id}"
+    },
+    {
+      "slug": "workflow-children",
+      "path": "/wf/inspect/children/{workflow_name}/{workflow_id}"
+    },
+    {
+      "slug": "workflow-awakeables",
+      "path": "/wf/inspect/awakeables/{workflow_name}/{workflow_id}"
+    },
+    {
+      "slug": "timers-pending",
+      "path": "/timer/pending/list",
+      "query": {
+        "limit": "100"
+      }
+    },
+    {
+      "slug": "timers-stuck",
+      "path": "/timer/stuck/list"
+    },
+    {
+      "slug": "projection-status",
+      "path": "/projection/status",
+      "query": {
+        "limit": "100"
+      }
+    },
+    {
+      "slug": "projection-position",
+      "path": "/projection/position",
+      "query": {
+        "subscription": "{subscription}"
+      },
+      "needs": ["subscription"]
+    },
+    {
+      "slug": "shards",
+      "path": "/shard/list"
+    },
+    {
+      "slug": "shard-status",
+      "path": "/shard/status",
+      "query": {
+        "subscription": "{subscription}"
+      },
+      "needs": ["subscription"]
+    },
+    {
+      "slug": "stream-show",
+      "path": "/stream/show/{stream}",
+      "query": {
+        "from": "0",
+        "limit": "100"
+      }
+    },
+    {
+      "slug": "stream-subscriptions",
+      "path": "/stream/subscriptions"
+    },
+    {
+      "slug": "outbox-backlog",
+      "path": "/outbox/backlog"
+    },
+    {
+      "slug": "inbox-backlog",
+      "path": "/inbox/backlog"
+    },
+    {
+      "slug": "outbox-list",
+      "path": "/outbox/list",
+      "query": {
+        "limit": "100"
+      },
+      "variant": "error"
+    },
+    {
+      "slug": "timer-requeue",
+      "path": "/timer/requeue/{timer_id}",
+      "method": "POST",
+      "variant": "error",
+      "params": {
+        "timer_id": "00000000-0000-0000-0000-000000000000"
+      }
+    }
+  ]
+}

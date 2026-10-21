@@ -22,6 +22,7 @@
     "docs/**",
     "**/routeTree.gen.ts",
     "bun.lock",
-    "nix/tooling-sources.json"
+    "nix/tooling-sources.json",
+    "packages/testing/fixtures/**"
   ]
 }

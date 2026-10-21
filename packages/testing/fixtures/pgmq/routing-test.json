@@ -1,0 +1,1 @@
+[{"pattern":"console.*","queue_name":"console_demo","compiled_regex":"^console\\.[^.]+$"}]

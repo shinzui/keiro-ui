@@ -1,0 +1,49 @@
+{
+  "surface": "shibuya",
+  "prefix": "/shibuya",
+  "port_env": "STACK_SHIBUYA_PORT",
+  "cursor_param": "from",
+  "pins": {
+    "processor": "notifications"
+  },
+  "entries": [
+    {
+      "slug": "metrics",
+      "path": "/metrics"
+    },
+    {
+      "slug": "processor-metrics",
+      "path": "/metrics/{processor}"
+    },
+    {
+      "slug": "processor-metrics",
+      "path": "/metrics/{processor}",
+      "variant": "error",
+      "params": {
+        "processor": "does-not-exist"
+      }
+    },
+    {
+      "slug": "health",
+      "path": "/health"
+    },
+    {
+      "slug": "health-live",
+      "path": "/health/live"
+    },
+    {
+      "slug": "health-ready",
+      "path": "/health/ready"
+    },
+    {
+      "slug": "control",
+      "path": "/control"
+    },
+    {
+      "slug": "control-pause",
+      "path": "/control/processors/{processor}/pause",
+      "method": "POST",
+      "variant": "error"
+    }
+  ]
+}

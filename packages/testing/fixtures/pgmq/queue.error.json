@@ -1,0 +1,1 @@
+{"error":{"code":"queue_not_found","details":{"queue_name":"nope"},"message":"No queue with that name exists."}}

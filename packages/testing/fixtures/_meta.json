@@ -1,0 +1,1129 @@
+{
+  "recorded_at": "2026-10-21T20:26:23.927Z",
+  "seed": "keiro just jitsurei-all (keiro b63ed846) + dev/seed-queues.sh",
+  "sources": {
+    "kiroku": {
+      "commit": "ea364cf"
+    },
+    "pgmq-hs": {
+      "commit": "d6750a6"
+    },
+    "shibuya": {
+      "commit": "0967f45"
+    },
+    "shibuya-pgmq-adapter": {
+      "commit": "c443ac3"
+    },
+    "keiro": {
+      "commit": "b63ed846"
+    }
+  },
+  "files": {
+    "keiro/health.json": {
+      "surface": "keiro",
+      "slug": "health",
+      "variant": "default",
+      "method": "GET",
+      "template": "/health",
+      "query": {},
+      "params": {},
+      "request": "/health",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8"
+    },
+    "keiro/inbox-backlog.json": {
+      "surface": "keiro",
+      "slug": "inbox-backlog",
+      "variant": "default",
+      "method": "GET",
+      "template": "/inbox/backlog",
+      "query": {},
+      "params": {},
+      "request": "/inbox/backlog",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8"
+    },
+    "keiro/outbox-backlog.json": {
+      "surface": "keiro",
+      "slug": "outbox-backlog",
+      "variant": "default",
+      "method": "GET",
+      "template": "/outbox/backlog",
+      "query": {},
+      "params": {},
+      "request": "/outbox/backlog",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8"
+    },
+    "keiro/outbox-list.error.json": {
+      "surface": "keiro",
+      "slug": "outbox-list",
+      "variant": "error",
+      "method": "GET",
+      "template": "/outbox/list",
+      "query": {
+        "limit": "100"
+      },
+      "params": {},
+      "request": "/outbox/list?limit=100",
+      "status": 400,
+      "contentType": "application/json; charset=utf-8"
+    },
+    "keiro/projection-status.json": {
+      "surface": "keiro",
+      "slug": "projection-status",
+      "variant": "default",
+      "method": "GET",
+      "template": "/projection/status",
+      "query": {
+        "limit": "100"
+      },
+      "params": {},
+      "request": "/projection/status?limit=100",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8"
+    },
+    "keiro/shards.json": {
+      "surface": "keiro",
+      "slug": "shards",
+      "variant": "default",
+      "method": "GET",
+      "template": "/shard/list",
+      "query": {},
+      "params": {},
+      "request": "/shard/list",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8"
+    },
+    "keiro/stream-show.json": {
+      "surface": "keiro",
+      "slug": "stream-show",
+      "variant": "default",
+      "method": "GET",
+      "template": "/stream/show/{stream}",
+      "query": {
+        "from": "0",
+        "limit": "100"
+      },
+      "params": {
+        "stream": "order-demo-20261021202320671316000000"
+      },
+      "request": "/stream/show/order-demo-20261021202320671316000000?from=0&limit=100",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8"
+    },
+    "keiro/stream-subscriptions.json": {
+      "surface": "keiro",
+      "slug": "stream-subscriptions",
+      "variant": "default",
+      "method": "GET",
+      "template": "/stream/subscriptions",
+      "query": {},
+      "params": {},
+      "request": "/stream/subscriptions",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8"
+    },
+    "keiro/timer-requeue.error.json": {
+      "surface": "keiro",
+      "slug": "timer-requeue",
+      "variant": "error",
+      "method": "POST",
+      "template": "/timer/requeue/{timer_id}",
+      "query": {},
+      "params": {
+        "timer_id": "00000000-0000-0000-0000-000000000000"
+      },
+      "request": "/timer/requeue/00000000-0000-0000-0000-000000000000",
+      "status": 403,
+      "contentType": "application/json; charset=utf-8"
+    },
+    "keiro/timers-pending.json": {
+      "surface": "keiro",
+      "slug": "timers-pending",
+      "variant": "default",
+      "method": "GET",
+      "template": "/timer/pending/list",
+      "query": {
+        "limit": "100"
+      },
+      "params": {},
+      "request": "/timer/pending/list?limit=100",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8"
+    },
+    "keiro/timers-stuck.json": {
+      "surface": "keiro",
+      "slug": "timers-stuck",
+      "variant": "default",
+      "method": "GET",
+      "template": "/timer/stuck/list",
+      "query": {},
+      "params": {},
+      "request": "/timer/stuck/list",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8"
+    },
+    "keiro/workflow-awakeables.json": {
+      "surface": "keiro",
+      "slug": "workflow-awakeables",
+      "variant": "default",
+      "method": "GET",
+      "template": "/wf/inspect/awakeables/{workflow_name}/{workflow_id}",
+      "query": {},
+      "params": {
+        "workflow_name": "order-fulfillment",
+        "workflow_id": "workflow-20261021202320830171000000"
+      },
+      "request": "/wf/inspect/awakeables/order-fulfillment/workflow-20261021202320830171000000",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8"
+    },
+    "keiro/workflow-children.json": {
+      "surface": "keiro",
+      "slug": "workflow-children",
+      "variant": "default",
+      "method": "GET",
+      "template": "/wf/inspect/children/{workflow_name}/{workflow_id}",
+      "query": {},
+      "params": {
+        "workflow_name": "order-fulfillment",
+        "workflow_id": "workflow-20261021202320830171000000"
+      },
+      "request": "/wf/inspect/children/order-fulfillment/workflow-20261021202320830171000000",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8"
+    },
+    "keiro/workflow-header.error.json": {
+      "surface": "keiro",
+      "slug": "workflow-header",
+      "variant": "error",
+      "method": "GET",
+      "template": "/wf/inspect/header/{workflow_name}/{workflow_id}",
+      "query": {},
+      "params": {
+        "workflow_name": "nope",
+        "workflow_id": "nope"
+      },
+      "request": "/wf/inspect/header/nope/nope",
+      "status": 422,
+      "contentType": "application/json; charset=utf-8"
+    },
+    "keiro/workflow-header.json": {
+      "surface": "keiro",
+      "slug": "workflow-header",
+      "variant": "default",
+      "method": "GET",
+      "template": "/wf/inspect/header/{workflow_name}/{workflow_id}",
+      "query": {},
+      "params": {
+        "workflow_name": "order-fulfillment",
+        "workflow_id": "workflow-20261021202320830171000000"
+      },
+      "request": "/wf/inspect/header/order-fulfillment/workflow-20261021202320830171000000",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8"
+    },
+    "keiro/workflow-journal.json": {
+      "surface": "keiro",
+      "slug": "workflow-journal",
+      "variant": "default",
+      "method": "GET",
+      "template": "/wf/inspect/journal/{workflow_name}/{workflow_id}",
+      "query": {},
+      "params": {
+        "workflow_name": "order-fulfillment",
+        "workflow_id": "workflow-20261021202320830171000000"
+      },
+      "request": "/wf/inspect/journal/order-fulfillment/workflow-20261021202320830171000000",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8"
+    },
+    "keiro/workflow-steps.json": {
+      "surface": "keiro",
+      "slug": "workflow-steps",
+      "variant": "default",
+      "method": "GET",
+      "template": "/wf/inspect/steps/{workflow_name}/{workflow_id}",
+      "query": {},
+      "params": {
+        "workflow_name": "order-fulfillment",
+        "workflow_id": "workflow-20261021202320830171000000"
+      },
+      "request": "/wf/inspect/steps/order-fulfillment/workflow-20261021202320830171000000",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8"
+    },
+    "keiro/workflows-bad-cursor.error.json": {
+      "surface": "keiro",
+      "slug": "workflows-bad-cursor",
+      "variant": "error",
+      "method": "GET",
+      "template": "/wf/inspect/list",
+      "query": {
+        "after": "garbage"
+      },
+      "params": {},
+      "request": "/wf/inspect/list?after=garbage",
+      "status": 400,
+      "contentType": "application/json; charset=utf-8"
+    },
+    "keiro/workflows-created-desc.json": {
+      "surface": "keiro",
+      "slug": "workflows-created-desc",
+      "variant": "default",
+      "method": "GET",
+      "template": "/wf/inspect/list",
+      "query": {
+        "ordering": "created_desc",
+        "limit": "100"
+      },
+      "params": {},
+      "request": "/wf/inspect/list?ordering=created_desc&limit=100",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8"
+    },
+    "keiro/workflows-running.json": {
+      "surface": "keiro",
+      "slug": "workflows-running",
+      "variant": "default",
+      "method": "GET",
+      "template": "/wf/inspect/list",
+      "query": {
+        "status_class": "running",
+        "limit": "100"
+      },
+      "params": {},
+      "request": "/wf/inspect/list?status_class=running&limit=100",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8"
+    },
+    "keiro/workflows.error.json": {
+      "surface": "keiro",
+      "slug": "workflows",
+      "variant": "error",
+      "method": "GET",
+      "template": "/wf/inspect/list",
+      "query": {
+        "limit": "9999"
+      },
+      "params": {},
+      "request": "/wf/inspect/list?limit=9999",
+      "status": 400,
+      "contentType": "application/json; charset=utf-8"
+    },
+    "keiro/workflows.json": {
+      "surface": "keiro",
+      "slug": "workflows",
+      "variant": "default",
+      "method": "GET",
+      "template": "/wf/inspect/list",
+      "query": {
+        "limit": "1"
+      },
+      "params": {},
+      "request": "/wf/inspect/list?limit=1",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8"
+    },
+    "keiro/workflows.page2.json": {
+      "surface": "keiro",
+      "slug": "workflows",
+      "variant": "page2",
+      "method": "GET",
+      "template": "/wf/inspect/list",
+      "query": {
+        "limit": "1",
+        "after": "eyJrIjoid2Yta2V5IiwidiI6WyJvcmRlci1mdWxmaWxsbWVudCIsIndvcmtmbG93LTIwMjYxMDIxMjAyMzIwODMwMTcxMDAwMDAwIl19"
+      },
+      "params": {},
+      "request": "/wf/inspect/list?limit=1&after=eyJrIjoid2Yta2V5IiwidiI6WyJvcmRlci1mdWxmaWxsbWVudCIsIndvcmtmbG93LTIwMjYxMDIxMjAyMzIwODMwMTcxMDAwMDAwIl19",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "cursor": "eyJrIjoid2Yta2V5IiwidiI6WyJvcmRlci1mdWxmaWxsbWVudCIsIndvcmtmbG93LTIwMjYxMDIxMjAyMzIwODMwMTcxMDAwMDAwIl19"
+    },
+    "kiroku/capabilities.json": {
+      "surface": "kiroku",
+      "slug": "capabilities",
+      "variant": "default",
+      "method": "GET",
+      "template": "/capabilities",
+      "query": {},
+      "params": {},
+      "request": "/capabilities",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "kiroku/categories.json": {
+      "surface": "kiroku",
+      "slug": "categories",
+      "variant": "default",
+      "method": "GET",
+      "template": "/categories",
+      "query": {
+        "limit": "100"
+      },
+      "params": {},
+      "request": "/categories?limit=100",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "kiroku/category-events.json": {
+      "surface": "kiroku",
+      "slug": "category-events",
+      "variant": "default",
+      "method": "GET",
+      "template": "/categories/{category}/events",
+      "query": {
+        "from": "0",
+        "limit": "100"
+      },
+      "params": {
+        "category": "order"
+      },
+      "request": "/categories/order/events?from=0&limit=100",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "kiroku/event-causation-unresolved.json": {
+      "surface": "kiroku",
+      "slug": "event-causation-unresolved",
+      "variant": "default",
+      "method": "GET",
+      "template": "/events/{event_causation_unresolved}",
+      "query": {},
+      "params": {
+        "event_causation_unresolved": "6e8e9bb5-3c00-5f95-8b6c-a7f9dfbcbe92"
+      },
+      "request": "/events/6e8e9bb5-3c00-5f95-8b6c-a7f9dfbcbe92",
+      "status": 200,
+      "contentType": "application/json",
+      "derived": true,
+      "derived_from": "recorded GET /events/6e8e9bb5-3c00-5f95-8b6c-a7f9dfbcbe92 with causationId set to 00000000-0000-4000-8000-00000000dead"
+    },
+    "kiroku/event-cause.json": {
+      "surface": "kiroku",
+      "slug": "event-cause",
+      "variant": "default",
+      "method": "GET",
+      "template": "/events/{event_cause}",
+      "query": {},
+      "params": {
+        "event_cause": "01a16021-f586-765a-a938-f5c753d2af5a"
+      },
+      "request": "/events/01a16021-f586-765a-a938-f5c753d2af5a",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "kiroku/event-with-causation.json": {
+      "surface": "kiroku",
+      "slug": "event-with-causation",
+      "variant": "default",
+      "method": "GET",
+      "template": "/events/{event_with_causation}",
+      "query": {},
+      "params": {
+        "event_with_causation": "01a16021-f590-706d-a7d6-5082cdf1ddd6"
+      },
+      "request": "/events/01a16021-f590-706d-a7d6-5082cdf1ddd6",
+      "status": 200,
+      "contentType": "application/json",
+      "derived": true,
+      "derived_from": "recorded GET /events/01a16021-f590-706d-a7d6-5082cdf1ddd6 with causationId set to 01a16021-f586-765a-a938-f5c753d2af5a"
+    },
+    "kiroku/event.error.json": {
+      "surface": "kiroku",
+      "slug": "event",
+      "variant": "error",
+      "method": "GET",
+      "template": "/events/{id}",
+      "query": {},
+      "params": {
+        "id": "00000000-0000-0000-0000-000000000000"
+      },
+      "request": "/events/00000000-0000-0000-0000-000000000000",
+      "status": 404,
+      "contentType": "application/json"
+    },
+    "kiroku/events-backward.json": {
+      "surface": "kiroku",
+      "slug": "events-backward",
+      "variant": "default",
+      "method": "GET",
+      "template": "/events",
+      "query": {
+        "from": "0",
+        "limit": "10",
+        "direction": "backward"
+      },
+      "params": {},
+      "request": "/events?from=0&limit=10&direction=backward",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "kiroku/events-forward.error.json": {
+      "surface": "kiroku",
+      "slug": "events-forward",
+      "variant": "error",
+      "method": "GET",
+      "template": "/events",
+      "query": {
+        "limit": "abc"
+      },
+      "params": {},
+      "request": "/events?limit=abc",
+      "status": 400,
+      "contentType": "application/json"
+    },
+    "kiroku/events-forward.json": {
+      "surface": "kiroku",
+      "slug": "events-forward",
+      "variant": "default",
+      "method": "GET",
+      "template": "/events",
+      "query": {
+        "from": "0",
+        "limit": "10"
+      },
+      "params": {},
+      "request": "/events?from=0&limit=10",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "kiroku/events-forward.page2.json": {
+      "surface": "kiroku",
+      "slug": "events-forward",
+      "variant": "page2",
+      "method": "GET",
+      "template": "/events",
+      "query": {
+        "from": "10",
+        "limit": "10"
+      },
+      "params": {},
+      "request": "/events?from=10&limit=10",
+      "status": 200,
+      "contentType": "application/json",
+      "cursor": "10"
+    },
+    "kiroku/health-live.json": {
+      "surface": "kiroku",
+      "slug": "health-live",
+      "variant": "default",
+      "method": "GET",
+      "template": "/health/live",
+      "query": {},
+      "params": {},
+      "request": "/health/live",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "kiroku/health-ready.json": {
+      "surface": "kiroku",
+      "slug": "health-ready",
+      "variant": "default",
+      "method": "GET",
+      "template": "/health/ready",
+      "query": {},
+      "params": {},
+      "request": "/health/ready",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "kiroku/health.json": {
+      "surface": "kiroku",
+      "slug": "health",
+      "variant": "default",
+      "method": "GET",
+      "template": "/health",
+      "query": {},
+      "params": {},
+      "request": "/health",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "kiroku/metrics-subscription.error.json": {
+      "surface": "kiroku",
+      "slug": "metrics-subscription",
+      "variant": "error",
+      "method": "GET",
+      "template": "/metrics/{subscription}",
+      "query": {},
+      "params": {
+        "subscription": "does-not-exist"
+      },
+      "request": "/metrics/does-not-exist",
+      "status": 404,
+      "contentType": "application/json"
+    },
+    "kiroku/metrics.json": {
+      "surface": "kiroku",
+      "slug": "metrics",
+      "variant": "default",
+      "method": "GET",
+      "template": "/metrics",
+      "query": {},
+      "params": {},
+      "request": "/metrics",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "kiroku/stream-events-backward.json": {
+      "surface": "kiroku",
+      "slug": "stream-events-backward",
+      "variant": "default",
+      "method": "GET",
+      "template": "/streams/{stream}/events",
+      "query": {
+        "from": "0",
+        "limit": "100",
+        "direction": "backward"
+      },
+      "params": {
+        "stream": "order-demo-20261021202320671316000000"
+      },
+      "request": "/streams/order-demo-20261021202320671316000000/events?from=0&limit=100&direction=backward",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "kiroku/stream-events-forward.json": {
+      "surface": "kiroku",
+      "slug": "stream-events-forward",
+      "variant": "default",
+      "method": "GET",
+      "template": "/streams/{stream}/events",
+      "query": {
+        "from": "0",
+        "limit": "100"
+      },
+      "params": {
+        "stream": "order-demo-20261021202320671316000000"
+      },
+      "request": "/streams/order-demo-20261021202320671316000000/events?from=0&limit=100",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "kiroku/stream.error.json": {
+      "surface": "kiroku",
+      "slug": "stream",
+      "variant": "error",
+      "method": "GET",
+      "template": "/streams/{stream}",
+      "query": {},
+      "params": {
+        "stream": "does-not-exist"
+      },
+      "request": "/streams/does-not-exist",
+      "status": 404,
+      "contentType": "application/json"
+    },
+    "kiroku/stream.json": {
+      "surface": "kiroku",
+      "slug": "stream",
+      "variant": "default",
+      "method": "GET",
+      "template": "/streams/{stream}",
+      "query": {},
+      "params": {
+        "stream": "order-demo-20261021202320671316000000"
+      },
+      "request": "/streams/order-demo-20261021202320671316000000",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "kiroku/streams-by-category.json": {
+      "surface": "kiroku",
+      "slug": "streams-by-category",
+      "variant": "default",
+      "method": "GET",
+      "template": "/streams",
+      "query": {
+        "category": "order",
+        "limit": "100"
+      },
+      "params": {},
+      "request": "/streams?category=order&limit=100",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "kiroku/streams.json": {
+      "surface": "kiroku",
+      "slug": "streams",
+      "variant": "default",
+      "method": "GET",
+      "template": "/streams",
+      "query": {
+        "limit": "10"
+      },
+      "params": {},
+      "request": "/streams?limit=10",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "kiroku/streams.page2.json": {
+      "surface": "kiroku",
+      "slug": "streams",
+      "variant": "page2",
+      "method": "GET",
+      "template": "/streams",
+      "query": {
+        "limit": "10",
+        "from": "page-inc-esc-20261021202320789409000000-bob"
+      },
+      "params": {},
+      "request": "/streams?limit=10&from=page-inc-esc-20261021202320789409000000-bob",
+      "status": 200,
+      "contentType": "application/json",
+      "cursor": "page-inc-esc-20261021202320789409000000-bob"
+    },
+    "kiroku/subscription-checkpoints.json": {
+      "surface": "kiroku",
+      "slug": "subscription-checkpoints",
+      "variant": "default",
+      "method": "GET",
+      "template": "/subscription-checkpoints",
+      "query": {},
+      "params": {},
+      "request": "/subscription-checkpoints",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "kiroku/subscriptions-live.json": {
+      "surface": "kiroku",
+      "slug": "subscriptions-live",
+      "variant": "default",
+      "method": "GET",
+      "template": "/subscriptions",
+      "query": {},
+      "params": {},
+      "request": "/subscriptions",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "pgmq/archived-message.json": {
+      "surface": "pgmq",
+      "slug": "archived-message",
+      "variant": "default",
+      "method": "GET",
+      "template": "/queues/{queue}/archive/{archived_msg_id}",
+      "query": {},
+      "params": {
+        "queue": "console_demo",
+        "archived_msg_id": "3"
+      },
+      "request": "/queues/console_demo/archive/3",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "pgmq/bindings.json": {
+      "surface": "pgmq",
+      "slug": "bindings",
+      "variant": "default",
+      "method": "GET",
+      "template": "/bindings",
+      "query": {},
+      "params": {},
+      "request": "/bindings",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "pgmq/dlq-message.json": {
+      "surface": "pgmq",
+      "slug": "dlq-message",
+      "variant": "default",
+      "method": "GET",
+      "template": "/queues/{dlq_queue}/messages/{dlq_msg_id}",
+      "query": {},
+      "params": {
+        "dlq_queue": "console_demo_dlq",
+        "dlq_msg_id": "1"
+      },
+      "request": "/queues/console_demo_dlq/messages/1",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "pgmq/dlq-messages.json": {
+      "surface": "pgmq",
+      "slug": "dlq-messages",
+      "variant": "default",
+      "method": "GET",
+      "template": "/queues/{dlq_queue}/messages",
+      "query": {
+        "limit": "50"
+      },
+      "params": {
+        "dlq_queue": "console_demo_dlq"
+      },
+      "request": "/queues/console_demo_dlq/messages?limit=50",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "pgmq/health-live.json": {
+      "surface": "pgmq",
+      "slug": "health-live",
+      "variant": "default",
+      "method": "GET",
+      "template": "/health/live",
+      "query": {},
+      "params": {},
+      "request": "/health/live",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "pgmq/health-ready.json": {
+      "surface": "pgmq",
+      "slug": "health-ready",
+      "variant": "default",
+      "method": "GET",
+      "template": "/health/ready",
+      "query": {},
+      "params": {},
+      "request": "/health/ready",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "pgmq/metrics.json": {
+      "surface": "pgmq",
+      "slug": "metrics",
+      "variant": "default",
+      "method": "GET",
+      "template": "/metrics",
+      "query": {},
+      "params": {},
+      "request": "/metrics",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "pgmq/notify-throttles.json": {
+      "surface": "pgmq",
+      "slug": "notify-throttles",
+      "variant": "default",
+      "method": "GET",
+      "template": "/notify/throttles",
+      "query": {},
+      "params": {},
+      "request": "/notify/throttles",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "pgmq/openapi.json": {
+      "surface": "pgmq",
+      "slug": "openapi",
+      "variant": "default",
+      "method": "GET",
+      "template": "/openapi.json",
+      "query": {},
+      "params": {},
+      "request": "/openapi.json",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "pgmq/queue-archive.json": {
+      "surface": "pgmq",
+      "slug": "queue-archive",
+      "variant": "default",
+      "method": "GET",
+      "template": "/queues/{queue}/archive",
+      "query": {
+        "limit": "50"
+      },
+      "params": {
+        "queue": "console_demo"
+      },
+      "request": "/queues/console_demo/archive?limit=50",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "pgmq/queue-bindings.json": {
+      "surface": "pgmq",
+      "slug": "queue-bindings",
+      "variant": "default",
+      "method": "GET",
+      "template": "/queues/{queue}/bindings",
+      "query": {},
+      "params": {
+        "queue": "console_demo"
+      },
+      "request": "/queues/console_demo/bindings",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "pgmq/queue-message-big-id.json": {
+      "surface": "pgmq",
+      "slug": "queue-message-big-id",
+      "variant": "default",
+      "method": "GET",
+      "template": "/queues/{queue}/messages/{msg_id}",
+      "query": {},
+      "params": {
+        "queue": "console_demo",
+        "msg_id": "9007199254740994"
+      },
+      "request": "/queues/console_demo/messages/9007199254740994",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "pgmq/queue-message.error.json": {
+      "surface": "pgmq",
+      "slug": "queue-message",
+      "variant": "error",
+      "method": "GET",
+      "template": "/queues/{queue}/messages/{msg_id}",
+      "query": {},
+      "params": {
+        "queue": "console_demo",
+        "msg_id": "abc"
+      },
+      "request": "/queues/console_demo/messages/abc",
+      "status": 400,
+      "contentType": "application/json"
+    },
+    "pgmq/queue-message.json": {
+      "surface": "pgmq",
+      "slug": "queue-message",
+      "variant": "default",
+      "method": "GET",
+      "template": "/queues/{queue}/messages/{msg_id}",
+      "query": {},
+      "params": {
+        "queue": "console_demo",
+        "msg_id": "1"
+      },
+      "request": "/queues/console_demo/messages/1",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "pgmq/queue-messages.error.json": {
+      "surface": "pgmq",
+      "slug": "queue-messages",
+      "variant": "error",
+      "method": "GET",
+      "template": "/queues/{queue}/messages",
+      "query": {
+        "limit": "0"
+      },
+      "params": {
+        "queue": "console_demo"
+      },
+      "request": "/queues/console_demo/messages?limit=0",
+      "status": 400,
+      "contentType": "application/json"
+    },
+    "pgmq/queue-messages.json": {
+      "surface": "pgmq",
+      "slug": "queue-messages",
+      "variant": "default",
+      "method": "GET",
+      "template": "/queues/{queue}/messages",
+      "query": {
+        "limit": "2"
+      },
+      "params": {
+        "queue": "console_demo"
+      },
+      "request": "/queues/console_demo/messages?limit=2",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "pgmq/queue-messages.page2.json": {
+      "surface": "pgmq",
+      "slug": "queue-messages",
+      "variant": "page2",
+      "method": "GET",
+      "template": "/queues/{queue}/messages",
+      "query": {
+        "limit": "2",
+        "from": "2"
+      },
+      "params": {
+        "queue": "console_demo"
+      },
+      "request": "/queues/console_demo/messages?limit=2&from=2",
+      "status": 200,
+      "contentType": "application/json",
+      "cursor": "2"
+    },
+    "pgmq/queue-metrics.json": {
+      "surface": "pgmq",
+      "slug": "queue-metrics",
+      "variant": "default",
+      "method": "GET",
+      "template": "/queues/{queue}/metrics",
+      "query": {},
+      "params": {
+        "queue": "console_demo"
+      },
+      "request": "/queues/console_demo/metrics",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "pgmq/queue.error.json": {
+      "surface": "pgmq",
+      "slug": "queue",
+      "variant": "error",
+      "method": "GET",
+      "template": "/queues/{queue}",
+      "query": {},
+      "params": {
+        "queue": "nope"
+      },
+      "request": "/queues/nope",
+      "status": 404,
+      "contentType": "application/json"
+    },
+    "pgmq/queue.json": {
+      "surface": "pgmq",
+      "slug": "queue",
+      "variant": "default",
+      "method": "GET",
+      "template": "/queues/{queue}",
+      "query": {},
+      "params": {
+        "queue": "console_demo"
+      },
+      "request": "/queues/console_demo",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "pgmq/queues.json": {
+      "surface": "pgmq",
+      "slug": "queues",
+      "variant": "default",
+      "method": "GET",
+      "template": "/queues",
+      "query": {},
+      "params": {},
+      "request": "/queues",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "pgmq/routing-test.json": {
+      "surface": "pgmq",
+      "slug": "routing-test",
+      "variant": "default",
+      "method": "GET",
+      "template": "/routing/test",
+      "query": {
+        "routing_key": "console.demo"
+      },
+      "params": {},
+      "request": "/routing/test?routing_key=console.demo",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "pgmq/service.json": {
+      "surface": "pgmq",
+      "slug": "service",
+      "variant": "default",
+      "method": "GET",
+      "template": "/",
+      "query": {},
+      "params": {},
+      "request": "/",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "shibuya/control-pause.error.json": {
+      "surface": "shibuya",
+      "slug": "control-pause",
+      "variant": "error",
+      "method": "POST",
+      "template": "/control/processors/{processor}/pause",
+      "query": {},
+      "params": {
+        "processor": "notifications"
+      },
+      "request": "/control/processors/notifications/pause",
+      "status": 404,
+      "contentType": "application/json"
+    },
+    "shibuya/control.json": {
+      "surface": "shibuya",
+      "slug": "control",
+      "variant": "default",
+      "method": "GET",
+      "template": "/control",
+      "query": {},
+      "params": {},
+      "request": "/control",
+      "status": 404,
+      "contentType": "application/json"
+    },
+    "shibuya/health-live.json": {
+      "surface": "shibuya",
+      "slug": "health-live",
+      "variant": "default",
+      "method": "GET",
+      "template": "/health/live",
+      "query": {},
+      "params": {},
+      "request": "/health/live",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "shibuya/health-ready.json": {
+      "surface": "shibuya",
+      "slug": "health-ready",
+      "variant": "default",
+      "method": "GET",
+      "template": "/health/ready",
+      "query": {},
+      "params": {},
+      "request": "/health/ready",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "shibuya/health.json": {
+      "surface": "shibuya",
+      "slug": "health",
+      "variant": "default",
+      "method": "GET",
+      "template": "/health",
+      "query": {},
+      "params": {},
+      "request": "/health",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "shibuya/metrics.json": {
+      "surface": "shibuya",
+      "slug": "metrics",
+      "variant": "default",
+      "method": "GET",
+      "template": "/metrics",
+      "query": {},
+      "params": {},
+      "request": "/metrics",
+      "status": 200,
+      "contentType": "application/json"
+    },
+    "shibuya/processor-metrics.error.json": {
+      "surface": "shibuya",
+      "slug": "processor-metrics",
+      "variant": "error",
+      "method": "GET",
+      "template": "/metrics/{processor}",
+      "query": {},
+      "params": {
+        "processor": "does-not-exist"
+      },
+      "request": "/metrics/does-not-exist",
+      "status": 404,
+      "contentType": "application/json"
+    },
+    "shibuya/processor-metrics.json": {
+      "surface": "shibuya",
+      "slug": "processor-metrics",
+      "variant": "default",
+      "method": "GET",
+      "template": "/metrics/{processor}",
+      "query": {},
+      "params": {
+        "processor": "notifications"
+      },
+      "request": "/metrics/notifications",
+      "status": 200,
+      "contentType": "application/json"
+    }
+  }
+}

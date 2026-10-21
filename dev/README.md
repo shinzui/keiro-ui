@@ -4,12 +4,12 @@ The console reads four inspection surfaces. This directory runs them locally aga
 databases on the fixed ports of
 [`docs/masterplans/2-build-the-keiro-runtime-console.md`](../docs/masterplans/2-build-the-keiro-runtime-console.md):
 
-| Surface | Process                   | Port | Database                                   |
-| ------- | ------------------------- | ---- | ------------------------------------------ |
-| shibuya | `shibuya-pgmq-consumer`   | 9090 | `pgmq_dev` (pgmq-hs's dev cluster)         |
-| kiroku  | `kiroku-inspect`          | 9091 | `jitsurei` (keiro's dev cluster)           |
-| pgmq    | `pgmq-inspect`            | 9095 | `pgmq_dev`                                 |
-| keiro   | `keiro-ops-http`          | 9093 | `jitsurei`                                 |
+| Surface | Process                 | Port | Database                           |
+| ------- | ----------------------- | ---- | ---------------------------------- |
+| shibuya | `shibuya-pgmq-consumer` | 9090 | `pgmq_dev` (pgmq-hs's dev cluster) |
+| kiroku  | `kiroku-inspect`        | 9091 | `jitsurei` (keiro's dev cluster)   |
+| pgmq    | `pgmq-inspect`          | 9095 | `pgmq_dev`                         |
+| keiro   | `keiro-ops-http`        | 9093 | `jitsurei`                         |
 
 pgmq uses 9095 rather than its upstream default 9092 (a local Kafka-compatible container
 holds 9092 on the machine this was set up on).
@@ -17,7 +17,7 @@ holds 9092 on the machine this was set up on).
 ## First run
 
 Run everything from the repository root inside the dev shell (`nix develop`, which provides
-`process-compose`); each owning repository's recipes run inside *its own* dev shell, which
+`process-compose`); each owning repository's recipes run inside _its own_ dev shell, which
 provides its PostgreSQL 18 and cabal.
 
 ```bash

@@ -1,0 +1,1 @@
+{"error":{"code":"invalid_request","details":{"arguments":["outbox","list","--limit=100"]},"message":"Missing: --source SOURCE\n\nUsage: keiro-ops outbox list --source SOURCE [--status STATUS] \n                             [--destination DESTINATION] [--limit N]\n\n  List outbox rows for a source"}}

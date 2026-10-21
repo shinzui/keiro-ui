@@ -1,0 +1,1 @@
+[{"pattern":"console.notify.#","queue_name":"console_notify","bound_at":"2026-10-21T20:23:34.863679Z","compiled_regex":"^console\\.notify\\..*$"},{"pattern":"console.*","queue_name":"console_demo","bound_at":"2026-10-21T20:23:34.86335Z","compiled_regex":"^console\\.[^.]+$"}]

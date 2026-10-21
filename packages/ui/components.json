@@ -1,0 +1,20 @@
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "aria-nova",
+  "rsc": false,
+  "tsx": true,
+  "tailwind": {
+    "config": "",
+    "css": "src/styles/globals.css",
+    "baseColor": "neutral",
+    "cssVariables": true
+  },
+  "iconLibrary": "lucide",
+  "aliases": {
+    "components": "@keiro-ui/ui/components",
+    "utils": "@keiro-ui/ui/lib/utils",
+    "hooks": "@keiro-ui/ui/hooks",
+    "lib": "@keiro-ui/ui/lib",
+    "ui": "@keiro-ui/ui/components"
+  }
+}

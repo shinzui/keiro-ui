@@ -25,6 +25,11 @@ provenance:
       at: 2026-10-21T20:30:00Z
       mode: "update"
       note: "kiroku mock review: testing API gains useScenario recorded, feedScript append options, pins, kirokuLog, and a /ws/metrics script; cascaded to EP-9, EP-11, EP-13"
+    - model: "claude-opus-5-5"
+      harness: "claude-code"
+      at: 2026-10-21T19:24:29Z
+      mode: "implement"
+      note: "Coordinating child plan implementation in dependency order, starting with EP-7"
   reviews:
     - model: "claude-fable-5-1"
       harness: "claude-code"
@@ -316,7 +321,7 @@ repository.
 
 | # | Title | Path | Hard Deps | Soft Deps | Status |
 |---|-------|------|-----------|-----------|--------|
-| 7 | Scaffold the console workspace and design system | docs/plans/7-scaffold-the-console-workspace-and-design-system.md | None | None | Not Started |
+| 7 | Scaffold the console workspace and design system | docs/plans/7-scaffold-the-console-workspace-and-design-system.md | None | None | In Progress |
 | 8 | Build the console app shell, navigation, and command palette | docs/plans/8-build-the-console-app-shell-navigation-and-command-palette.md | EP-7 | EP-10 | Not Started |
 | 9 | Provision the local runtime stack and recorded fixtures | docs/plans/9-provision-the-local-runtime-stack-and-recorded-fixtures.md | None | EP-7 | Not Started |
 | 10 | Implement the client core for HTTP, cursors, int64, WebSocket, and live queries | docs/plans/10-implement-the-client-core-for-http-cursors-int64-websocket-and-live-queries.md | EP-7 | EP-9 | Not Started |

@@ -1,0 +1,4 @@
+# Paper Mono v1.000 from https://github.com/paper-design/paper-mono (tag v1.000, raw paths fonts/webfonts/PaperMono[wght].woff2 and OFL.txt)
+# verify: shasum -a 256 -c CHECKSUMS.txt
+34bf2cb064a77b2b966063b17887e50d71f9fb61481af67444eaf91561cf6327  PaperMono[wght].woff2
+ae8bcaf5a046be7e096b5710a8532cdaa5a299462e182752b805dcfa44370e4c  OFL.txt

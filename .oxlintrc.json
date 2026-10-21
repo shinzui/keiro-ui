@@ -11,6 +11,26 @@
     "es2024": true,
     "node": true
   },
+  "rules": {
+    "react/react-in-jsx-scope": "off",
+    "import/no-unassigned-import": [
+      "warn",
+      {
+        "allow": ["**/*.css", "@testing-library/jest-dom/vitest"]
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["packages/ui/src/components/**", "packages/ui/src/hooks/**"],
+      "rules": {
+        "eslint/no-shadow": "off",
+        "react/jsx-no-constructed-context-values": "off",
+        "react/no-array-index-key": "off",
+        "react/set-state-in-effect": "off"
+      }
+    }
+  ],
   "ignorePatterns": [
     "node_modules",
     "dist",

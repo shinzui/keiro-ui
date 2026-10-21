@@ -21,6 +21,11 @@ provenance:
       at: 2026-10-21T18:42:29Z
       mode: "update"
       note: "Round 2: align to owning-plan spellings, correct audited upstream facts, e2e layout, light theme where applicable"
+    - model: "claude-opus-5-5"
+      harness: "claude-code"
+      at: 2026-10-21T22:27:50Z
+      mode: "implement"
+      note: "M1-M4: base path build, release pack, deployment docs and Caddyfile, production smoke, v0.1.0"
   reviews:
     - model: "claude-fable-5-1"
       harness: "claude-code"
@@ -67,28 +72,39 @@ and at least one WebSocket connection (for example `/keiro/ws`) is upgraded with
 
 ## Progress
 
-- [ ] M1 — Base-path-aware production build: `VITE_BASE_PATH=/console/ bun run build` emits
-  hashed assets under `dist/assets/`, every asset URL in `dist/index.html` starts with
-  `/console/`, the router resolves deep links under `/console/` on a hard reload via
-  `bun run preview`, and the bottom bar's version slot shows the real version and commit.
-- [ ] M2 — Release packaging: `bun run release:pack` writes
-  `release/keiro-ui-console-<version>.tar.gz` containing the bundle, `VERSION`,
-  `NOTICE.md`, the Paper Mono `OFL.txt`, and the two proxy examples; the optional Nix
-  output `packages.<system>.console` builds the same bundle or is recorded as deferred with
-  the reason.
-- [ ] M3 — Deployment documentation and the development Caddyfile: `docs/deployment.md`
-  carries recipes A, B and C plus the authentication posture; `dev/caddy/Caddyfile` serves
-  `dist/` at `/console/` and proxies the four prefixes including WebSocket upgrades; the
-  MasterPlan's early producer/consumer check (4) passes against the EP-9 stack.
-- [ ] M4 — Production smoke and the read-only release: `bun run test:e2e:production` passes
-  (tier 1 always, tier 2 against the live stack), `release/CHECKLIST.md` is executed, tag
-  `v0.1.0` exists, `CHANGELOG.md` has the `0.1.0` entry, and the MasterPlan's "Read-only
-  release gate" checkbox is checked with evidence.
+- [x] M1 (2026-10-21): `VITE_BASE_PATH=/console/ bun run build` → `check-dist: 1 html, 94
+  hashed assets, all under /console/ — OK`; under `vite preview` (which now proxies the
+  surfaces like `vite dev`) a reload of `/console/workflows` rendered 9 live rows and the bottom
+  bar read `v0.1.0 · 9c205b2`; `src/settings/base-path.test.tsx` pins `/kiroku` under a
+  `/console/` base.
+- [x] M2 (2026-10-21): `bun run release:pack` → `release/keiro-ui-console-0.1.0.tar.gz` with
+  `index.html`, hashed assets, `VERSION`, `NOTICE.md`, `OFL.txt`, and
+  `deployment/{Caddyfile,nginx.conf}.example`; two packs list identical files. The Nix
+  package is deferred (see Decision Log).
+- [x] M3 (2026-10-21): `docs/deployment.md` (posture, recipes A, B, C with each server's CORS
+  setting, keiro's read budget, troubleshooting) and `dev/caddy/Caddyfile`. Early check (4) on
+  the jitsurei stack through Caddy at `http://localhost:8088/console/`: the Overview populated
+  from all four surfaces, 60 requests all `GET` (no `OPTIONS`), and `/keiro/ws` open (the
+  Projections caption reads "live").
+- [x] M4 (2026-10-21): `CONSOLE_PORT=8088 bun run test:e2e:production` → 9 passed (5 tier 1,
+  4 tier 2 executed); `release/CHECKLIST.md` executed; `CHANGELOG.md` 0.1.0; tag `v0.1.0`.
 
 
 ## Surprises & Discoveries
 
-(None yet.)
+- Port 8080 is held by another local container on this machine, so `dev/caddy/Caddyfile` takes
+  its listen port from `CONSOLE_PORT` (default 8080) and its bundle directory from
+  `CONSOLE_DIST`; the production smoke reads the same variable. The evidence above used 8088.
+- `vite preview` did not proxy the surfaces, so a preview build could not reach the stack; the
+  proxy table is now shared by `server.proxy` and `preview.proxy`.
+- The bundle's `public/mockServiceWorker.js` (the mock mode's worker) is emitted into `dist/`;
+  it is never registered in production and the release pack drops it.
+- The production smoke first served a stale build: the `smoke` project rebuilds `dist` for
+  `/`, and a reused Caddy server then served that at `/console/`. The production config now
+  builds into its own `apps/console/dist-production` inside its web-server command (Playwright
+  starts the web server before any global setup) and serves that directory.
+- The bottom bar's `<footer>` sits inside the shell layout, not at the page's top level, so it
+  is not a `contentinfo` landmark; the smoke locates it as `footer`.
 
 
 ## Decision Log
@@ -121,10 +137,24 @@ and at least one WebSocket connection (for example `/keiro/ws`) is upgraded with
   but the release must be proven against real surfaces.
   Date: 2026-10-21
 
+- Decision: The optional Nix package (`packages.<system>.console`) is deferred: it was not
+  attempted in this pass. The tarball is the required artifact; a fixed-output derivation over
+  `bun install --frozen-lockfile` or `bun2nix` remains the path when a Nix-built bundle is
+  wanted.
+  Date: 2026-10-21
+
 
 ## Outcomes & Retrospective
 
-(To be filled during and after implementation.)
+Complete (2026-10-21). The console builds for any base path, packs into a versioned tarball
+with its licence notices and proxy examples, and is documented for one origin behind a proxy,
+a composing host, or separate origins. The production smoke proves a `/console/` deployment
+through Caddy against the live stack, with no preflights and a live WebSocket. The read-only
+release `v0.1.0` is tagged.
+
+The deployment decision is recorded as
+[ADR-9](../adr/0009-a-static-bundle-in-front-of-surfaces-at-composed-prefixes.md). Not done:
+the Nix package (deferred above) and publishing the tarball anywhere (out of scope).
 
 
 ## Context and Orientation

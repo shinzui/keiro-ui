@@ -16,3 +16,4 @@ okf_version: "0.2"
 - [ADR-6 (superseded by ADR-8): A design-system adapter defers the component-library choice](0006-design-system-adapter-defers-the-component-library-choice.md)
 - [ADR-7: Read-only first, with owning-repository gates](0007-read-only-first-with-owning-repository-gates.md)
 - [ADR-8: shadcn/ui on the React Aria base is the console component library](0008-shadcn-ui-on-the-react-aria-base-is-the-console-component-library.md)
+- [ADR-9: A static bundle in front of surfaces at their composed prefixes](0009-a-static-bundle-in-front-of-surfaces-at-composed-prefixes.md)

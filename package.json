@@ -17,6 +17,8 @@
     "check": "bun run typecheck && bun run lint && bun run format:check",
     "test": "vitest run",
     "test:e2e": "bun run --filter @keiro-ui/console test:e2e",
+    "test:e2e:production": "bun run --filter @keiro-ui/console test:e2e:production",
+    "release:pack": "sh scripts/release-pack.sh",
     "fixtures:record": "bun run --filter @keiro-ui/testing record"
   },
   "devDependencies": {

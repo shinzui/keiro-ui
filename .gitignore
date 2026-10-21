@@ -5,6 +5,7 @@ CLAUDE.local.md
 .codex/
 node_modules
 dist
+dist-production
 .vite
 .tanstack/
 test-results/
@@ -20,3 +21,7 @@ result-*
 dev/.env
 dev/bin/
 .dev/
+
+# Release artifacts (scripts/release-pack.sh); the checklist is tracked.
+release/*
+!release/CHECKLIST.md

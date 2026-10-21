@@ -91,3 +91,15 @@ stack-down:
 # Probe every surface over HTTP and attempt every WebSocket upgrade
 stack-check profile="jitsurei":
     bash dev/check.sh {{profile}}
+
+# Build the console for a base path (default /).
+build-console base="/":
+    VITE_BASE_PATH={{base}} bun run build
+
+# Pack the release tarball into release/ (VITE_BASE_PATH selects the base path).
+release-pack:
+    bun run release:pack
+
+# The production smoke: build for /console/, serve with dev/caddy/Caddyfile, run both tiers.
+smoke-production port="8080":
+    CONSOLE_PORT={{port}} bun run test:e2e:production

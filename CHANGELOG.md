@@ -1,0 +1,28 @@
+# Changelog
+
+## 0.1.0 — 2026-10-21
+
+The first release of the keiro runtime console. It is read-only: no screen writes to any
+server (ADR-7), and every gated operation the surfaces expose is shown as a server fact, never
+as a control.
+
+- **Overview**: one card per concern (queue latency, workflow status counts, projection
+  freshness as global position distance, processor readiness, the store position, aggregates,
+  timers), the four surfaces' health, and keiro's health with its mutation gate.
+- **Streams & Subscriptions**: streams, categories, the `$all` log with a live tail, event
+  pages, and subscriptions with checkpoints and dead letters (kiroku).
+- **Queues & Processors**: queues by oldest message age, peek-only message and archive paging,
+  dead-letter panels for shibuya-pgmq-adapter payloads, and processors with live state,
+  latency histograms, and control status (pgmq, shibuya).
+- **Workflows**: instances with URL-held filters and a live first page, and instance pages
+  with a step-grouped journal, derived spans, steps, children, and awakeables (keiro).
+- **Aggregates, Process managers, Timers**: the aggregate browser (events beside folded state,
+  hydration, snapshot health), process-manager instances with provenance, and the live timer
+  ledger with a stuck view; an honest state on hosts without keiro's inspection hooks.
+- **Projections & Shards**: projection groups with exact global position distance, rebuild
+  progress, and failures, live; feeding-subscription checkpoints; shard bucket ownership.
+- **Shell**: rail and sidebar, command palette with entity jumps, right-sheet inspectors
+  addressable by URL, recents, connection profiles, liveness pause, light and dark themes.
+- **Deployment**: a static bundle built for any base path, `bun run release:pack`,
+  `docs/deployment.md` (one origin behind a proxy, a composing host, or separate origins), and
+  a production smoke test.

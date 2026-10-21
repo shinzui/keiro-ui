@@ -1,6 +1,7 @@
 # Bundle Update Log
 
 ## 2026-10-21
+* **Addition**: Add ADR-9: a static bundle in front of surfaces at their composed prefixes
 * **Update**: Mark ADR-6 superseded by ADR-8
 * **Addition**: Add ADR-8: shadcn/ui on the React Aria base is the console component library
 

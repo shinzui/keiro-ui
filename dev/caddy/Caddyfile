@@ -1,0 +1,27 @@
+# Recipe A of docs/deployment.md on a development machine: the console bundle at /console/ and
+# the four inspection surfaces of the local stack (dev/README.md) on one origin.
+#   VITE_BASE_PATH=/console/ bun run build
+#   caddy run --config dev/caddy/Caddyfile --adapter caddyfile      # from the repository root
+# CONSOLE_PORT overrides the listen port (8080 by default); CONSOLE_DIST the bundle directory.
+:{$CONSOLE_PORT:8080} {
+	redir /console /console/ 301
+
+	handle_path /console/* {
+		root * {$CONSOLE_DIST:apps/console/dist}
+		try_files {path} /index.html
+		file_server
+	}
+
+	handle_path /kiroku/* {
+		reverse_proxy 127.0.0.1:9091
+	}
+	handle_path /shibuya/* {
+		reverse_proxy 127.0.0.1:9090
+	}
+	handle_path /pgmq/* {
+		reverse_proxy 127.0.0.1:9095
+	}
+	handle_path /keiro/* {
+		reverse_proxy 127.0.0.1:9093
+	}
+}

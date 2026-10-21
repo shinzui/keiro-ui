@@ -333,7 +333,7 @@ repository.
 | 15 | Build the Workflows screens | docs/plans/15-build-the-workflows-screens.md | EP-8, EP-12 | EP-9, EP-13 | Complete |
 | 16 | Build the Aggregates, Process Managers, and Timers screens | docs/plans/16-build-the-aggregates-process-managers-and-timers-screens.md | EP-8, EP-11, EP-12 | EP-9, EP-13 | Complete |
 | 17 | Build the Projections and Overview screens | docs/plans/17-build-the-projections-and-overview-screens.md | EP-8, EP-11, EP-12 | EP-13, EP-14, EP-15, EP-16 | Complete |
-| 18 | Package the console for deployment | docs/plans/18-package-the-console-for-deployment.md | EP-8 | EP-9, EP-17 | Not Started |
+| 18 | Package the console for deployment | docs/plans/18-package-the-console-for-deployment.md | EP-8 | EP-9, EP-17 | Complete |
 | 19 | Add gated operator actions | docs/plans/19-add-gated-operator-actions.md | EP-14, EP-16, EP-17, EP-18 | None | Not Started |
 
 Status values: Not Started, In Progress, Complete, Cancelled.
@@ -652,7 +652,8 @@ Phase 1 is Complete (EP-7, EP-8, EP-9, EP-10 on 2026-10-21), and early checks 1 
 through the dev proxy) and 2 (shell liveness drives a real poll) pass. Phase 2 is Complete (EP-11 and
 EP-12, 2026-10-21), and early check 3 (the workflows feed reconciles with the list on the
 live stack) passes. Phase 3 is Complete (EP-13 through EP-17, 2026-10-21) and the live-stack
-integration gate passed. Phase 4 (EP-18, packaging) is next, then the read-only release gate. Screen suites run in the Playwright `screens`
+integration gate passed. Phase 4 is Complete (EP-18, 2026-10-21): the console packs for any
+base path and passed its production smoke; the read-only release gate follows. Screen suites run in the Playwright `screens`
 project against the mock worker; component tests render the real route tree through
 `apps/console/src/test/render-route.tsx` (added by EP-14) against `startMockServer()`. The local stack has two profiles (`just stack-up`
 for jitsurei, `just stack-up mori` for a live mori daemon); fixtures come from jitsurei only.

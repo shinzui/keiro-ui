@@ -23,7 +23,7 @@ function gitCommit(): string {
 // The four inspection surfaces, reached under the prefixes keiro's composeSurfaces uses
 // (docs/masterplans/2-build-the-keiro-runtime-console.md, "Local ports and the
 // composed-prefix convention"). Application routes must never start with one of them.
-const surfaces = { shibuya: 9090, kiroku: 9091, pgmq: 9092, keiro: 9093 } as const
+const surfaces = { shibuya: 9090, kiroku: 9091, pgmq: 9095, keiro: 9093 } as const
 
 export default defineConfig({
   resolve: { tsconfigPaths: true },

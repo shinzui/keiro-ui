@@ -352,7 +352,7 @@ default, but an `update` is sent only when something other than age changes, so
 replay cursor: a reconnect starts from a fresh snapshot.
 
 **Local ports.** In development the surfaces run on fixed ports: shibuya-metrics 9090,
-kiroku-inspect 9091, pgmq-inspect 9092 (keiro-ops-http 9093 is plan 12's concern). The
+kiroku-inspect 9091, pgmq-inspect 9095 (keiro-ops-http 9093 is plan 12's concern). The
 console's Vite dev server proxies `/kiroku`, `/pgmq`, `/shibuya` to those ports with the
 prefix stripped; the Node test suites in this plan bypass the proxy and use
 `http://127.0.0.1:<port>` directly, which is why CORS never matters here.
@@ -489,7 +489,7 @@ Tests: `test/client.test.ts` as for kiroku, plus the int64 round-trip assertion 
 message with `msg_id` `9007199254740993` (2^53 + 1) decodes to `9007199254740993n` and
 `messages.get(queue, 9007199254740993n)` requests exactly
 `/queues/<q>/messages/9007199254740993`. `test/live.test.ts` (under `KEIRO_UI_LIVE=1`)
-hits `http://127.0.0.1:9092`, lists queues, pages the first queue's messages, and asserts
+hits `http://127.0.0.1:9095`, lists queues, pages the first queue's messages, and asserts
 that `fetch(baseUrl + "/queues", { method: "HEAD" })` returns 405 with code
 `method_not_allowed`, which documents that the surface is GET-only. `scripts/smoke.ts`
 prints the service descriptor and the first page of the first queue with ids rendered via

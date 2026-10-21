@@ -232,7 +232,7 @@ int64 and may exceed 2^53. WebSocket `/ws`: `subscribe {queue}`/`unsubscribe {qu
 → `snapshot {queue, metrics, push}`, `update {queue, metrics, source: poll|notify}`, `pong`,
 `error {code, message, queue|null}`, `goodbye`; metrics only, never messages; overflow sends
 `error.code = overflow`. CORS: `CorsDisabled` by default, explicit origins only. Local runner:
-`pgmq-inspect --port 9092 --cors-origin ...` with `PGMQ_INSPECT_DATABASE_URL`.
+`pgmq-inspect --port 9095 --cors-origin ...` with `PGMQ_INSPECT_DATABASE_URL`.
 
 **shibuya — `shibuya-metrics` 0.10.0.1 plus an Unreleased changelog (tree at `0967f45`).**
 Requests IR-3, IR-4, IR-5 are `completed`; the "pipeline stage graph" the direction document
@@ -311,7 +311,8 @@ off, but the WebSocket upgrade admits an `Origin` only when it is allow-listed o
 the request's own `scheme://Host`, so any proxy that rewrites `Host` (the Vite dev proxy
 does) needs `--allow-origin` for the console's origin. No OpenAPI. Local runners:
 `keiro-ops-http --database-url ... --port 9093 --allow-origin http://localhost:5173`
-(`--port` is mandatory because the executable's own default is 9092, pgmq's port) and the
+(`--port` is mandatory because the executable's own default is 9092, which is also
+pgmq-inspect's upstream default) and the
 `keiro-ops-http-compose-example` (behind the `compose-example` cabal flag), both without
 aggregate or process-manager hooks; sample data via `just jitsurei-all` in the keiro
 repository.
@@ -442,7 +443,7 @@ reverse proxy:
 surface   dev server                 dev port   prefix     WebSocket path(s)
 shibuya   shibuya-metrics            9090       /shibuya   /shibuya/ws
 kiroku    kiroku-inspect             9091       /kiroku    /kiroku/ws/metrics, /kiroku/ws/events
-pgmq      pgmq-inspect               9092       /pgmq      /pgmq/ws
+pgmq      pgmq-inspect               9095       /pgmq      /pgmq/ws
 keiro     keiro-ops-http             9093       /keiro     /keiro/ws
 console   vite dev server            5173       /          (application routes)
 (opt.)    keiro-ops-http --enable-mutations  9094   none   used only by EP-9 to record a mutation
@@ -749,8 +750,9 @@ Cross-plan gates with their own acceptance:
   the substitutions) and call the shadcn CLI as `bunx shadcn@4.21.5`, since `@latest` is
   blocked too. `msw` 3.0.3 (EP-9) is old enough.
 - EP-7 (2026-10-21): a `redpanda-0` container on this machine listens on 127.0.0.1:9092,
-  pgmq's fixed dev port; EP-9's `stack-up` must detect and report it rather than assume the
-  port is free.
+  the original pgmq dev port. Resolved during EP-9 by the user's directive to use a
+  different port: pgmq's dev port is now 9095 (Decision Log); EP-9's `stack-up` still
+  checks every port before starting.
 - EP-7 (2026-10-21): the React Aria Sheet composes as `<SheetTrigger>` wrapping its trigger
   and `<Sheet side>` content; the right-sheet host of EP-8 should drive it with
   `isOpen`/`onOpenChange` rather than a Radix-style controlled `open` prop.
@@ -822,7 +824,7 @@ Cross-plan gates with their own acceptance:
 
 - Decision: Development, composed deployment, and reverse-proxied deployment all expose the
   surfaces under the prefixes `/kiroku`, `/shibuya`, `/pgmq`, `/keiro` on the console's
-  origin; the dev ports are fixed at 9090/9091/9092/9093 and the Vite proxy strips the
+  origin; the dev ports are fixed at 9090/9091/9095/9093 and the Vite proxy strips the
   prefixes.
   Rationale: one "same origin" connection profile then works everywhere and CORS never
   enters development; the prefixes are the ones keiro's `composeSurfaces` already uses.
@@ -845,6 +847,15 @@ Cross-plan gates with their own acceptance:
   anything bulk are excluded from this initiative.
   Rationale: ADR-7; the excluded operations are replay-shaped or destructive and need the
   guardrail sequence and job-style progress the owning surfaces do not yet provide.
+  Date: 2026-10-21
+
+- Decision: pgmq-inspect's local dev port is 9095, not 9092; the Vite proxy maps `/pgmq` to
+  127.0.0.1:9095 and every child plan's port table says so. 9092 stays the upstream default
+  of both pgmq-inspect and keiro-ops-http, which is why every recipe passes `--port`
+  explicitly.
+  Rationale: user directive on 2026-10-21 ("can you use a different port?") when EP-9 found
+  9092 held by a local Kafka-compatible (redpanda) container; 9094 is already reserved for
+  the optional mutations-enabled keiro host, so 9095 is the next free port.
   Date: 2026-10-21
 
 - Decision: No intention is linked to this MasterPlan; commits carry `MasterPlan:` and

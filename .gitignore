@@ -17,3 +17,6 @@ result-*
 .env.local
 .pre-commit-config.yaml
 .DS_Store
+dev/.env
+dev/bin/
+.dev/

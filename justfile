@@ -48,3 +48,30 @@ test:
 # Run the Playwright end-to-end suites against a production build
 test-e2e:
     bun run test:e2e
+
+# --- Local runtime stack (dev/README.md) ---
+
+# Start keiro's and pgmq-hs's socket-only dev PostgreSQL clusters
+stack-db-up:
+    bash dev/db-up.sh
+
+# Seed jitsurei (keiro's demo scenarios) and the pgmq demo queues
+stack-seed: stack-db-up
+    bash dev/seed.sh
+
+# Build the inspection executables in their checkouts and link them into dev/bin
+stack-build target="all":
+    bash dev/build.sh {{target}}
+
+# Run all four surfaces under process-compose (foreground; Ctrl-C stops them)
+stack-up: stack-db-up
+    mkdir -p .dev
+    process-compose --unix-socket .dev/process-compose.sock up --tui=false -f dev/process-compose.yaml -e dev/.env
+
+# Stop a stack started by stack-up from another terminal
+stack-down:
+    process-compose --unix-socket .dev/process-compose.sock down || true
+
+# Probe every surface over HTTP and attempt every WebSocket upgrade
+stack-check:
+    bash dev/check.sh

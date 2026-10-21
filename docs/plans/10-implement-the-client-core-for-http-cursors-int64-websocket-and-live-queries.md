@@ -146,7 +146,7 @@ application), `packages/ui` (the component library), and an empty but wired
 a `tsconfig.json` extending the workspace base, and the root `vitest`, `oxlint`, and
 `oxfmt` configuration. The Vite development server (`bun run dev`, port 5173) proxies the path
 prefixes `/kiroku`, `/shibuya`, `/pgmq`, and `/keiro` to local servers on ports 9091, 9090,
-9092, and 9093 with the prefix stripped and WebSocket upgrades forwarded. Nothing in this
+9095, and 9093 with the prefix stripped and WebSocket upgrades forwarded. Nothing in this
 plan touches those files beyond adding dependencies to `packages/client-core/package.json`.
 
 **Terms.** A *surface* is one of the four inspection services; its name is one of
@@ -341,7 +341,7 @@ one sample per shape and assert `code`, `message`, and `details`.
 
 `src/http.ts` exports `createHttpClient(options)` where `options` is
 `{surface: Surface; baseUrl: string; fetch?: typeof fetch; headers?: Record<string, string>}`.
-`baseUrl` is either an absolute origin plus prefix (`http://localhost:9092`,
+`baseUrl` is either an absolute origin plus prefix (`http://localhost:9095`,
 `https://ops.example.com/pgmq`) or a root-relative prefix (`/pgmq`) resolved against
 `window.location.origin` when present and against `http://localhost:5173` otherwise (so node
 tests through the development proxy work). The returned `HttpClient` has `surface`,

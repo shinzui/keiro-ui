@@ -185,7 +185,7 @@ uses, and fixes the development ports:
 surface   dev server         dev port   prefix     WebSocket path(s)
 shibuya   shibuya-metrics    9090       /shibuya   /shibuya/ws
 kiroku    kiroku-inspect     9091       /kiroku    /kiroku/ws/metrics, /kiroku/ws/events
-pgmq      pgmq-inspect       9092       /pgmq      /pgmq/ws
+pgmq      pgmq-inspect       9095       /pgmq      /pgmq/ws
 keiro     keiro-ops-http     9093       /keiro     /keiro/ws
 ```
 
@@ -334,7 +334,7 @@ upgrades without extra configuration. This is the content of `dev/caddy/Caddyfil
 		reverse_proxy 127.0.0.1:9090
 	}
 	handle_path /pgmq/* {
-		reverse_proxy 127.0.0.1:9092
+		reverse_proxy 127.0.0.1:9095
 	}
 	handle_path /keiro/* {
 		reverse_proxy 127.0.0.1:9093
@@ -604,7 +604,7 @@ carries a `TODO(EP-17)` marker that the release checklist requires removed.
   application may read `BASE_URL` to build URLs for the surfaces.
 - `scripts/check-dist.sh`, `scripts/release-pack.sh`, root scripts `release:pack` and
   `test:e2e:production`, `just` recipes `build-console`, `release-pack`, `smoke-production`.
-- `dev/caddy/Caddyfile` (ports 9090, 9091, 9092, 9093; console at `/console/` on 8080),
+- `dev/caddy/Caddyfile` (ports 9090, 9091, 9095, 9093; console at `/console/` on 8080),
   consumed by the production smoke and by anyone reproducing recipe A.
 - `docs/deployment.md`, `release/CHECKLIST.md`, `CHANGELOG.md`, and the tag `v0.1.0`, which
   `docs/plans/19-add-gated-operator-actions.md` requires to exist before it starts.

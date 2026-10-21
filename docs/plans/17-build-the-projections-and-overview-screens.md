@@ -142,7 +142,7 @@ section with the same numbers in the table.
 React 19 + TypeScript + Vite application, `packages/ui` (`@keiro-ui/ui`) holds the
 shadcn-generated React Aria components and Paper Mono, and the Vite dev server proxies the
 four runtime surfaces under `/kiroku`, `/shibuya`, `/pgmq`, `/keiro` to local ports 9091,
-9090, 9092, 9093. `docs/plans/8-build-the-console-app-shell-navigation-and-command-palette.md`
+9090, 9095, 9093. `docs/plans/8-build-the-console-app-shell-navigation-and-command-palette.md`
 built the shell: the rail, the collapsible sidebar, the bottom status bar, the right sheet,
 the ⌘K palette, connection profiles, and — under `apps/console/src/` — `shell/navigation.ts`
 (sections and their sidebar entries), `shell/features.ts` (`registerFeature`, through
@@ -406,7 +406,7 @@ fixture cases; load more; feed update changes a row), `projections/shards.spec.t
 
 The live-stack integration gate is verified in two parts. First the manual walkthrough:
 with the EP-9 stack up (`just stack-up` in this repository, which starts PostgreSQL with
-seeded data, `kiroku-inspect` on 9091, `pgmq-inspect` on 9092, `keiro-ops-http` on 9093, and
+seeded data, `kiroku-inspect` on 9091, `pgmq-inspect` on 9095, `keiro-ops-http` on 9093, and
 a shibuya-metrics server on 9090), run `bun run dev`, keep liveness on, and visit in order
 `/`, `/streams`, `/categories`, `/events`, `/subscriptions`, `/queues`, `/processors`,
 `/workflows`, `/process-managers`, `/timers`, `/aggregates`, `/projections`, `/shards`,

@@ -1,0 +1,66 @@
+# The local runtime stack: four inspection surfaces on the fixed ports of
+# docs/masterplans/2-build-the-keiro-runtime-console.md. Started by `just stack-up`, which
+# passes dev/.env with `-e`; the databases are started by `just stack-db-up` first.
+version: "0.5"
+log_location: ./.dev/stack.log
+processes:
+  kiroku-inspect:
+    command: >-
+      env DATABASE_URL="$STACK_DATABASE_URL"
+      dev/bin/kiroku-inspect --schema kiroku --port $STACK_KIROKU_PORT
+      --cors-origin "$STACK_CONSOLE_ORIGIN"
+    readiness_probe:
+      http_get: { host: 127.0.0.1, port: 9091, path: /health/live }
+      period_seconds: 5
+    availability: { restart: on_failure, max_restarts: 3 }
+
+  # Creates the console demo queues once the consumer has installed the pgmq schema.
+  pgmq-seed:
+    command: bash dev/seed-queues.sh
+    depends_on:
+      shibuya-consumer: { condition: process_healthy }
+    availability: { restart: "no" }
+
+  pgmq-inspect:
+    depends_on:
+      pgmq-seed: { condition: process_completed_successfully }
+    command: >-
+      env PGMQ_INSPECT_DATABASE_URL="$STACK_PGMQ_DATABASE_URL"
+      dev/bin/pgmq-inspect --port $STACK_PGMQ_PORT --cors-origin "$STACK_CONSOLE_ORIGIN"
+    readiness_probe:
+      http_get: { host: 127.0.0.1, port: 9095, path: /health/live }
+      period_seconds: 5
+    availability: { restart: on_failure, max_restarts: 3 }
+
+  # --port is mandatory: keiro-ops-http's own default (9092) is pgmq-inspect's upstream
+  # default. --allow-origin is required in development because the Vite proxy rewrites Host,
+  # and keiro admits a WebSocket upgrade only from an allow-listed Origin or its own Host.
+  keiro-ops-http:
+    command: >-
+      dev/bin/keiro-ops-http --database-url "$STACK_DATABASE_URL" --port $STACK_KEIRO_PORT
+      --allow-origin "$STACK_CONSOLE_ORIGIN"
+    readiness_probe:
+      http_get: { host: 127.0.0.1, port: 9093, path: /health }
+      period_seconds: 5
+    availability: { restart: on_failure, max_restarts: 3 }
+
+  # No runnable host ships a standalone shibuya-metrics server, so the baseline is the
+  # shibuya-pgmq-adapter example consumer (Hackage shibuya-metrics ^>=0.10.0.0: basic metrics
+  # only), consuming its demo queues in the same pgmq_dev database pgmq-inspect reads.
+  shibuya-consumer:
+    command: >-
+      env DATABASE_URL="$STACK_PGMQ_DATABASE_URL" METRICS_PORT=$STACK_SHIBUYA_PORT
+      dev/bin/shibuya-pgmq-consumer
+    readiness_probe:
+      http_get: { host: 127.0.0.1, port: 9090, path: /health/live }
+      period_seconds: 5
+    availability: { restart: on_failure, max_restarts: 3 }
+
+  # Keeps the processors busy: a small batch every 30 s.
+  shibuya-simulator:
+    command: >-
+      bash -c 'while true; do
+      env DATABASE_URL="$STACK_PGMQ_DATABASE_URL" dev/bin/shibuya-pgmq-simulator --queue orders --count 20 --rate 5 || true;
+      sleep 30; done'
+    depends_on:
+      shibuya-consumer: { condition: process_healthy }

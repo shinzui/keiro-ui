@@ -53,7 +53,7 @@ Application routes never start with one of these prefixes.
 | ------- | --------------- | ---- | ---------- | ----------------------------------------- |
 | shibuya | shibuya-metrics | 9090 | `/shibuya` | `/shibuya/ws`                             |
 | kiroku  | kiroku-inspect  | 9091 | `/kiroku`  | `/kiroku/ws/metrics`, `/kiroku/ws/events` |
-| pgmq    | pgmq-inspect    | 9092 | `/pgmq`    | `/pgmq/ws`                                |
+| pgmq    | pgmq-inspect    | 9095 | `/pgmq`    | `/pgmq/ws`                                |
 | keiro   | keiro-ops-http  | 9093 | `/keiro`   | `/keiro/ws`                               |
 
 keiro-ops-http admits a WebSocket upgrade only from an allow-listed `Origin` or one equal

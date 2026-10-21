@@ -26,6 +26,11 @@ provenance:
       at: 2026-10-21T20:30:00Z
       mode: "update"
       note: "kiroku mocks: query-keyed paging, stateful mock event log, from_position/category-aware /ws/events script, /ws/metrics script, derived subscription fixtures, pinned entities and role-named slugs"
+    - model: "claude-opus-5-5"
+      harness: "claude-code"
+      at: 2026-10-21T20:24:25Z
+      mode: "implement"
+      note: "M1-M2: stack recipes, pgmq on 9095, consumer-installed pgmq schema; recorder and mocks in progress"
   reviews:
     - model: "claude-fable-5-1"
       harness: "claude-code"
@@ -71,13 +76,17 @@ every scripted feed plays snapshot-then-delta in order).
 
 ## Progress
 
-- [ ] M1 — Database, seed, and the three keiro-family servers: `just stack-db-up`,
+- [x] M1 — Database, seed, and the three keiro-family servers: `just stack-db-up`,
   `just stack-seed`, and `just stack-up` bring up PostgreSQL with the jitsurei seed and
-  `kiroku-inspect` (9091), `pgmq-inspect` (9092), and `keiro-ops-http` (9093); `just stack-check`
-  reports every HTTP probe and WebSocket upgrade green for those three.
-- [ ] M2 — shibuya baseline: the decision in the Decision Log is recorded (jitsurei's own
+  `kiroku-inspect` (9091), `pgmq-inspect` (9095), and `keiro-ops-http` (9093); `just stack-check`
+  reports every HTTP probe and WebSocket upgrade green for those three. (2026-10-21: keiro
+  `{"mutations_enabled":false,"schema_drift":[],"status":"ok"}`, kiroku `/streams?limit=2`
+  non-empty, `ws ... 101` for kiroku `/ws/events` and `/ws/metrics`, pgmq `/ws`, keiro `/ws`.)
+- [x] M2 — shibuya baseline: the decision in the Decision Log is recorded (jitsurei's own
   metrics server if it has one, otherwise the shibuya-pgmq-adapter example consumer), a
   shibuya-metrics server answers on 9090, and `just stack-check` is green for all four.
+  (2026-10-21: `{"alive":true}` and `ws shibuya /ws 101`; `/metrics` lists the `orders`,
+  `payments`, `notifications`, ... processors with `state.status` `idle`/`processing`.)
 - [ ] M3 — Recorder and recorded fixtures: `bun run fixtures:record` writes one raw-text
   fixture per manifest entry for all four surfaces plus `_meta.json` with source commits,
   versions, and seed name; the pgmq message-id fixture contains an id above 2^53 unchanged;
@@ -97,6 +106,15 @@ every scripted feed plays snapshot-then-delta in order).
 
 
 ## Surprises & Discoveries
+
+- 2026-10-21: keiro's `jitsurei` database had been migrated on 2026-10-20 by an unreleased
+  version of migration 0033 that created `keiro_workflows_created_idx`; keiro `5893c7eb`
+  later rewrote it, so `keiro-ops-http` built at HEAD (`b63ed846`) answered
+  `status: schema_drift`. With the user's approval the database was dropped and re-seeded
+  with `just jitsurei-all`; the fresh seed holds 30 kiroku events, 2 workflows, and 2 timers.
+- 2026-10-21: the existing `kiroku-inspect` and `pgmq-inspect` binaries in the sibling
+  `dist-newstyle` trees were rebuilt by `just stack-build` (dependencies had changed), and
+  `keiro-ops-http` had to be rebuilt from HEAD; `stack-build` always runs `cabal build`.
 
 - Planning review (2026-10-21), kiroku mocks: the standalone `kiroku-inspect` "runs no
   subscriptions", so a recording of `/subscriptions` is `200 []` and the recorded `/metrics`
@@ -131,6 +149,33 @@ every scripted feed plays snapshot-then-delta in order).
 
 
 ## Decision Log
+
+- Decision: pgmq-inspect runs on port 9095, not 9092, and reads a `pgmq_dev` database in
+  pgmq-hs's own socket-only dev cluster (`<PGMQ_HS_REPO>/.dev/db`), not jitsurei.
+  Rationale: user directive on 2026-10-21 ("can you use a different port?") because a local
+  redpanda container holds 9092; jitsurei carries no `pgmq` schema and neither cluster has
+  the pgmq extension, so the plan's fallback (pgmq-hs's dev database) applies.
+  Date: 2026-10-21
+
+- Decision: The shibuya baseline is the shibuya-pgmq-adapter example consumer
+  (`shibuya-pgmq-consumer`, metrics on 9090) consuming from the same `pgmq_dev` database
+  pgmq-inspect reads, with its simulator sending 20 `orders` messages every 30 s; the
+  consumer also installs the pgmq schema through pgmq-migration's pg-migrate ledger, and a
+  `pgmq-seed` process creates the console's demo queues after it is healthy, before
+  pgmq-inspect starts. jitsurei starts no shibuya metrics server (no `Shibuya.Metrics` in
+  `jitsurei/`). The consumer builds against Hackage shibuya-metrics 0.10.0.x, so its metrics
+  are basic only.
+  Rationale: one database for queues and processors makes the two screens show related
+  activity; hand-applying pgmq-migration's SQL left no ledger, and the consumer's migration
+  runner then failed, so the ledger-aware installer must own the schema.
+  Date: 2026-10-21
+
+- Decision: Every owning repository's command runs inside that repository's own Nix dev
+  shell (`dev/lib.sh` `in_repo`), and the stack's process-compose control API uses the unix
+  socket `.dev/process-compose.sock`.
+  Rationale: both dev clusters are PostgreSQL 18 while the host `pg_ctl` is 17, and
+  process-compose's default TCP API port 8080 is taken on this machine.
+  Date: 2026-10-21
 
 - Decision: Reuse the keiro repository's own PostgreSQL recipes (`just postgres-start`,
   `just db-create`, `just jitsurei-all`) instead of running a second PostgreSQL from this
@@ -234,7 +279,7 @@ changed here:
 surface   dev server                 dev port   prefix     WebSocket path(s)
 shibuya   shibuya-metrics            9090       /shibuya   /shibuya/ws
 kiroku    kiroku-inspect             9091       /kiroku    /kiroku/ws/metrics, /kiroku/ws/events
-pgmq      pgmq-inspect               9092       /pgmq      /pgmq/ws
+pgmq      pgmq-inspect               9095       /pgmq      /pgmq/ws
 keiro     keiro-ops-http             9093       /keiro     /keiro/ws
 console   vite dev server            5173       /          (application routes)
 ```
@@ -320,14 +365,14 @@ database instead (`just process-up` in that checkout), which is acceptable becau
 and streams never cross-link in the console. `stack-build` builds `kiroku-inspect`,
 `pgmq-inspect`, and `keiro-ops-http` from the sibling checkouts into `dev/bin/` (symlinks to
 `cabal list-bin` results or the nix `result/bin`), and `stack-up` starts them through
-`process-compose` on 9091, 9092, and 9093 with the console's dev origin on each CORS
+`process-compose` on 9091, 9095, and 9093 with the console's dev origin on each CORS
 allowlist (harmless for kiroku and pgmq in development, required for the separate-origins
 deployment test later, and **required for keiro even in development**: keiro-ops-http
 admits a WebSocket upgrade only when the browser's `Origin` is allow-listed or equals the
 request's own `Host`, and the Vite proxy rewrites `Host` to `127.0.0.1:9093`, so without
 `--allow-origin http://localhost:5173` every `/keiro/ws` upgrade is refused with 403
-`origin_not_allowed`; note also that `keiro-ops-http`'s built-in default port is 9092, the
-pgmq port, so `--port 9093` must always be passed).
+`origin_not_allowed`; note also that `keiro-ops-http`'s built-in default port is 9092, which
+is also pgmq-inspect's upstream default, so `--port 9093` must always be passed).
 `stack-check` curls each surface and attempts each WebSocket upgrade. At the end of M1,
 `just stack-check` prints green for kiroku, pgmq, and keiro.
 
@@ -459,9 +504,9 @@ processes:
   pgmq-inspect:
     command: >-
       env PGMQ_INSPECT_DATABASE_URL="$STACK_DATABASE_URL"
-      dev/bin/pgmq-inspect --port 9092 --cors-origin "$STACK_CONSOLE_ORIGIN"
+      dev/bin/pgmq-inspect --port 9095 --cors-origin "$STACK_CONSOLE_ORIGIN"
     readiness_probe:
-      http_get: { host: 127.0.0.1, port: 9092, path: /health/live }
+      http_get: { host: 127.0.0.1, port: 9095, path: /health/live }
   keiro-ops-http:
     command: >-
       dev/bin/keiro-ops-http --database-url "$STACK_DATABASE_URL" --port 9093
@@ -481,10 +526,10 @@ is absent and the pgmq surface should use pgmq-hs's dev database (document the a
 
 ```bash
 curl -fsS http://127.0.0.1:9091/capabilities | head -c 200; echo
-curl -fsS http://127.0.0.1:9092/ ; echo
+curl -fsS http://127.0.0.1:9095/ ; echo
 curl -fsS http://127.0.0.1:9093/health ; echo
 curl -fsS http://127.0.0.1:9090/health/live ; echo
-for u in 9091/ws/events 9092/ws 9093/ws 9090/ws; do
+for u in 9091/ws/events 9095/ws 9093/ws 9090/ws; do
   curl -s -o /dev/null -w "ws $u -> %{http_code}\n" \
     -H 'Connection: Upgrade' -H 'Upgrade: websocket' -H 'Sec-WebSocket-Version: 13' \
     -H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' "http://127.0.0.1:$u"
@@ -498,7 +543,7 @@ Expected output after M1 (shibuya lines fail until M2):
 {"service":"pgmq-inspect","version":"0.1.0.0","websocket_path":"ws","openapi_path":"openapi.json"}
 {"status":"ok","schema_drift":[],"mutations_enabled":false}
 ws 9091/ws/events -> 101
-ws 9092/ws -> 101
+ws 9095/ws -> 101
 ws 9093/ws -> 101
 ```
 

@@ -88,7 +88,7 @@ surface and, later, the store head), and nothing here can mutate anything; see
   selects profiles, the bottom bar shows one health dot per surface for the active profile,
   pause/resume flips every polling query that reads `useLiveness()`. (2026-10-21:
   `connections.spec.ts` asserts the four same-origin probe URLs, the "Origin must not contain
-  a path" rejection, and `waitForRequest("http://127.0.0.1:9092/health/live")` after selecting
+  a path" rejection, and `waitForRequest("http://127.0.0.1:9095/health/live")` after selecting
   a separate profile; `liveness.test.tsx` proves a `refetchIntervalFor` query stops while
   paused and refetches once on resume.)
 - [x] M5 — Link builders, formatting helpers, and the Playwright suite: every route in the
@@ -230,7 +230,7 @@ application using `@tanstack/router-plugin` for file-based routing, with
 `src/routeTree.gen.ts`), `packages/ui` (published as `@keiro-ui/ui`: the shadcn/ui
 components generated on the React Aria base in the `aria-nova` style, Paper Mono declared
 via `@font-face`, and the theme tokens in `src/styles/globals.css`), a Vite dev proxy that
-forwards `/kiroku`, `/shibuya`, `/pgmq`, and `/keiro` to local ports 9091, 9090, 9092, and
+forwards `/kiroku`, `/shibuya`, `/pgmq`, and `/keiro` to local ports 9091, 9090, 9095, and
 9093 with the prefix stripped and WebSockets enabled, and the toolchain scripts `bun run dev`,
 `bun run build`, `bun run check`, `bun run test` (vitest with jsdom and React Testing Library), and
 `bun run test:e2e` (Playwright). If any of those is missing, stop and finish plan 7 first.
@@ -291,7 +291,7 @@ file stands alone:
 surface   prefix     dev port   health probe path        WebSocket path(s)
 shibuya   /shibuya   9090       /shibuya/health/live     /shibuya/ws
 kiroku    /kiroku    9091       /kiroku/health/live      /kiroku/ws/metrics, /kiroku/ws/events
-pgmq      /pgmq      9092       /pgmq/health/live        /pgmq/ws
+pgmq      /pgmq      9095       /pgmq/health/live        /pgmq/ws
 keiro     /keiro     9093       /keiro/health            /keiro/ws
 ```
 
@@ -733,11 +733,11 @@ Decision Logs.
 
 Acceptance (with nothing running on the four ports): the bottom bar shows four red dots whose
 tooltips name the probed URLs `http://localhost:5173/kiroku/health/live`, `.../shibuya/health/live`,
-`.../pgmq/health/live`, `.../keiro/health`; starting only `pgmq-inspect` on port 9092 (see
+`.../pgmq/health/live`, `.../keiro/health`; starting only `pgmq-inspect` on port 9095 (see
 `docs/plans/9-provision-the-local-runtime-stack-and-recorded-fixtures.md`; optional for this
 plan) turns the pgmq dot green within 30 s; creating a `separate` profile with origin
-`http://127.0.0.1:9092` for pgmq and selecting it changes the probed URL to
-`http://127.0.0.1:9092/health/live` (visible in the tooltip and in the browser's network
+`http://127.0.0.1:9095` for pgmq and selecting it changes the probed URL to
+`http://127.0.0.1:9095/health/live` (visible in the tooltip and in the browser's network
 panel); clicking "Live" switches to "Paused 00:00" and the `useSurfaceHealth` queries keep
 refetching while a test query created with `refetchIntervalFor` stops.
 
@@ -902,7 +902,7 @@ stated otherwise.
    wiring. Run `bun run dev`, open `http://localhost:5173/settings/connections`, create the
    profile described in the milestone's acceptance, select it, and watch the network panel.
    Optionally start a real surface to see a green dot (plan 9 documents the stack; the
-   quickest single server is `pgmq-inspect --port 9092` against any pgmq database):
+   quickest single server is `pgmq-inspect --port 9095` against any pgmq database):
 
    ```bash
    bun run test -- connection-profiles health liveness
@@ -968,7 +968,7 @@ the character and does not collapse the sidebar.
 **Profiles, health, liveness.** The built-in "Same origin" profile resolves
 `useSurfaceBaseUrl("kiroku")` to `http://localhost:5173/kiroku` in development. The
 settings page rejects an origin with a path ("Origin must not contain a path") and accepts
-`http://127.0.0.1:9092`. Selecting a profile changes which URLs the health probes hit, as
+`http://127.0.0.1:9095`. Selecting a profile changes which URLs the health probes hit, as
 seen in the network panel and in the dot tooltips. With no surface running all four dots
 are red; with one surface running its dot is green within 30 s. Clicking "Live" shows
 "Paused 00:00" counting up; a test query written with `refetchIntervalFor` stops

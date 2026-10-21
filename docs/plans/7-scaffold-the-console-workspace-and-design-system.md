@@ -58,7 +58,7 @@ Running `bun run dev` and opening `http://localhost:5173` shows a placeholder pa
 Paper Mono in the light theme (the console's default, whatever the operating system
 prefers) with a working theme toggle, a shadcn Button, and a Sheet that slides in from
 the right. The Vite development server also proxies `/kiroku`, `/shibuya`, `/pgmq`, and
-`/keiro` to the four inspection servers on ports 9091, 9090, 9092, and 9093, which is how
+`/keiro` to the four inspection servers on ports 9091, 9090, 9095, and 9093, which is how
 every screen built later talks to the runtime without any CORS configuration.
 
 No screen, client, or shell navigation is built here. Those belong to the plans listed in
@@ -176,7 +176,7 @@ exists so that each of them adds code, not configuration.
   Date: 2026-10-21
 
 - Decision: The Vite dev server emulates the composed deployment: `/kiroku`, `/shibuya`,
-  `/pgmq`, and `/keiro` are proxied to ports 9091, 9090, 9092, and 9093 with the prefix
+  `/pgmq`, and `/keiro` are proxied to ports 9091, 9090, 9095, and 9093 with the prefix
   stripped and WebSocket upgrades forwarded. Application routes must never start with one
   of these four prefixes.
   Rationale: Fixed by the MasterPlan's port and prefix table; one "same origin" connection
@@ -577,7 +577,7 @@ import { tanstackRouter } from "@tanstack/router-plugin/vite"
 import react from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
 
-const surfaces = { shibuya: 9090, kiroku: 9091, pgmq: 9092, keiro: 9093 } as const
+const surfaces = { shibuya: 9090, kiroku: 9091, pgmq: 9095, keiro: 9093 } as const
 
 export default defineConfig({
   resolve: { tsconfigPaths: true },
@@ -736,10 +736,10 @@ Expected output includes `Local: http://localhost:5173/`. In a second terminal:
 curl -s -o /dev/null -w '%{http_code}\n' http://localhost:5173/pgmq/health/live
 ```
 
-Expected `200` with a pgmq-inspect server on port 9092 (see
+Expected `200` with a pgmq-inspect server on port 9095 (see
 `docs/plans/9-provision-the-local-runtime-stack-and-recorded-fixtures.md`), or `502`
 printed by the Vite proxy when nothing listens there — either proves the prefix maps to
-port 9092; a `404` from the SPA would mean the proxy is not matching. Stop the dev server,
+port 9095; a `404` from the SPA would mean the proxy is not matching. Stop the dev server,
 then:
 
 ```bash
@@ -787,9 +787,9 @@ Required acceptance, all from a fresh clone (`git clone` into a scratch director
   Playwright check) in the light theme, weights from thin to extra-bold are visibly
   distinct, and the toggle switches between light and dark tokens.
 - Through the dev server, `curl -s -o /dev/null -w '%{http_code}' http://localhost:5173/pgmq/health/live`
-  returns `200` when a pgmq-inspect server listens on 9092 and `502` otherwise; the same
+  returns `200` when a pgmq-inspect server listens on 9095 and `502` otherwise; the same
   for `/kiroku/health/live` (9091), `/shibuya/health/live` (9090), and `/keiro/health`
-  (9093). A WebSocket upgrade to `ws://localhost:5173/pgmq/ws` reaches port 9092 when it is
+  (9093). A WebSocket upgrade to `ws://localhost:5173/pgmq/ws` reaches port 9095 when it is
   running (verify with `bunx wscat -c ws://localhost:5173/pgmq/ws` and a `{"type":"ping"}`
   frame answered by `{"type":"pong"}`).
 - `components.json` in `packages/ui` reads `"style": "aria-nova"`, and no file outside
@@ -830,7 +830,7 @@ has no prerequisite plan. The artifacts it defines and that other plans depend o
   a new primitive is added by running `bunx shadcn@latest add <name>` inside
   `packages/ui` and committing the generated source; the theme tokens in
   `packages/ui/src/styles/globals.css`.
-- `apps/console` with the Vite proxy for `/kiroku` → 9091, `/shibuya` → 9090, `/pgmq` → 9092,
+- `apps/console` with the Vite proxy for `/kiroku` → 9091, `/shibuya` → 9090, `/pgmq` → 9095,
   `/keiro` → 9093 (prefix stripped, WebSocket forwarded; keiro-ops-http checks the `Origin`
   of a WebSocket upgrade against its `--allow-origin` list or the request's own `Host`, and
   the proxy's `changeOrigin` rewrites `Host`, so the local keiro host must be started with

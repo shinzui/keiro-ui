@@ -180,7 +180,7 @@ arithmetic on it. An *int64* is a 64-bit integer; JavaScript numbers lose precis
 
 **The pgmq surface (`pgmq-inspect`, in tree, unreleased; audited 2026-10-21).** It is
 reached at the `/pgmq` prefix on the console's origin (the Vite dev proxy forwards it to
-port 9092; a composed deployment mounts it there). Every route is GET; pages take `from`
+port 9095; a composed deployment mounts it there). Every route is GET; pages take `from`
 (an exclusive int64 `msg_id` cursor) and `limit` (default 50, silently capped at 500) and
 return `{"items": [...], "next_cursor": N}` with `next_cursor` omitted on the last page.
 Routes used here: `/pgmq/queues` (array of `{queue_name, created_at, is_partitioned,
@@ -498,7 +498,7 @@ copying the owning repository's golden file and editing it minimally; name the s
 
     Expected: all scenarios pass; Playwright prints `N passed`.
 
-7. When the local stack is running (EP-9's recipe; pgmq-inspect on 9092 and a shibuya
+7. When the local stack is running (EP-9's recipe; pgmq-inspect on 9095 and a shibuya
    metrics server on 9090), run `bun run dev` without `VITE_MOCK` and repeat the manual checks
    of steps 3–5 against real data; record the observation in Progress.
 

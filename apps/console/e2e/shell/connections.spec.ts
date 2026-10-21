@@ -25,12 +25,12 @@ test("a separate profile changes the probed health URL", async ({ page }) => {
 
   await form.getByLabel("kiroku origin").fill("http://127.0.0.1:9091")
   await form.getByLabel("shibuya origin").fill("http://127.0.0.1:9090")
-  await form.getByLabel("pgmq origin").fill("http://127.0.0.1:9092")
+  await form.getByLabel("pgmq origin").fill("http://127.0.0.1:9095")
   await form.getByLabel("keiro origin").fill("http://127.0.0.1:9093")
   await form.getByRole("button", { name: "Save" }).click()
   await expect(form).toHaveCount(0)
 
-  const probe = page.waitForRequest("http://127.0.0.1:9092/health/live")
+  const probe = page.waitForRequest("http://127.0.0.1:9095/health/live")
   await page
     .getByRole("listitem")
     .filter({ hasText: "Local ports" })
@@ -39,7 +39,7 @@ test("a separate profile changes the probed health URL", async ({ page }) => {
   await probe
   await expect(page.locator('[data-surface="pgmq"]')).toHaveAttribute(
     "data-url",
-    "http://127.0.0.1:9092/health/live",
+    "http://127.0.0.1:9095/health/live",
   )
   await expect(page.getByRole("button", { name: "Connection profile: Local ports" })).toBeVisible()
 })

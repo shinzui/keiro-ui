@@ -95,6 +95,8 @@ test("goodbye then close: reconnects, re-sends subscriptions, and resyncs", asyn
   })
   cleanups.push(() => feed.close())
   await until(() => calls.some(([name]) => name === "resync"))
+  // The re-subscribe is sent before onResync fires, but the server receives it asynchronously.
+  await until(() => server.received.length === 2)
   expect(statuses).toContainEqual(["reconnecting", true])
   expect(server.connections()).toBe(2)
   expect(server.received).toEqual([

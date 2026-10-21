@@ -11,13 +11,16 @@ if ! "${PSQL[@]}" -c "select 1 from pg_namespace where nspname = 'pgmq'" | grep 
   exit 1
 fi
 
-if "${PSQL[@]}" -c "select 1 from pgmq.list_queues() where queue_name = 'console_demo'" | grep -q 1; then
+if "${PSQL[@]}" -c "select 1 from pgmq.list_queues() where queue_name = 'console_demo'" | grep -q 1 &&
+  ! "${PSQL[@]}" -c "select 1 from pgmq.q_console_demo_dlq where not (message ? 'dead_letter_reason')" | grep -q 1; then
   say "pgmq: demo queues already seeded"
   exit 0
 fi
 
 say "pgmq: seeding console_demo, console_demo_dlq, and console_notify"
 "${PSQL[@]}" <<'SQL'
+SELECT pgmq.drop_queue(q) FROM unnest(ARRAY['console_demo', 'console_demo_dlq', 'console_notify']) q
+  WHERE EXISTS (SELECT 1 FROM pgmq.list_queues() WHERE queue_name = q);
 SELECT pgmq.create('console_demo');
 SELECT pgmq.create('console_demo_dlq');
 SELECT pgmq.create('console_notify');
@@ -33,9 +36,10 @@ SELECT pgmq.archive('console_demo', 3::bigint);
 SELECT setval(pg_get_serial_sequence('pgmq.q_console_demo', 'msg_id'), 9007199254740993);
 SELECT pgmq.send('console_demo', '{"order_id":"ord-big","note":"id above 2^53"}');
 
--- A dead letter in the shape shibuya-pgmq-adapter writes (reason fields, opt-in read_count).
+-- A dead letter in the exact shape shibuya-pgmq-adapter writes (Shibuya/Adapter/Pgmq/Convert.hs):
+-- four always-present fields plus the opt-in original metadata.
 SELECT pgmq.send('console_demo_dlq',
-  '{"original_message":{"order_id":"ord-9"},"dead_letter_reason_code":"poison_message","dead_letter_reason_detail":"payload failed validation: total must be positive","read_count":5}');
+  '{"original_message":{"order_id":"ord-9","total":-1},"dead_letter_reason":"PoisonMessage \"total must be positive\"","dead_letter_reason_code":"poison_message","dead_letter_reason_detail":{"field":"total","rule":"positive"},"original_message_id":9,"original_enqueued_at":"2026-10-21T19:00:00Z","read_count":5,"original_headers":{"trace_id":"t-9"}}');
 
 SELECT pgmq.send('console_notify', '{"kind":"welcome","to":"ops@example.com"}');
 

@@ -6,10 +6,15 @@ export const test = base.extend<{ consoleErrors: string[] }>({
     async ({ page }, use) => {
       const errors: string[] = []
       page.on("console", (message) => {
-        // With nothing running on the surface ports the health probes fail at the network
-        // level; the browser logs those as console errors, which are expected here.
-        if (message.type() === "error" && !message.text().startsWith("Failed to load resource")) {
-          errors.push(message.text())
+        // Health probes against surfaces that are not running (or, with a separate-origins
+        // profile, that send no CORS headers) fail at the network level; the browser logs those
+        // as console errors, which are expected here.
+        const text = message.text()
+        const probeFailure =
+          text.startsWith("Failed to load resource") ||
+          text.includes("has been blocked by CORS policy")
+        if (message.type() === "error" && !probeFailure) {
+          errors.push(text)
         }
       })
       page.on("pageerror", (error) => errors.push(error.message))

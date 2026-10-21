@@ -109,10 +109,13 @@ every scripted feed plays snapshot-then-delta in order).
   for kiroku's populated live registry, subscription metrics, and dead letters,
   and for shibuya detailed metrics and the `terminal`/`error` frames, each marked
   `derived: true` in `_meta.json`. (2026-10-21: `scripts/derive.ts`; recorded originals kept as
-  `<slug>.recorded.json`. The two upstream improvement requests were not filed: on
-  2026-10-21 the user chose a mori stack profile (M6) as the source of real subscription,
-  dead-letter, and job-queue data instead; both requests remain candidates, recorded in the
-  Decision Log.)
+  `<slug>.recorded.json`. The upstream improvement requests were filed on the user's
+  instruction and validated with `okf validate --profile-enforce --log-enforce` in their
+  repositories (local commits, not pushed):
+  `mori://shinzui/keiro/okf/improvement-requests/concepts/IR-55` (runnable inspection host
+  mounting jitsurei's aggregate and process-manager hooks; keiro `7ee722a7`) and
+  `mori://shinzui/shibuya/okf/improvement-requests/concepts/IR-9` (long-running example with
+  detailed metrics and configurable control and CORS; shibuya `7adbd94`).)
 - [ ] M6 — mori profile: `just stack-up mori` points kiroku-inspect, pgmq-inspect, and
   keiro-ops-http at a seeded local mori database with `mori automate daemon` running, and
   the kiroku subscription, checkpoint, dead-letter and pgmq job-queue fixtures are
@@ -168,10 +171,9 @@ every scripted feed plays snapshot-then-delta in order).
   its automation test repositories and running `mori automate daemon`, and record the kiroku
   subscription/checkpoint/dead-letter and pgmq job-queue fixtures from it; keep jitsurei as
   the baseline for workflows and for the aggregate and process-manager fixtures that link
-  into jitsurei's streams. The keiro and shibuya improvement requests of M5 are not filed
-  for now; they remain candidates ("runnable inspection host mounting jitsurei's aggregate
-  and process-manager hooks"; "long-running shibuya example with detailed metrics, control,
-  and CORS"). rei was considered and rejected: it has no local data except a
+  into jitsurei's streams. The keiro and shibuya improvement requests of M5 are filed as
+  well (keiro IR-55, shibuya IR-9), since mori shares the aggregate-hook gap and runs no
+  shibuya-metrics server. rei was considered and rejected: it has no local data except a
   production-derived dump.
   Rationale: user decision on 2026-10-21 after a survey of rei and mori: mori runs real
   subscriptions with dead letters, four pgmq job queues with dead-letter queues, timers, and

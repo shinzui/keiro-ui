@@ -766,7 +766,11 @@ Cross-plan gates with their own acceptance:
   (Hackage 0.10.0.x) has no `/control`, no detailed fields, and no CORS. The user chose a mori
   stack profile (EP-9 M6) as the source of real subscription, dead-letter, and job-queue
   data; rei and mori both pin keiro `e6ef560`, which has no keiro-ops-http and no aggregate
-  hooks, so the aggregate gap stays derived.
+  hooks, so the aggregate gap stays derived. Filed upstream:
+  `mori://shinzui/keiro/okf/improvement-requests/concepts/IR-55` (a runnable host mounting
+  jitsurei's aggregate and process-manager hooks) and
+  `mori://shinzui/shibuya/okf/improvement-requests/concepts/IR-9` (a long-running example
+  with detailed metrics and configurable control and CORS); neither is a dependency.
 - EP-8 (2026-10-21): the router uses a custom search serializer
   (`apps/console/src/lib/search.ts`) — scalar search values stay exact strings and only
   JSON arrays/objects are parsed — because TanStack's default would turn int64 positions in

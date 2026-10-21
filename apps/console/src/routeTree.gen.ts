@@ -9,50 +9,674 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as ShellRouteImport } from './routes/_shell'
+import { Route as ShellIndexRouteImport } from './routes/_shell/index'
+import { Route as ShellAggregatesIndexRouteImport } from './routes/_shell/aggregates/index'
+import { Route as ShellCategoriesIndexRouteImport } from './routes/_shell/categories/index'
+import { Route as ShellCategoriesNameRouteImport } from './routes/_shell/categories/$name'
+import { Route as ShellEventsIndexRouteImport } from './routes/_shell/events/index'
+import { Route as ShellEventsIdRouteImport } from './routes/_shell/events/$id'
+import { Route as ShellProcessManagersIndexRouteImport } from './routes/_shell/process-managers/index'
+import { Route as ShellProcessorsIndexRouteImport } from './routes/_shell/processors/index'
+import { Route as ShellProcessorsIdRouteImport } from './routes/_shell/processors/$id'
+import { Route as ShellProjectionsIndexRouteImport } from './routes/_shell/projections/index'
+import { Route as ShellProjectionsGroupRouteImport } from './routes/_shell/projections/$group'
+import { Route as ShellQueuesIndexRouteImport } from './routes/_shell/queues/index'
+import { Route as ShellSettingsIndexRouteImport } from './routes/_shell/settings/index'
+import { Route as ShellSettingsConnectionsRouteImport } from './routes/_shell/settings/connections'
+import { Route as ShellShardsIndexRouteImport } from './routes/_shell/shards/index'
+import { Route as ShellStreamsIndexRouteImport } from './routes/_shell/streams/index'
+import { Route as ShellStreamsNameRouteImport } from './routes/_shell/streams/$name'
+import { Route as ShellSubscriptionsIndexRouteImport } from './routes/_shell/subscriptions/index'
+import { Route as ShellSubscriptionsNameRouteImport } from './routes/_shell/subscriptions/$name'
+import { Route as ShellTimersIndexRouteImport } from './routes/_shell/timers/index'
+import { Route as ShellWorkflowsIndexRouteImport } from './routes/_shell/workflows/index'
+import { Route as ShellAggregatesTypeIndexRouteImport } from './routes/_shell/aggregates/$type/index'
+import { Route as ShellAggregatesTypeIdRouteImport } from './routes/_shell/aggregates/$type/$id'
+import { Route as ShellProcessManagersNameIndexRouteImport } from './routes/_shell/process-managers/$name/index'
+import { Route as ShellProcessManagersNameCorrelationRouteImport } from './routes/_shell/process-managers/$name/$correlation'
+import { Route as ShellQueuesNameIndexRouteImport } from './routes/_shell/queues/$name/index'
+import { Route as ShellWorkflowsNameIdRouteImport } from './routes/_shell/workflows/$name/$id'
+import { Route as ShellQueuesNameArchiveIdRouteImport } from './routes/_shell/queues/$name/archive/$id'
+import { Route as ShellQueuesNameMessagesIdRouteImport } from './routes/_shell/queues/$name/messages/$id'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const ShellRoute = ShellRouteImport.update({
+  id: '/_shell',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ShellIndexRoute = ShellIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellAggregatesIndexRoute = ShellAggregatesIndexRouteImport.update({
+  id: '/aggregates/',
+  path: '/aggregates/',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellCategoriesIndexRoute = ShellCategoriesIndexRouteImport.update({
+  id: '/categories/',
+  path: '/categories/',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellCategoriesNameRoute = ShellCategoriesNameRouteImport.update({
+  id: '/categories/$name',
+  path: '/categories/$name',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellEventsIndexRoute = ShellEventsIndexRouteImport.update({
+  id: '/events/',
+  path: '/events/',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellEventsIdRoute = ShellEventsIdRouteImport.update({
+  id: '/events/$id',
+  path: '/events/$id',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellProcessManagersIndexRoute =
+  ShellProcessManagersIndexRouteImport.update({
+    id: '/process-managers/',
+    path: '/process-managers/',
+    getParentRoute: () => ShellRoute,
+  } as any)
+const ShellProcessorsIndexRoute = ShellProcessorsIndexRouteImport.update({
+  id: '/processors/',
+  path: '/processors/',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellProcessorsIdRoute = ShellProcessorsIdRouteImport.update({
+  id: '/processors/$id',
+  path: '/processors/$id',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellProjectionsIndexRoute = ShellProjectionsIndexRouteImport.update({
+  id: '/projections/',
+  path: '/projections/',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellProjectionsGroupRoute = ShellProjectionsGroupRouteImport.update({
+  id: '/projections/$group',
+  path: '/projections/$group',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellQueuesIndexRoute = ShellQueuesIndexRouteImport.update({
+  id: '/queues/',
+  path: '/queues/',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellSettingsIndexRoute = ShellSettingsIndexRouteImport.update({
+  id: '/settings/',
+  path: '/settings/',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellSettingsConnectionsRoute =
+  ShellSettingsConnectionsRouteImport.update({
+    id: '/settings/connections',
+    path: '/settings/connections',
+    getParentRoute: () => ShellRoute,
+  } as any)
+const ShellShardsIndexRoute = ShellShardsIndexRouteImport.update({
+  id: '/shards/',
+  path: '/shards/',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellStreamsIndexRoute = ShellStreamsIndexRouteImport.update({
+  id: '/streams/',
+  path: '/streams/',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellStreamsNameRoute = ShellStreamsNameRouteImport.update({
+  id: '/streams/$name',
+  path: '/streams/$name',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellSubscriptionsIndexRoute = ShellSubscriptionsIndexRouteImport.update({
+  id: '/subscriptions/',
+  path: '/subscriptions/',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellSubscriptionsNameRoute = ShellSubscriptionsNameRouteImport.update({
+  id: '/subscriptions/$name',
+  path: '/subscriptions/$name',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellTimersIndexRoute = ShellTimersIndexRouteImport.update({
+  id: '/timers/',
+  path: '/timers/',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellWorkflowsIndexRoute = ShellWorkflowsIndexRouteImport.update({
+  id: '/workflows/',
+  path: '/workflows/',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellAggregatesTypeIndexRoute =
+  ShellAggregatesTypeIndexRouteImport.update({
+    id: '/aggregates/$type/',
+    path: '/aggregates/$type/',
+    getParentRoute: () => ShellRoute,
+  } as any)
+const ShellAggregatesTypeIdRoute = ShellAggregatesTypeIdRouteImport.update({
+  id: '/aggregates/$type/$id',
+  path: '/aggregates/$type/$id',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellProcessManagersNameIndexRoute =
+  ShellProcessManagersNameIndexRouteImport.update({
+    id: '/process-managers/$name/',
+    path: '/process-managers/$name/',
+    getParentRoute: () => ShellRoute,
+  } as any)
+const ShellProcessManagersNameCorrelationRoute =
+  ShellProcessManagersNameCorrelationRouteImport.update({
+    id: '/process-managers/$name/$correlation',
+    path: '/process-managers/$name/$correlation',
+    getParentRoute: () => ShellRoute,
+  } as any)
+const ShellQueuesNameIndexRoute = ShellQueuesNameIndexRouteImport.update({
+  id: '/queues/$name/',
+  path: '/queues/$name/',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellWorkflowsNameIdRoute = ShellWorkflowsNameIdRouteImport.update({
+  id: '/workflows/$name/$id',
+  path: '/workflows/$name/$id',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellQueuesNameArchiveIdRoute =
+  ShellQueuesNameArchiveIdRouteImport.update({
+    id: '/queues/$name/archive/$id',
+    path: '/queues/$name/archive/$id',
+    getParentRoute: () => ShellRoute,
+  } as any)
+const ShellQueuesNameMessagesIdRoute =
+  ShellQueuesNameMessagesIdRouteImport.update({
+    id: '/queues/$name/messages/$id',
+    path: '/queues/$name/messages/$id',
+    getParentRoute: () => ShellRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
+  '/': typeof ShellIndexRoute
+  '/categories/$name': typeof ShellCategoriesNameRoute
+  '/events/$id': typeof ShellEventsIdRoute
+  '/processors/$id': typeof ShellProcessorsIdRoute
+  '/projections/$group': typeof ShellProjectionsGroupRoute
+  '/settings/connections': typeof ShellSettingsConnectionsRoute
+  '/streams/$name': typeof ShellStreamsNameRoute
+  '/subscriptions/$name': typeof ShellSubscriptionsNameRoute
+  '/aggregates/': typeof ShellAggregatesIndexRoute
+  '/categories/': typeof ShellCategoriesIndexRoute
+  '/events/': typeof ShellEventsIndexRoute
+  '/process-managers/': typeof ShellProcessManagersIndexRoute
+  '/processors/': typeof ShellProcessorsIndexRoute
+  '/projections/': typeof ShellProjectionsIndexRoute
+  '/queues/': typeof ShellQueuesIndexRoute
+  '/settings/': typeof ShellSettingsIndexRoute
+  '/shards/': typeof ShellShardsIndexRoute
+  '/streams/': typeof ShellStreamsIndexRoute
+  '/subscriptions/': typeof ShellSubscriptionsIndexRoute
+  '/timers/': typeof ShellTimersIndexRoute
+  '/workflows/': typeof ShellWorkflowsIndexRoute
+  '/aggregates/$type/$id': typeof ShellAggregatesTypeIdRoute
+  '/process-managers/$name/$correlation': typeof ShellProcessManagersNameCorrelationRoute
+  '/workflows/$name/$id': typeof ShellWorkflowsNameIdRoute
+  '/aggregates/$type/': typeof ShellAggregatesTypeIndexRoute
+  '/process-managers/$name/': typeof ShellProcessManagersNameIndexRoute
+  '/queues/$name/': typeof ShellQueuesNameIndexRoute
+  '/queues/$name/archive/$id': typeof ShellQueuesNameArchiveIdRoute
+  '/queues/$name/messages/$id': typeof ShellQueuesNameMessagesIdRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
+  '/': typeof ShellIndexRoute
+  '/categories/$name': typeof ShellCategoriesNameRoute
+  '/events/$id': typeof ShellEventsIdRoute
+  '/processors/$id': typeof ShellProcessorsIdRoute
+  '/projections/$group': typeof ShellProjectionsGroupRoute
+  '/settings/connections': typeof ShellSettingsConnectionsRoute
+  '/streams/$name': typeof ShellStreamsNameRoute
+  '/subscriptions/$name': typeof ShellSubscriptionsNameRoute
+  '/aggregates': typeof ShellAggregatesIndexRoute
+  '/categories': typeof ShellCategoriesIndexRoute
+  '/events': typeof ShellEventsIndexRoute
+  '/process-managers': typeof ShellProcessManagersIndexRoute
+  '/processors': typeof ShellProcessorsIndexRoute
+  '/projections': typeof ShellProjectionsIndexRoute
+  '/queues': typeof ShellQueuesIndexRoute
+  '/settings': typeof ShellSettingsIndexRoute
+  '/shards': typeof ShellShardsIndexRoute
+  '/streams': typeof ShellStreamsIndexRoute
+  '/subscriptions': typeof ShellSubscriptionsIndexRoute
+  '/timers': typeof ShellTimersIndexRoute
+  '/workflows': typeof ShellWorkflowsIndexRoute
+  '/aggregates/$type/$id': typeof ShellAggregatesTypeIdRoute
+  '/process-managers/$name/$correlation': typeof ShellProcessManagersNameCorrelationRoute
+  '/workflows/$name/$id': typeof ShellWorkflowsNameIdRoute
+  '/aggregates/$type': typeof ShellAggregatesTypeIndexRoute
+  '/process-managers/$name': typeof ShellProcessManagersNameIndexRoute
+  '/queues/$name': typeof ShellQueuesNameIndexRoute
+  '/queues/$name/archive/$id': typeof ShellQueuesNameArchiveIdRoute
+  '/queues/$name/messages/$id': typeof ShellQueuesNameMessagesIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
+  '/_shell': typeof ShellRouteWithChildren
+  '/_shell/': typeof ShellIndexRoute
+  '/_shell/categories/$name': typeof ShellCategoriesNameRoute
+  '/_shell/events/$id': typeof ShellEventsIdRoute
+  '/_shell/processors/$id': typeof ShellProcessorsIdRoute
+  '/_shell/projections/$group': typeof ShellProjectionsGroupRoute
+  '/_shell/settings/connections': typeof ShellSettingsConnectionsRoute
+  '/_shell/streams/$name': typeof ShellStreamsNameRoute
+  '/_shell/subscriptions/$name': typeof ShellSubscriptionsNameRoute
+  '/_shell/aggregates/': typeof ShellAggregatesIndexRoute
+  '/_shell/categories/': typeof ShellCategoriesIndexRoute
+  '/_shell/events/': typeof ShellEventsIndexRoute
+  '/_shell/process-managers/': typeof ShellProcessManagersIndexRoute
+  '/_shell/processors/': typeof ShellProcessorsIndexRoute
+  '/_shell/projections/': typeof ShellProjectionsIndexRoute
+  '/_shell/queues/': typeof ShellQueuesIndexRoute
+  '/_shell/settings/': typeof ShellSettingsIndexRoute
+  '/_shell/shards/': typeof ShellShardsIndexRoute
+  '/_shell/streams/': typeof ShellStreamsIndexRoute
+  '/_shell/subscriptions/': typeof ShellSubscriptionsIndexRoute
+  '/_shell/timers/': typeof ShellTimersIndexRoute
+  '/_shell/workflows/': typeof ShellWorkflowsIndexRoute
+  '/_shell/aggregates/$type/$id': typeof ShellAggregatesTypeIdRoute
+  '/_shell/process-managers/$name/$correlation': typeof ShellProcessManagersNameCorrelationRoute
+  '/_shell/workflows/$name/$id': typeof ShellWorkflowsNameIdRoute
+  '/_shell/aggregates/$type/': typeof ShellAggregatesTypeIndexRoute
+  '/_shell/process-managers/$name/': typeof ShellProcessManagersNameIndexRoute
+  '/_shell/queues/$name/': typeof ShellQueuesNameIndexRoute
+  '/_shell/queues/$name/archive/$id': typeof ShellQueuesNameArchiveIdRoute
+  '/_shell/queues/$name/messages/$id': typeof ShellQueuesNameMessagesIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/categories/$name'
+    | '/events/$id'
+    | '/processors/$id'
+    | '/projections/$group'
+    | '/settings/connections'
+    | '/streams/$name'
+    | '/subscriptions/$name'
+    | '/aggregates/'
+    | '/categories/'
+    | '/events/'
+    | '/process-managers/'
+    | '/processors/'
+    | '/projections/'
+    | '/queues/'
+    | '/settings/'
+    | '/shards/'
+    | '/streams/'
+    | '/subscriptions/'
+    | '/timers/'
+    | '/workflows/'
+    | '/aggregates/$type/$id'
+    | '/process-managers/$name/$correlation'
+    | '/workflows/$name/$id'
+    | '/aggregates/$type/'
+    | '/process-managers/$name/'
+    | '/queues/$name/'
+    | '/queues/$name/archive/$id'
+    | '/queues/$name/messages/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/categories/$name'
+    | '/events/$id'
+    | '/processors/$id'
+    | '/projections/$group'
+    | '/settings/connections'
+    | '/streams/$name'
+    | '/subscriptions/$name'
+    | '/aggregates'
+    | '/categories'
+    | '/events'
+    | '/process-managers'
+    | '/processors'
+    | '/projections'
+    | '/queues'
+    | '/settings'
+    | '/shards'
+    | '/streams'
+    | '/subscriptions'
+    | '/timers'
+    | '/workflows'
+    | '/aggregates/$type/$id'
+    | '/process-managers/$name/$correlation'
+    | '/workflows/$name/$id'
+    | '/aggregates/$type'
+    | '/process-managers/$name'
+    | '/queues/$name'
+    | '/queues/$name/archive/$id'
+    | '/queues/$name/messages/$id'
+  id:
+    | '__root__'
+    | '/_shell'
+    | '/_shell/'
+    | '/_shell/categories/$name'
+    | '/_shell/events/$id'
+    | '/_shell/processors/$id'
+    | '/_shell/projections/$group'
+    | '/_shell/settings/connections'
+    | '/_shell/streams/$name'
+    | '/_shell/subscriptions/$name'
+    | '/_shell/aggregates/'
+    | '/_shell/categories/'
+    | '/_shell/events/'
+    | '/_shell/process-managers/'
+    | '/_shell/processors/'
+    | '/_shell/projections/'
+    | '/_shell/queues/'
+    | '/_shell/settings/'
+    | '/_shell/shards/'
+    | '/_shell/streams/'
+    | '/_shell/subscriptions/'
+    | '/_shell/timers/'
+    | '/_shell/workflows/'
+    | '/_shell/aggregates/$type/$id'
+    | '/_shell/process-managers/$name/$correlation'
+    | '/_shell/workflows/$name/$id'
+    | '/_shell/aggregates/$type/'
+    | '/_shell/process-managers/$name/'
+    | '/_shell/queues/$name/'
+    | '/_shell/queues/$name/archive/$id'
+    | '/_shell/queues/$name/messages/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
+  ShellRoute: typeof ShellRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
+    '/_shell': {
+      id: '/_shell'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof ShellRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_shell/': {
+      id: '/_shell/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof ShellIndexRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/aggregates/': {
+      id: '/_shell/aggregates/'
+      path: '/aggregates'
+      fullPath: '/aggregates/'
+      preLoaderRoute: typeof ShellAggregatesIndexRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/categories/': {
+      id: '/_shell/categories/'
+      path: '/categories'
+      fullPath: '/categories/'
+      preLoaderRoute: typeof ShellCategoriesIndexRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/categories/$name': {
+      id: '/_shell/categories/$name'
+      path: '/categories/$name'
+      fullPath: '/categories/$name'
+      preLoaderRoute: typeof ShellCategoriesNameRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/events/': {
+      id: '/_shell/events/'
+      path: '/events'
+      fullPath: '/events/'
+      preLoaderRoute: typeof ShellEventsIndexRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/events/$id': {
+      id: '/_shell/events/$id'
+      path: '/events/$id'
+      fullPath: '/events/$id'
+      preLoaderRoute: typeof ShellEventsIdRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/process-managers/': {
+      id: '/_shell/process-managers/'
+      path: '/process-managers'
+      fullPath: '/process-managers/'
+      preLoaderRoute: typeof ShellProcessManagersIndexRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/processors/': {
+      id: '/_shell/processors/'
+      path: '/processors'
+      fullPath: '/processors/'
+      preLoaderRoute: typeof ShellProcessorsIndexRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/processors/$id': {
+      id: '/_shell/processors/$id'
+      path: '/processors/$id'
+      fullPath: '/processors/$id'
+      preLoaderRoute: typeof ShellProcessorsIdRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/projections/': {
+      id: '/_shell/projections/'
+      path: '/projections'
+      fullPath: '/projections/'
+      preLoaderRoute: typeof ShellProjectionsIndexRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/projections/$group': {
+      id: '/_shell/projections/$group'
+      path: '/projections/$group'
+      fullPath: '/projections/$group'
+      preLoaderRoute: typeof ShellProjectionsGroupRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/queues/': {
+      id: '/_shell/queues/'
+      path: '/queues'
+      fullPath: '/queues/'
+      preLoaderRoute: typeof ShellQueuesIndexRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/settings/': {
+      id: '/_shell/settings/'
+      path: '/settings'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof ShellSettingsIndexRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/settings/connections': {
+      id: '/_shell/settings/connections'
+      path: '/settings/connections'
+      fullPath: '/settings/connections'
+      preLoaderRoute: typeof ShellSettingsConnectionsRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/shards/': {
+      id: '/_shell/shards/'
+      path: '/shards'
+      fullPath: '/shards/'
+      preLoaderRoute: typeof ShellShardsIndexRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/streams/': {
+      id: '/_shell/streams/'
+      path: '/streams'
+      fullPath: '/streams/'
+      preLoaderRoute: typeof ShellStreamsIndexRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/streams/$name': {
+      id: '/_shell/streams/$name'
+      path: '/streams/$name'
+      fullPath: '/streams/$name'
+      preLoaderRoute: typeof ShellStreamsNameRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/subscriptions/': {
+      id: '/_shell/subscriptions/'
+      path: '/subscriptions'
+      fullPath: '/subscriptions/'
+      preLoaderRoute: typeof ShellSubscriptionsIndexRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/subscriptions/$name': {
+      id: '/_shell/subscriptions/$name'
+      path: '/subscriptions/$name'
+      fullPath: '/subscriptions/$name'
+      preLoaderRoute: typeof ShellSubscriptionsNameRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/timers/': {
+      id: '/_shell/timers/'
+      path: '/timers'
+      fullPath: '/timers/'
+      preLoaderRoute: typeof ShellTimersIndexRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/workflows/': {
+      id: '/_shell/workflows/'
+      path: '/workflows'
+      fullPath: '/workflows/'
+      preLoaderRoute: typeof ShellWorkflowsIndexRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/aggregates/$type/': {
+      id: '/_shell/aggregates/$type/'
+      path: '/aggregates/$type'
+      fullPath: '/aggregates/$type/'
+      preLoaderRoute: typeof ShellAggregatesTypeIndexRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/aggregates/$type/$id': {
+      id: '/_shell/aggregates/$type/$id'
+      path: '/aggregates/$type/$id'
+      fullPath: '/aggregates/$type/$id'
+      preLoaderRoute: typeof ShellAggregatesTypeIdRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/process-managers/$name/': {
+      id: '/_shell/process-managers/$name/'
+      path: '/process-managers/$name'
+      fullPath: '/process-managers/$name/'
+      preLoaderRoute: typeof ShellProcessManagersNameIndexRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/process-managers/$name/$correlation': {
+      id: '/_shell/process-managers/$name/$correlation'
+      path: '/process-managers/$name/$correlation'
+      fullPath: '/process-managers/$name/$correlation'
+      preLoaderRoute: typeof ShellProcessManagersNameCorrelationRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/queues/$name/': {
+      id: '/_shell/queues/$name/'
+      path: '/queues/$name'
+      fullPath: '/queues/$name/'
+      preLoaderRoute: typeof ShellQueuesNameIndexRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/workflows/$name/$id': {
+      id: '/_shell/workflows/$name/$id'
+      path: '/workflows/$name/$id'
+      fullPath: '/workflows/$name/$id'
+      preLoaderRoute: typeof ShellWorkflowsNameIdRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/queues/$name/archive/$id': {
+      id: '/_shell/queues/$name/archive/$id'
+      path: '/queues/$name/archive/$id'
+      fullPath: '/queues/$name/archive/$id'
+      preLoaderRoute: typeof ShellQueuesNameArchiveIdRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/queues/$name/messages/$id': {
+      id: '/_shell/queues/$name/messages/$id'
+      path: '/queues/$name/messages/$id'
+      fullPath: '/queues/$name/messages/$id'
+      preLoaderRoute: typeof ShellQueuesNameMessagesIdRouteImport
+      parentRoute: typeof ShellRoute
     }
   }
 }
 
+interface ShellRouteChildren {
+  ShellIndexRoute: typeof ShellIndexRoute
+  ShellCategoriesNameRoute: typeof ShellCategoriesNameRoute
+  ShellEventsIdRoute: typeof ShellEventsIdRoute
+  ShellProcessorsIdRoute: typeof ShellProcessorsIdRoute
+  ShellProjectionsGroupRoute: typeof ShellProjectionsGroupRoute
+  ShellSettingsConnectionsRoute: typeof ShellSettingsConnectionsRoute
+  ShellStreamsNameRoute: typeof ShellStreamsNameRoute
+  ShellSubscriptionsNameRoute: typeof ShellSubscriptionsNameRoute
+  ShellAggregatesIndexRoute: typeof ShellAggregatesIndexRoute
+  ShellCategoriesIndexRoute: typeof ShellCategoriesIndexRoute
+  ShellEventsIndexRoute: typeof ShellEventsIndexRoute
+  ShellProcessManagersIndexRoute: typeof ShellProcessManagersIndexRoute
+  ShellProcessorsIndexRoute: typeof ShellProcessorsIndexRoute
+  ShellProjectionsIndexRoute: typeof ShellProjectionsIndexRoute
+  ShellQueuesIndexRoute: typeof ShellQueuesIndexRoute
+  ShellSettingsIndexRoute: typeof ShellSettingsIndexRoute
+  ShellShardsIndexRoute: typeof ShellShardsIndexRoute
+  ShellStreamsIndexRoute: typeof ShellStreamsIndexRoute
+  ShellSubscriptionsIndexRoute: typeof ShellSubscriptionsIndexRoute
+  ShellTimersIndexRoute: typeof ShellTimersIndexRoute
+  ShellWorkflowsIndexRoute: typeof ShellWorkflowsIndexRoute
+  ShellAggregatesTypeIdRoute: typeof ShellAggregatesTypeIdRoute
+  ShellProcessManagersNameCorrelationRoute: typeof ShellProcessManagersNameCorrelationRoute
+  ShellWorkflowsNameIdRoute: typeof ShellWorkflowsNameIdRoute
+  ShellAggregatesTypeIndexRoute: typeof ShellAggregatesTypeIndexRoute
+  ShellProcessManagersNameIndexRoute: typeof ShellProcessManagersNameIndexRoute
+  ShellQueuesNameIndexRoute: typeof ShellQueuesNameIndexRoute
+  ShellQueuesNameArchiveIdRoute: typeof ShellQueuesNameArchiveIdRoute
+  ShellQueuesNameMessagesIdRoute: typeof ShellQueuesNameMessagesIdRoute
+}
+
+const ShellRouteChildren: ShellRouteChildren = {
+  ShellIndexRoute: ShellIndexRoute,
+  ShellCategoriesNameRoute: ShellCategoriesNameRoute,
+  ShellEventsIdRoute: ShellEventsIdRoute,
+  ShellProcessorsIdRoute: ShellProcessorsIdRoute,
+  ShellProjectionsGroupRoute: ShellProjectionsGroupRoute,
+  ShellSettingsConnectionsRoute: ShellSettingsConnectionsRoute,
+  ShellStreamsNameRoute: ShellStreamsNameRoute,
+  ShellSubscriptionsNameRoute: ShellSubscriptionsNameRoute,
+  ShellAggregatesIndexRoute: ShellAggregatesIndexRoute,
+  ShellCategoriesIndexRoute: ShellCategoriesIndexRoute,
+  ShellEventsIndexRoute: ShellEventsIndexRoute,
+  ShellProcessManagersIndexRoute: ShellProcessManagersIndexRoute,
+  ShellProcessorsIndexRoute: ShellProcessorsIndexRoute,
+  ShellProjectionsIndexRoute: ShellProjectionsIndexRoute,
+  ShellQueuesIndexRoute: ShellQueuesIndexRoute,
+  ShellSettingsIndexRoute: ShellSettingsIndexRoute,
+  ShellShardsIndexRoute: ShellShardsIndexRoute,
+  ShellStreamsIndexRoute: ShellStreamsIndexRoute,
+  ShellSubscriptionsIndexRoute: ShellSubscriptionsIndexRoute,
+  ShellTimersIndexRoute: ShellTimersIndexRoute,
+  ShellWorkflowsIndexRoute: ShellWorkflowsIndexRoute,
+  ShellAggregatesTypeIdRoute: ShellAggregatesTypeIdRoute,
+  ShellProcessManagersNameCorrelationRoute:
+    ShellProcessManagersNameCorrelationRoute,
+  ShellWorkflowsNameIdRoute: ShellWorkflowsNameIdRoute,
+  ShellAggregatesTypeIndexRoute: ShellAggregatesTypeIndexRoute,
+  ShellProcessManagersNameIndexRoute: ShellProcessManagersNameIndexRoute,
+  ShellQueuesNameIndexRoute: ShellQueuesNameIndexRoute,
+  ShellQueuesNameArchiveIdRoute: ShellQueuesNameArchiveIdRoute,
+  ShellQueuesNameMessagesIdRoute: ShellQueuesNameMessagesIdRoute,
+}
+
+const ShellRouteWithChildren = ShellRoute._addFileChildren(ShellRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
+  ShellRoute: ShellRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

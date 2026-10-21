@@ -1,5 +1,15 @@
-import { createRootRoute, HeadContent, Outlet } from "@tanstack/react-router"
+import { RouterProvider as AriaRouterProvider } from "@keiro-ui/ui/components/router-provider"
+import { Toaster } from "@keiro-ui/ui/components/sonner"
+import { type QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { createRootRouteWithContext, HeadContent, Outlet, useRouter } from "@tanstack/react-router"
 import { lazy, Suspense } from "react"
+
+import { registerAllFeatures } from "@/features"
+import { navigateToHref, publicHref } from "@/lib/href"
+import { StatusSlotProvider } from "@/shell/status-slots"
+import { ThemeProvider, useTheme } from "@/shell/theme"
+
+registerAllFeatures()
 
 const RouterDevtools = import.meta.env.DEV
   ? lazy(() =>
@@ -9,19 +19,37 @@ const RouterDevtools = import.meta.env.DEV
     )
   : () => null
 
-export const Route = createRootRoute({
-  head: () => ({ meta: [{ title: "keiro runtime console" }] }),
+export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  head: () => ({ meta: [{ title: "keiro console" }] }),
   component: RootComponent,
 })
 
+function ThemedToaster() {
+  const { resolved } = useTheme()
+  return <Toaster theme={resolved} />
+}
+
 function RootComponent() {
+  const { queryClient } = Route.useRouteContext()
+  const router = useRouter()
   return (
-    <>
-      <HeadContent />
-      <Outlet />
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        {/* React Aria links (sidebar entries) navigate through TanStack Router. */}
+        <AriaRouterProvider
+          navigate={(href) => void navigateToHref(router, href)}
+          useHref={(href) => publicHref(router, href)}
+        >
+          <StatusSlotProvider>
+            <HeadContent />
+            <Outlet />
+            <ThemedToaster />
+          </StatusSlotProvider>
+        </AriaRouterProvider>
+      </ThemeProvider>
       <Suspense>
         <RouterDevtools />
       </Suspense>
-    </>
+    </QueryClientProvider>
   )
 }

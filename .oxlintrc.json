@@ -18,6 +18,12 @@
       {
         "allow": ["**/*.css", "@testing-library/jest-dom/vitest"]
       }
+    ],
+    "eslint/no-underscore-dangle": [
+      "warn",
+      {
+        "allow": ["__APP_VERSION__", "__GIT_COMMIT__"]
+      }
     ]
   },
   "overrides": [
@@ -28,6 +34,12 @@
         "react/jsx-no-constructed-context-values": "off",
         "react/no-array-index-key": "off",
         "react/set-state-in-effect": "off"
+      }
+    },
+    {
+      "files": ["**/e2e/**"],
+      "rules": {
+        "eslint/no-await-in-loop": "off"
       }
     }
   ],

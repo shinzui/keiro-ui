@@ -1,7 +1,24 @@
+import { execSync } from "node:child_process"
+import { readFileSync } from "node:fs"
+
 import tailwindcss from "@tailwindcss/vite"
 import { tanstackRouter } from "@tanstack/router-plugin/vite"
 import react from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
+
+const appVersion: string = JSON.parse(
+  readFileSync(new URL("./package.json", import.meta.url), "utf8"),
+).version
+
+function gitCommit(): string {
+  try {
+    return execSync("git rev-parse --short HEAD", { stdio: ["ignore", "pipe", "ignore"] })
+      .toString()
+      .trim()
+  } catch {
+    return "unknown"
+  }
+}
 
 // The four inspection surfaces, reached under the prefixes keiro's composeSurfaces uses
 // (docs/masterplans/2-build-the-keiro-runtime-console.md, "Local ports and the
@@ -10,6 +27,10 @@ const surfaces = { shibuya: 9090, kiroku: 9091, pgmq: 9092, keiro: 9093 } as con
 
 export default defineConfig({
   resolve: { tsconfigPaths: true },
+  define: {
+    __APP_VERSION__: JSON.stringify(appVersion),
+    __GIT_COMMIT__: JSON.stringify(gitCommit()),
+  },
   plugins: [tanstackRouter({ target: "react", autoCodeSplitting: true }), react(), tailwindcss()],
   server: {
     port: 5173,

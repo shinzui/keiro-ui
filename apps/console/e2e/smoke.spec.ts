@@ -2,12 +2,10 @@ import { expect, test } from "@playwright/test"
 
 test.use({ colorScheme: "dark" })
 
-test("placeholder page renders in Paper Mono, light by default, with theme toggle and sheet", async ({
-  page,
-}) => {
+test("the production build renders the shell in Paper Mono, light by default", async ({ page }) => {
   await page.goto("/")
 
-  await expect(page.getByRole("heading", { name: "keiro runtime console" })).toBeVisible()
+  await expect(page.getByRole("heading", { level: 1, name: "Overview" })).toBeVisible()
 
   // Light is the default even when the browser prefers dark.
   await expect(page.locator("html")).not.toHaveClass(/\bdark\b/)
@@ -23,11 +21,4 @@ test("placeholder page renders in Paper Mono, light by default, with theme toggl
   })
   expect(paperMonoLoaded).toBe(true)
   await expect(page.getByRole("heading", { level: 1 })).toHaveCSS("font-family", /Paper Mono/)
-
-  await page.getByRole("button", { name: "Use dark theme" }).click()
-  await expect(page.locator("html")).toHaveClass(/\bdark\b/)
-
-  await page.getByRole("button", { name: "Open inspector" }).click()
-  await expect(page.getByRole("dialog")).toBeVisible()
-  await expect(page.getByRole("heading", { name: "Inspector" })).toBeVisible()
 })

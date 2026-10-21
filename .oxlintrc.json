@@ -41,6 +41,12 @@
       "rules": {
         "eslint/no-await-in-loop": "off"
       }
+    },
+    {
+      "files": ["packages/testing/scripts/**"],
+      "rules": {
+        "eslint/no-await-in-loop": "off"
+      }
     }
   ],
   "ignorePatterns": [

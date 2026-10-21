@@ -258,7 +258,7 @@ async function resolvePgmq(manifest: Manifest, pins: Record<string, string>) {
 async function resolveShibuya(manifest: Manifest, pins: Record<string, string>) {
   if (pins.processor) return
   const metrics = await getJson<Record<string, unknown>>(`${baseUrl(manifest)}/metrics`)
-  pins.processor = Object.keys(metrics).sort()[0] ?? ""
+  pins.processor = Object.keys(metrics).toSorted()[0] ?? ""
 }
 
 async function resolveKeiro(manifest: Manifest, pins: Record<string, string>) {
@@ -321,9 +321,9 @@ async function main() {
   const requested = process.argv.slice(2) as Surface[]
   const selected = requested.length ? requested : [...surfaces]
   // kiroku first: keiro's stream pin reuses kiroku's.
-  selected.sort((a, b) => surfaces.indexOf(a) - surfaces.indexOf(b))
+  const ordered = selected.toSorted((a, b) => surfaces.indexOf(a) - surfaces.indexOf(b))
 
-  for (const surface of selected) {
+  for (const surface of ordered) {
     const manifestPath = join(manifestsDir, `${surface}.json`)
     const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as Manifest
     for (const key of Object.keys(meta.files)) {
@@ -349,7 +349,9 @@ async function main() {
   )
   meta.recorded_at = new Date().toISOString()
   meta.seed = `keiro just jitsurei-all (keiro ${gitHead(env.KEIRO_REPO)}) + dev/seed-queues.sh`
-  meta.files = Object.fromEntries(Object.entries(meta.files).sort(([a], [b]) => a.localeCompare(b)))
+  meta.files = Object.fromEntries(
+    Object.entries(meta.files).toSorted(([a], [b]) => a.localeCompare(b)),
+  )
   writeFileSync(metaPath, `${JSON.stringify(meta, null, 2)}\n`)
   const commits = Object.entries(meta.sources)
     .map(([name, s]) => `${name} ${s.commit}`)

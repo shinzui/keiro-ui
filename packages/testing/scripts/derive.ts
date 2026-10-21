@@ -12,8 +12,8 @@
 // /metrics is shibuya-metrics/test/golden/processor-metrics.json.golden (every processor state,
 // latency, progress, oldestInFlight); the recorded basic map is metrics.recorded.json.
 //
-// keiro: /aggregate/* and /pm/* fixtures are written by hand from keiro's encoders (see their
-// derived_from); this script only re-registers them.
+// keiro: /aggregate/* and /pm/* fixtures were written by hand from keiro's encoders (see their
+// derived_from); this script only registers them.
 import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs"
 import { dirname, join } from "node:path"
 
@@ -306,8 +306,153 @@ function deriveShibuya() {
   )
 }
 
+// --- keiro ---------------------------------------------------------------------------------
+
+// The aggregate and process-manager routes exist only when a host mounts AppHooks; no runnable
+// host does, so these bodies were written by hand from keiro's encoders (route grammar: only the
+// command words are path segments; type, id, and correlation are query flags).
+const KEIRO = "mori://shinzui/keiro"
+const keiroPins = {
+  aggregate_type: "order",
+  aggregate_id: "demo-20261021202320671316000000",
+  process_manager: "jitsurei-fulfillment",
+  correlation_id: "demo-20261021202320671316000000",
+}
+
+function keiroEntry(
+  slug: string,
+  variant: "default" | "error",
+  template: string,
+  query: Record<string, string>,
+  status: number,
+  derivedFrom: string,
+): Omit<FileMeta, "derived"> {
+  const search = new URLSearchParams(query).toString()
+  return {
+    surface: "keiro",
+    slug,
+    variant,
+    method: "GET",
+    template,
+    query,
+    params: {},
+    request: `${template}${search ? `?${search}` : ""}`,
+    status,
+    contentType: "application/json; charset=utf-8",
+    derived_from: `${KEIRO} ${derivedFrom}`,
+  }
+}
+
+function registerKeiro() {
+  const {
+    aggregate_type: type,
+    aggregate_id: id,
+    process_manager: pm,
+    correlation_id: correlation,
+  } = keiroPins
+  const entries: [string, Omit<FileMeta, "derived">][] = [
+    [
+      "keiro/aggregate-types.json",
+      keiroEntry(
+        "aggregate-types",
+        "default",
+        "/aggregate/types",
+        {},
+        200,
+        "keiro/src/Keiro/Inspection/Aggregate.hs aggregateTypeJson; keiro-ops/src/Keiro/Ops/Aggregate.hs ({items} envelope); inspectors jitsurei/src/Jitsurei/Inspection.hs",
+      ),
+    ],
+    [
+      "keiro/aggregate-list.json",
+      keiroEntry(
+        "aggregate-list",
+        "default",
+        "/aggregate/list",
+        { name: type },
+        200,
+        "keiro/src/Keiro/Inspection/Aggregate.hs aggregateListPageJson; rows from the recorded kiroku/streams-by-category.json",
+      ),
+    ],
+    [
+      "keiro/aggregate-show.json",
+      keiroEntry(
+        "aggregate-show",
+        "default",
+        "/aggregate/show",
+        { name: type, id },
+        200,
+        "keiro/src/Keiro/Inspection/Aggregate.hs aggregate view, hydration, and snapshot encoders; state folded from the recorded order stream",
+      ),
+    ],
+    [
+      "keiro/aggregate-show.error.json",
+      keiroEntry(
+        "aggregate-show",
+        "error",
+        "/aggregate/show",
+        { name: type, id: "missing" },
+        422,
+        "keiro-ops-http Application.hs 422 command_failed for AggregateNotFound",
+      ),
+    ],
+    [
+      "keiro/aggregate-snapshot.json",
+      keiroEntry(
+        "aggregate-snapshot",
+        "default",
+        "/aggregate/snapshot",
+        { name: type, id },
+        200,
+        "keiro/src/Keiro/Inspection/Aggregate.hs snapshotStatusJson; keiro-ops/src/Keiro/Ops/Aggregate.hs",
+      ),
+    ],
+    [
+      "keiro/pm-list.json",
+      keiroEntry(
+        "pm-list",
+        "default",
+        "/pm/list",
+        { name: pm },
+        200,
+        "keiro/src/Keiro/ProcessManager/Inspect.hs instancePageJson",
+      ),
+    ],
+    [
+      "keiro/pm-show.json",
+      keiroEntry(
+        "pm-show",
+        "default",
+        "/pm/show",
+        { name: pm, correlation },
+        200,
+        "keiro/src/Keiro/ProcessManager/Inspect.hs processManagerViewJson; journal event from the recorded $all log",
+      ),
+    ],
+    [
+      "keiro/pm-show.error.json",
+      keiroEntry(
+        "pm-show",
+        "error",
+        "/pm/show",
+        { name: pm, correlation: "missing" },
+        200,
+        "keiro/src/Keiro/ProcessManager/Inspect.hs: an unknown correlation id answers 200 with the body null",
+      ),
+    ],
+  ]
+  for (const [relative, entry] of entries) {
+    meta.files[relative] = { ...entry, derived: true }
+    console.log(`registered ${relative}`)
+  }
+  const manifestPath = join(packageRoot, "manifests/keiro.json")
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as Manifest
+  manifest.pins = { ...manifest.pins, ...keiroPins }
+  writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
+}
+
 deriveKiroku()
 deriveShibuya()
+registerKeiro()
 meta.files = Object.fromEntries(
   Object.entries(meta.files).toSorted(([a], [b]) => a.localeCompare(b)),
 )

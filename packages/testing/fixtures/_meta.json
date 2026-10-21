@@ -19,6 +19,87 @@
     }
   },
   "files": {
+    "keiro/aggregate-list.json": {
+      "surface": "keiro",
+      "slug": "aggregate-list",
+      "variant": "default",
+      "method": "GET",
+      "template": "/aggregate/list",
+      "query": {
+        "name": "order"
+      },
+      "params": {},
+      "request": "/aggregate/list?name=order",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "derived_from": "mori://shinzui/keiro keiro/src/Keiro/Inspection/Aggregate.hs aggregateListPageJson; rows from the recorded kiroku/streams-by-category.json",
+      "derived": true
+    },
+    "keiro/aggregate-show.error.json": {
+      "surface": "keiro",
+      "slug": "aggregate-show",
+      "variant": "error",
+      "method": "GET",
+      "template": "/aggregate/show",
+      "query": {
+        "name": "order",
+        "id": "missing"
+      },
+      "params": {},
+      "request": "/aggregate/show?name=order&id=missing",
+      "status": 422,
+      "contentType": "application/json; charset=utf-8",
+      "derived_from": "mori://shinzui/keiro keiro-ops-http Application.hs 422 command_failed for AggregateNotFound",
+      "derived": true
+    },
+    "keiro/aggregate-show.json": {
+      "surface": "keiro",
+      "slug": "aggregate-show",
+      "variant": "default",
+      "method": "GET",
+      "template": "/aggregate/show",
+      "query": {
+        "name": "order",
+        "id": "demo-20261021202320671316000000"
+      },
+      "params": {},
+      "request": "/aggregate/show?name=order&id=demo-20261021202320671316000000",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "derived_from": "mori://shinzui/keiro keiro/src/Keiro/Inspection/Aggregate.hs aggregate view, hydration, and snapshot encoders; state folded from the recorded order stream",
+      "derived": true
+    },
+    "keiro/aggregate-snapshot.json": {
+      "surface": "keiro",
+      "slug": "aggregate-snapshot",
+      "variant": "default",
+      "method": "GET",
+      "template": "/aggregate/snapshot",
+      "query": {
+        "name": "order",
+        "id": "demo-20261021202320671316000000"
+      },
+      "params": {},
+      "request": "/aggregate/snapshot?name=order&id=demo-20261021202320671316000000",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "derived_from": "mori://shinzui/keiro keiro/src/Keiro/Inspection/Aggregate.hs snapshotStatusJson; keiro-ops/src/Keiro/Ops/Aggregate.hs",
+      "derived": true
+    },
+    "keiro/aggregate-types.json": {
+      "surface": "keiro",
+      "slug": "aggregate-types",
+      "variant": "default",
+      "method": "GET",
+      "template": "/aggregate/types",
+      "query": {},
+      "params": {},
+      "request": "/aggregate/types",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "derived_from": "mori://shinzui/keiro keiro/src/Keiro/Inspection/Aggregate.hs aggregateTypeJson; keiro-ops/src/Keiro/Ops/Aggregate.hs ({items} envelope); inspectors jitsurei/src/Jitsurei/Inspection.hs",
+      "derived": true
+    },
     "keiro/health.json": {
       "surface": "keiro",
       "slug": "health",
@@ -68,6 +149,56 @@
       "request": "/outbox/list?limit=100",
       "status": 400,
       "contentType": "application/json; charset=utf-8"
+    },
+    "keiro/pm-list.json": {
+      "surface": "keiro",
+      "slug": "pm-list",
+      "variant": "default",
+      "method": "GET",
+      "template": "/pm/list",
+      "query": {
+        "name": "jitsurei-fulfillment"
+      },
+      "params": {},
+      "request": "/pm/list?name=jitsurei-fulfillment",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "derived_from": "mori://shinzui/keiro keiro/src/Keiro/ProcessManager/Inspect.hs instancePageJson",
+      "derived": true
+    },
+    "keiro/pm-show.error.json": {
+      "surface": "keiro",
+      "slug": "pm-show",
+      "variant": "error",
+      "method": "GET",
+      "template": "/pm/show",
+      "query": {
+        "name": "jitsurei-fulfillment",
+        "correlation": "missing"
+      },
+      "params": {},
+      "request": "/pm/show?name=jitsurei-fulfillment&correlation=missing",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "derived_from": "mori://shinzui/keiro keiro/src/Keiro/ProcessManager/Inspect.hs: an unknown correlation id answers 200 with the body null",
+      "derived": true
+    },
+    "keiro/pm-show.json": {
+      "surface": "keiro",
+      "slug": "pm-show",
+      "variant": "default",
+      "method": "GET",
+      "template": "/pm/show",
+      "query": {
+        "name": "jitsurei-fulfillment",
+        "correlation": "demo-20261021202320671316000000"
+      },
+      "params": {},
+      "request": "/pm/show?name=jitsurei-fulfillment&correlation=demo-20261021202320671316000000",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "derived_from": "mori://shinzui/keiro keiro/src/Keiro/ProcessManager/Inspect.hs processManagerViewJson; journal event from the recorded $all log",
+      "derived": true
     },
     "keiro/projection-status.json": {
       "surface": "keiro",

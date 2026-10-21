@@ -1,0 +1,1 @@
+{"items":[{"category":"incident","name":"incident","snapshot_policy":"never","snapshots_configured":false},{"category":"order","name":"order","snapshot_policy":"every:2","snapshots_configured":true}]}

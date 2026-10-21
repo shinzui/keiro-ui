@@ -9,6 +9,7 @@ import {
 } from "@keiro-ui/ui/components/table"
 import { Link } from "@tanstack/react-router"
 
+import { GlobalPosition } from "@/components/GlobalPosition"
 import { PositionBadge } from "@/components/PositionBadge"
 import { Timestamp } from "@/components/timestamp"
 import { links } from "@/lib/links"
@@ -71,7 +72,7 @@ export function EventsTable({
               </TableCell>
             )}
             <TableCell>
-              <PositionBadge value={event.globalPosition} label="global position" />
+              <GlobalPosition value={event.globalPosition} />
             </TableCell>
             <TableCell>
               <Timestamp value={event.createdAt} />

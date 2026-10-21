@@ -1,16 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router"
 
-import { PlaceholderPage } from "@/components/placeholder-page"
+import { PageHeader } from "@/components/page-header"
+import { Overview } from "@/features/overview/overview"
+import { shellSearchSchema } from "@/shell/search"
 
 export const Route = createFileRoute("/_shell/")({
-  component: Page,
+  validateSearch: shellSearchSchema,
+  component: OverviewPage,
 })
 
-function Page() {
+function OverviewPage() {
   return (
-    <PlaceholderPage
-      title={"Overview"}
-      plan="docs/plans/17-build-the-projections-and-overview-screens.md"
-    />
+    <>
+      <PageHeader
+        title="Overview"
+        description="Each card reads one surface; click a card to open its section."
+      />
+      <Overview />
+    </>
   )
 }

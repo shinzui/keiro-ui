@@ -21,6 +21,11 @@ provenance:
       at: 2026-10-21T18:42:29Z
       mode: "update"
       note: "Round 2: align to owning-plan spellings, correct audited upstream facts, e2e layout, light theme where applicable"
+    - model: "claude-opus-5-5"
+      harness: "claude-code"
+      at: 2026-10-21T22:22:25Z
+      mode: "implement"
+      note: "M1-M4 implemented: projections, shards, overview, live-stack gate passed"
   reviews:
     - model: "claude-fable-5-1"
       harness: "claude-code"
@@ -68,28 +73,50 @@ section with the same numbers in the table.
 
 ## Progress
 
-- [ ] M1: `/projections` lists every projection group from `projections.status` with the
-  global position distance computed and labelled per ADR-28, lifecycle and failure badges,
-  candidate-rebuild progress, cursor paging, and live upserts/removals from the
-  `projection_groups` feed; vitest and Playwright specs pass against fixtures.
-- [ ] M2: `/projections/$group` shows the group's detail card and, given a subscription
-  name, its member checkpoints and `maximum_global_position_distance` with a link to the
-  kiroku checkpoint row; `/shards` lists sharded subscriptions and shows per-bucket
-  ownership for one subscription behind `?subscription=`.
-- [ ] M3: `/` renders the seven concern cards, the four-surface health strip, and the keiro
-  health card, each sourced from exactly one client call, each linking into its section,
-  each showing "as of" and honouring pause; honest limits ("500+", "not mounted on this
-  host", "unreachable") render exactly as specified below.
-- [ ] M4: Sidebar entries, `projection <group>` command, recent-entity recording, the full
-  Playwright suite, and the live-stack integration gate: the manual walkthrough below is
-  completed against the EP-9 stack with evidence recorded here, `e2e/live.spec.ts`
-  passes under `KEIRO_UI_LIVE=1`, and the gate checkbox in
-  `docs/masterplans/2-build-the-keiro-runtime-console.md` is ticked with the date.
+- [x] M1 (2026-10-21): `/projections` with the global position distance per group
+  (`features/projections/distance.ts`, bigint-exact; "n/a", "caught up", the number, or
+  "ahead by"), lifecycle, access, rebuild progress, and failure badges, URL cursor paging, and
+  the `projection_groups` feed on page one. Evidence: `distance.test.ts` (including 2^62),
+  `projections.test.tsx` (feed change and removal with no re-read; one re-read on overflow).
+- [x] M2 (2026-10-21): `/projections/$group` (the group card, the feeding-subscription
+  limitation sentence, members and maximum distance when given a subscription) and `/shards`
+  (list, and ownership with the unowned count behind `?subscription=`). Evidence:
+  `projections.test.tsx`, `e2e/projections/shards.spec.ts`.
+- [x] M3 (2026-10-21): `/` with seven cards (queues, workflows, projections, processors, store,
+  aggregates & process managers, timers), the surfaces strip, and the keiro health card; "+"
+  and "newest 500 instances" on a sampled workflow page, "not mounted on this host", and
+  "mutations: disabled on server". Evidence: `overview.test.tsx`;
+  `e2e/overview/overview.spec.ts` (keyboard and mouse navigation; no card read for 7 s while
+  paused, at least five at once on resume).
+- [x] M4 (2026-10-21): the live-stack integration gate. Walkthrough on the jitsurei stack
+  (kiroku-metrics 0.3.0.1 at kiroku `ea364cf`, pgmq-inspect 0.1.0.0 at pgmq-hs `d6750a6`,
+  keiro-ops-http 0.21.0.0 at keiro `7ee722a7`, and the shibuya-pgmq-adapter example consumer
+  on shibuya-metrics 0.10.0.x): `/` shows four healthy surfaces and live headlines; every list
+  screen renders rows or its empty or not-mounted state. `KEIRO_UI_LIVE=1 bunx playwright test
+  --config playwright.live.config.ts` → `✓ e2e/live.spec.ts:26:1 › every section renders
+  against the live stack (1.6s)`, `1 passed`; `KEIRO_UI_LIVE=1 bunx vitest run
+  packages/client-core/test/contract.test.ts` → 112 passed. Playwright screens and shell 49
+  passed; `bun run test` 541 passed; `bun run check` clean.
 
 
 ## Surprises & Discoveries
 
-(None yet.)
+- keiro-ops-http admits 4 concurrent inspection reads by default (`defaultInspectionLimits`
+  in `keiro-ops-http/src/Keiro/Ops/Http/Config.hs`) and answers 503 `inspection_busy` beyond
+  that. The Overview's keiro reads plus the shell's health probe exceeded it, so the stuck-timer
+  read failed and keiro's health dot turned red under the console's own load. The client core's
+  HTTP client gained `maxConcurrent` (an in-order limiter), the keiro client uses 3, and the
+  shell's probe treats a keiro `inspection_busy` 503 as degraded ("busy"), not down.
+- The keiro feed hook wrote `projection_groups` frames' `visible_store_head` into the cache as a
+  JSON number while the HTTP page holds a bigint; mixed bigint math would throw. The hook now
+  converts with `toInt64`, and the scripted feed sends the head as real keiro does.
+- The recorded projection and shard fixtures have no served positions, members, or sharded
+  subscriptions; `derive.ts` keeps the recorded rows and adds one group per display case and
+  a sharded `jitsurei-order-reporting`, aligned with the derived kiroku checkpoints.
+- Live, the only managed group (`jitsurei-order-reporting`) serves no position, so the
+  Projections card says "no served position" rather than "all caught up".
+- The shell's health probes keep polling while liveness is paused (they describe
+  connectivity); the pause acceptance counts the cards' reads, not the probes.
 
 
 ## Decision Log
@@ -129,10 +156,27 @@ section with the same numbers in the table.
   `/rebuild/*` routes are hook-gated and absent from every runnable host today.
   Date: 2026-10-21
 
+- Decision: The projections list pages by URL cursor (`after`) with the shared pager rather
+  than "load more", like every other list; page one shares its cache entry with the feed.
+  The surfaces strip reuses the shell's `useSurfaceHealth` (same rule, shared cache) instead of
+  issuing its own health calls. No `registerProjectionsFeature()`: the section's pages and
+  palette entries are the shell's and recents are recorded by kind.
+  Rationale: one paging idiom across lists; no duplicate probes; no empty registration.
+  Date: 2026-10-21
+
 
 ## Outcomes & Retrospective
 
-(To be filled during and after implementation.)
+Complete (2026-10-21). Projections show the global position distance exactly, live on the
+first page; the group page shows a feeding subscription's members when the operator names it;
+shards show bucket ownership; and the Overview composes one card per concern from one owner
+call each, honestly bounded ("+", "not mounted on this host"). The live-stack integration gate
+passed on the jitsurei stack, so every read-only section is verified end to end.
+
+Found on the way and fixed: the console exceeded keiro's inspection budget on the Overview
+(now a client-side cap and a "busy" health state), and the projection feed's head type.
+Candidate improvement requests to keiro, recorded for the MasterPlan: expose the feeding
+subscription on `/projection/status` rows; a status-class count read for workflows.
 
 
 ## Context and Orientation

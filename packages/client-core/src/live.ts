@@ -104,10 +104,16 @@ export function usePollInterval(surface: Surface, poll: number | false | undefin
   return { paused, measure, refetchInterval, lastDuration }
 }
 
-/** Retries at most twice, and never a 4xx (a definite answer from the surface). */
+/**
+ * Retries at most twice, and only what may succeed next time: a network failure (status 0) or
+ * a 5xx, directly or as the `cause` of a client's typed error. A 4xx is a definite answer
+ * and a response that fails its schema fails again, so neither is retried.
+ */
 export function surfaceRetry(failureCount: number, error: unknown): boolean {
-  if (error instanceof ApiError && error.status >= 400 && error.status < 500) return false
-  return failureCount < 2
+  for (let e: unknown = error; e instanceof Error; e = e.cause) {
+    if (e instanceof ApiError) return (e.status === 0 || e.status >= 500) && failureCount < 2
+  }
+  return false
 }
 
 /**

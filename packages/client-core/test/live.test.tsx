@@ -31,7 +31,7 @@ describe("adaptiveInterval", () => {
   })
 })
 
-test("surfaceRetry never retries a 4xx and stops after two attempts", () => {
+test("surfaceRetry retries only network failures and 5xx, at most twice", () => {
   const notFound = new ApiError({
     surface: "pgmq",
     status: 404,
@@ -49,6 +49,11 @@ test("surfaceRetry never retries a 4xx and stops after two attempts", () => {
   expect(surfaceRetry(0, notFound)).toBe(false)
   expect(surfaceRetry(0, unavailable)).toBe(true)
   expect(surfaceRetry(2, unavailable)).toBe(false)
+  // A client's typed refusal built from a 4xx (keiro's RouteUnavailable) is not retried.
+  expect(surfaceRetry(0, new Error("not mounted", { cause: notFound }))).toBe(false)
+  expect(surfaceRetry(0, new Error("transient", { cause: unavailable }))).toBe(true)
+  // A response that failed its schema fails again.
+  expect(surfaceRetry(0, new Error("invalid_type at [0].last_error"))).toBe(false)
 })
 
 describe("useSurfaceQuery", () => {

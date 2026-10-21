@@ -318,8 +318,11 @@ function keiro(): WebSocketHandler[] {
         const first = elements[0]
         const last = elements.length > 1 ? elements[elements.length - 1] : undefined
         let sequence = 0
+        // projection_groups frames carry the page's visible store head (Views.hs).
+        const head = fieldText(body, "visible_store_head")
+        const headField = head ? `"visible_store_head":${head},` : ""
         const frame = (fields: string) =>
-          `{"type":"%T","feed":${JSON.stringify(name)},"sequence":${sequence},${fields}}`
+          `{"type":"%T","feed":${JSON.stringify(name)},"sequence":${sequence},${headField}${fields}}`
         client.send(
           frame(
             `"trigger":"subscribe","observed_at":"${new Date().toISOString()}","items":${items}`,

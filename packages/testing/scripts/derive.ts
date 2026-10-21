@@ -562,9 +562,180 @@ function deriveKeiroTimers() {
   keiroPins.timer_id = timers[0]!.timer_id
 }
 
+// Projection status rows follow keiro_read.projection_group_status_v1 (keiro/src/Keiro/ReadModel/
+// Rebuild/Status.hs) and shards follow keiro-ops/src/Keiro/Ops/Shard.hs. The jitsurei seed
+// serves no position for any group and runs no sharded subscription, so the derived bodies
+// keep the recorded rows and add one group per display case, aligned with the derived kiroku
+// checkpoints of jitsurei-order-reporting (members at 28 and 9; head 30).
+function deriveKeiroProjections() {
+  const statusPath = "keiro/projection-status.json"
+  const positionPath = "keiro/projection-position.json"
+  const shardsPath = "keiro/shards.json"
+  const shardStatusPath = "keiro/shard-status.json"
+  const recordedEntry = (path: string) =>
+    meta.files[path] ?? meta.files[path.replace(/\.json$/, ".recorded.json")]
+  const entries = [statusPath, positionPath, shardsPath, shardStatusPath].map((path) => {
+    const entry = recordedEntry(path)
+    if (!entry) throw new Error(`record ${path} before deriving it`)
+    return entry
+  })
+  for (const path of [statusPath, positionPath, shardsPath, shardStatusPath]) keepRecorded(path)
+  const recorded = JSON.parse(read("keiro/projection-status.recorded.json")) as {
+    items: Record<string, unknown>[]
+    observed_at: string
+  }
+  const head = 30
+  const quiet = {
+    active_run_id: null,
+    candidate_rebuild_head: null,
+    candidate_rebuild_position: null,
+    candidate_revision_id: null,
+    failed_at: null,
+    failure_code: null,
+    failure_detail: null,
+    last_promoted_at: "2026-10-21T20:23:21.000Z",
+    rebuild_started_at: null,
+    reads_allowed: true,
+    writes_allowed: true,
+    serving_epoch: 1,
+  }
+  const items = [
+    ...recorded.items.filter((row) => row.serving_position_basis === "unmanaged").map((row) => row),
+    {
+      ...quiet,
+      group_id: "jitsurei-order-reporting",
+      lifecycle_phase: "live",
+      query_models: ["jitsurei-order-reporting"],
+      serving_position_basis: "checkpoint",
+      serving_applied_position: 9,
+      serving_revision_id: "rev-order-reporting-1",
+    },
+    {
+      ...quiet,
+      group_id: "jitsurei-order-search",
+      lifecycle_phase: "rebuilding",
+      query_models: ["jitsurei-order-search", "jitsurei-order-search-facets"],
+      serving_position_basis: "append",
+      serving_applied_position: head,
+      serving_revision_id: "rev-order-search-1",
+      active_run_id: "run-order-search-2",
+      candidate_revision_id: "rev-order-search-2",
+      candidate_rebuild_position: 12,
+      candidate_rebuild_head: head,
+      rebuild_started_at: "2026-10-21T21:10:00.000Z",
+    },
+    {
+      ...quiet,
+      group_id: "jitsurei-carrier-quotes",
+      lifecycle_phase: "failed",
+      query_models: ["jitsurei-carrier-quotes"],
+      reads_allowed: false,
+      writes_allowed: false,
+      serving_position_basis: "checkpoint",
+      serving_applied_position: 4,
+      serving_revision_id: "rev-carrier-quotes-1",
+      failed_at: "2026-10-21T21:12:00.000Z",
+      failure_code: "apply_failed",
+      failure_detail: { message: "carrier quote decode failed\nat stream version 3" },
+    },
+  ]
+  derive(statusPath, json({ items, observed_at: recorded.observed_at, visible_store_head: head }), {
+    ...entries[0]!,
+    variant: "default",
+    derived_from: `${KEIRO} keiro/src/Keiro/ReadModel/Rebuild/Status.hs (projection_group_status_v1); recorded unmanaged rows kept, one group per display case added`,
+  })
+  derive(
+    positionPath,
+    json({
+      subscription: "jitsurei-order-reporting",
+      store_position: head,
+      visible_store_head: head,
+      minimum_checkpoint_position: 9,
+      maximum_global_position_distance: 21,
+      members: [
+        {
+          subscription: "jitsurei-order-reporting",
+          member: 0,
+          checkpoint_position: 28,
+          checkpoint_updated_at: "2026-10-21T21:24:50.767Z",
+          global_position_distance: 2,
+        },
+        {
+          subscription: "jitsurei-order-reporting",
+          member: 1,
+          checkpoint_position: 9,
+          checkpoint_updated_at: "2026-10-21T21:23:50.767Z",
+          global_position_distance: 21,
+        },
+      ],
+    }),
+    {
+      ...entries[1]!,
+      variant: "default",
+      derived_from: `${KEIRO} keiro-ops projection position; members from the derived kiroku/subscription-checkpoints.json`,
+    },
+  )
+  const observed = "2026-10-21T21:16:03.536744Z"
+  derive(
+    shardsPath,
+    json({
+      observed_at: observed,
+      items: [
+        {
+          subscription: "jitsurei-order-reporting",
+          shard_counts: [{ shard_count: 4, rows: 4 }],
+          buckets_total: 4,
+          buckets_live: 2,
+          buckets_expired: 1,
+          buckets_unowned: 1,
+          live_owners: 2,
+        },
+      ],
+    }),
+    {
+      ...entries[2]!,
+      variant: "default",
+      derived_from: `${KEIRO} keiro-ops/src/Keiro/Ops/Shard.hs listResult`,
+    },
+  )
+  const lease = (bucket: number, owner: string | null, state: string, age: number | null) => ({
+    bucket,
+    owner,
+    lease_expires_at: owner
+      ? state === "expired"
+        ? "2026-10-21T21:15:30.000Z"
+        : "2026-10-21T21:16:30.000Z"
+      : null,
+    lease_state: state,
+    heartbeat_at: owner ? "2026-10-21T21:16:00.000Z" : null,
+    updated_at: "2026-10-21T21:16:00.000Z",
+    lease_age_seconds: age,
+  })
+  derive(
+    shardStatusPath,
+    json({
+      subscription: "jitsurei-order-reporting",
+      observed_at: observed,
+      shard_counts: [{ shard_count: 4, rows: 4 }],
+      ownership: [
+        lease(0, "worker-a", "live", 12.5),
+        lease(1, "worker-b", "live", 8),
+        lease(2, "worker-a", "expired", 95.2),
+        lease(3, null, "unowned", null),
+      ],
+    }),
+    {
+      ...entries[3]!,
+      variant: "default",
+      derived_from: `${KEIRO} keiro-ops/src/Keiro/Ops/Shard.hs statusResult`,
+    },
+  )
+}
+
 deriveKiroku()
 deriveShibuya()
 deriveKeiroTimers()
+deriveKeiroProjections()
 registerKeiro()
 meta.files = Object.fromEntries(
   Object.entries(meta.files).toSorted(([a], [b]) => a.localeCompare(b)),

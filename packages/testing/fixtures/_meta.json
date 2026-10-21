@@ -242,12 +242,44 @@
       "params": {},
       "request": "/projection/position?subscription=jitsurei-order-reporting",
       "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "derived_from": "mori://shinzui/keiro keiro-ops projection position; members from the derived kiroku/subscription-checkpoints.json",
+      "derived": true
+    },
+    "keiro/projection-position.recorded.json": {
+      "surface": "keiro",
+      "slug": "projection-position",
+      "variant": "recorded",
+      "method": "GET",
+      "template": "/projection/position",
+      "query": {
+        "subscription": "jitsurei-order-reporting"
+      },
+      "params": {},
+      "request": "/projection/position?subscription=jitsurei-order-reporting",
+      "status": 200,
       "contentType": "application/json; charset=utf-8"
     },
     "keiro/projection-status.json": {
       "surface": "keiro",
       "slug": "projection-status",
       "variant": "default",
+      "method": "GET",
+      "template": "/projection/status",
+      "query": {
+        "limit": "100"
+      },
+      "params": {},
+      "request": "/projection/status?limit=100",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "derived_from": "mori://shinzui/keiro keiro/src/Keiro/ReadModel/Rebuild/Status.hs (projection_group_status_v1); recorded unmanaged rows kept, one group per display case added",
+      "derived": true
+    },
+    "keiro/projection-status.recorded.json": {
+      "surface": "keiro",
+      "slug": "projection-status",
+      "variant": "recorded",
       "method": "GET",
       "template": "/projection/status",
       "query": {
@@ -270,12 +302,42 @@
       "params": {},
       "request": "/shard/status?subscription=jitsurei-order-reporting",
       "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "derived_from": "mori://shinzui/keiro keiro-ops/src/Keiro/Ops/Shard.hs statusResult",
+      "derived": true
+    },
+    "keiro/shard-status.recorded.json": {
+      "surface": "keiro",
+      "slug": "shard-status",
+      "variant": "recorded",
+      "method": "GET",
+      "template": "/shard/status",
+      "query": {
+        "subscription": "jitsurei-order-reporting"
+      },
+      "params": {},
+      "request": "/shard/status?subscription=jitsurei-order-reporting",
+      "status": 200,
       "contentType": "application/json; charset=utf-8"
     },
     "keiro/shards.json": {
       "surface": "keiro",
       "slug": "shards",
       "variant": "default",
+      "method": "GET",
+      "template": "/shard/list",
+      "query": {},
+      "params": {},
+      "request": "/shard/list",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "derived_from": "mori://shinzui/keiro keiro-ops/src/Keiro/Ops/Shard.hs listResult",
+      "derived": true
+    },
+    "keiro/shards.recorded.json": {
+      "surface": "keiro",
+      "slug": "shards",
+      "variant": "recorded",
       "method": "GET",
       "template": "/shard/list",
       "query": {},

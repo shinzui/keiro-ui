@@ -1,1 +1,1 @@
-{"items":[],"observed_at":"2026-10-21T21:16:03.53253Z"}
+{"observed_at":"2026-10-21T21:16:03.536744Z","items":[{"subscription":"jitsurei-order-reporting","shard_counts":[{"shard_count":4,"rows":4}],"buckets_total":4,"buckets_live":2,"buckets_expired":1,"buckets_unowned":1,"live_owners":2}]}

@@ -1,4 +1,5 @@
-import { router } from "@/router"
+import type { WorkflowStatusClass } from "@keiro-ui/client-keiro"
+import type { AnyRouter } from "@tanstack/react-router"
 
 /**
  * One typed builder per route in the MasterPlan's link map. Each result spreads into
@@ -13,7 +14,7 @@ export const links = {
     to: "/aggregates/$type/$id" as const,
     params: { type, id },
   }),
-  workflows: (search?: { status_class?: string[]; workflow_name?: string }) => ({
+  workflows: (search?: { status_class?: WorkflowStatusClass[]; workflow_name?: string }) => ({
     to: "/workflows" as const,
     search,
   }),
@@ -84,7 +85,17 @@ export const links = {
 
 export type LinkTarget = ReturnType<(typeof links)[keyof typeof links]>
 
+// The router binds itself here when it is created (router.tsx). Importing the router instead
+// would make every module that builds links import the route tree, and through `__root.tsx`
+// the feature registrations, which call back into modules still being initialized.
+let boundRouter: AnyRouter | undefined
+
+export function bindLinkRouter(router: AnyRouter): void {
+  boundRouter = router
+}
+
 /** The internal href (no base path) of a link target, as stored in recents and pins. */
 export function hrefOf(target: LinkTarget): string {
-  return router.buildLocation(target as never).href
+  if (!boundRouter) throw new Error("hrefOf called before the router was created")
+  return boundRouter.buildLocation(target as never).href
 }

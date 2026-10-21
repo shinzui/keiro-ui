@@ -1,5 +1,6 @@
 import { createRouter } from "@tanstack/react-router"
 
+import { bindLinkRouter } from "./lib/links"
 import { parseSearch, stringifySearch } from "./lib/search"
 import { createQueryClient } from "./query-client"
 import { routeTree } from "./routeTree.gen"
@@ -14,6 +15,7 @@ export const router = createRouter({
   defaultPreload: "intent",
   scrollRestoration: true,
 })
+bindLinkRouter(router)
 
 declare module "@tanstack/react-router" {
   interface Register {

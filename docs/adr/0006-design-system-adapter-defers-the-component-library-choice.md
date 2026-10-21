@@ -3,11 +3,12 @@ type: Architecture Decision Record
 title: A design-system adapter defers the component-library choice
 description: Console screens import UI primitives only from a repository-owned adapter package, so the IntentUI-versus-shadcn/ui decision stays open and lands later as exactly one adapter implementation with no screen changes.
 docId: ADR-6
-status: Accepted
+status: Superseded
+supersededBy: ADR-8
 date: 2026-08-19
 generated:
-  by: human:nadeem
-  at: 2026-08-19T00:00:00Z
+  by: claude-code/claude-fable-5-1
+  at: 2026-10-21T15:07:47Z
 ---
 
 # A design-system adapter defers the component-library choice
@@ -44,3 +45,10 @@ library-specific affordances are unavailable until deliberately surfaced through
 price is accepted as the cost of keeping an explicitly reserved decision reserved. The
 adapter is not a commitment to support multiple libraries simultaneously: one implementation
 at a time is the model, and the abstraction may be thinned once the choice is stable.
+
+## Status note
+
+Superseded on 2026-10-21 by [ADR-8](0008-shadcn-ui-on-the-react-aria-base-is-the-console-component-library.md):
+the component-library choice has been made (shadcn/ui on the React Aria base), and the
+repository-owned `packages/ui` that shadcn generates is the import boundary this adapter
+was meant to provide, so the adapter package is not built.

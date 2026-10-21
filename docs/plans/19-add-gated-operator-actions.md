@@ -10,6 +10,12 @@ provenance:
     model: "claude-fable-5-1"
     harness: "claude-code"
     at: 2026-10-21T14:52:33Z
+  revisions:
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T15:56:48Z
+      mode: "update"
+      note: "Switch workspace tooling from pnpm to bun; vitest and Playwright kept on Node 22"
 ---
 
 # Add gated operator actions
@@ -133,7 +139,7 @@ exists, and no mutation control exists anywhere in the UI. Verify this by readin
 MasterPlan's Progress section and running `git tag --list 'v0.*'` in the repository root; if
 the gate is unchecked, stop and finish the read-only work first.
 
-The repository is a pnpm workspace. The pieces this plan touches, by path:
+The repository is a bun workspace. The pieces this plan touches, by path:
 
 - `apps/console` — the console application (`@keiro-ui/console`). File-based TanStack
   Router routes live in `apps/console/src/routes/`; the application shell owns
@@ -144,7 +150,7 @@ The repository is a pnpm workspace. The pieces this plan touches, by path:
   (`@keiro-ui/ui`). Screens import primitives only from `@keiro-ui/ui/components/<name>`.
   This plan uses `alert-dialog`, `dialog`, `button`, `input`, `badge`, `alert`, `sheet`,
   `kbd`, and `sonner` (the toast component). If one is missing, add it from inside
-  `packages/ui` with `pnpm dlx shadcn@latest add <name>` and commit the generated file.
+  `packages/ui` with `bunx shadcn@latest add <name>` and commit the generated file.
 - `packages/client-core` — `createHttpClient({baseUrl})` with `get` and `post`, the
   `ApiError {surface, status, code, message, details}` class that normalizes the three
   error envelopes on the wire, and the TanStack Query helpers (`useSurfaceQuery`,
@@ -437,40 +443,40 @@ Confirm the gate, then install and check the workspace:
 ```bash
 git tag --list 'v0.*'
 grep -n "Read-only release gate" docs/masterplans/2-build-the-keiro-runtime-console.md
-pnpm install
-pnpm check
+bun install
+bun run check
 ```
 
 Expected: a `v0.1.0` tag is listed, the gate line reads `- [x] Read-only release gate`, and
-`pnpm check` ends with no errors.
+`bun run check` ends with no errors.
 
 Add any missing primitives inside the UI package (run only for components not already in
 `packages/ui/src/components/`):
 
 ```bash
 cd packages/ui
-pnpm dlx shadcn@latest add alert-dialog dropdown-menu sonner kbd
+bunx shadcn@latest add alert-dialog dropdown-menu sonner kbd
 cd ../..
 ```
 
 Milestone 1, client and card:
 
 ```bash
-pnpm --filter @keiro-ui/client-shibuya test
-pnpm --filter @keiro-ui/console test -- control-card
+bun run --filter @keiro-ui/client-shibuya test
+bun run --filter @keiro-ui/console test -- control-card
 ```
 
 Milestone 2 and 3, flow and actions:
 
 ```bash
-pnpm --filter @keiro-ui/console test -- mutation-flow timer-actions dead-letter-redrive
+bun run --filter @keiro-ui/console test -- mutation-flow timer-actions dead-letter-redrive
 ```
 
 Milestone 4, end to end:
 
 ```bash
-pnpm test
-pnpm test:e2e -- actions.spec.ts
+bun run test
+bun run test:e2e -- actions.spec.ts
 ```
 
 Expected tail of the Playwright run:
@@ -489,7 +495,7 @@ shibuya-pgmq-adapter checkout, a consumer whose metrics server has
 ports the MasterPlan fixes (keiro 9093, shibuya 9090); then:
 
 ```bash
-KEIRO_UI_LIVE_MUTATIONS=1 pnpm test:e2e -- actions.live.spec.ts
+KEIRO_UI_LIVE_MUTATIONS=1 bun run test:e2e -- actions.live.spec.ts
 ```
 
 Expected: the live spec pauses and resumes `orders` and requeues one pending timer, and each
@@ -522,7 +528,7 @@ Required acceptance, all observable in the browser or in test output:
    preview → typed confirmation → result sequence and the queue's `queue_length` is re-read
    afterwards. On a queue whose name does not end with the profile's suffix the card is
    absent.
-5. `pnpm test` and `pnpm test:e2e -- actions.spec.ts` pass; `pnpm check` is clean.
+5. `bun run test` and `bun run test:e2e -- actions.spec.ts` pass; `bun run check` is clean.
 6. `docs/deployment.md` contains the `Origin` paragraph for shibuya control.
 7. A grep proves the scope boundary: no call site outside this plan's three actions invokes
    `mutations.preview` or `mutations.execute`, and no UI calls `/pgmq/dlq/archive`,
@@ -548,7 +554,7 @@ Proposed, not required: a keyboard shortcut for the session audit sheet; showing
 
 ## Idempotence and Recovery
 
-Every step is safe to repeat. Re-running `pnpm dlx shadcn@latest add` for a component that
+Every step is safe to repeat. Re-running `bunx shadcn@latest add` for a component that
 already exists prompts before overwriting; answer no. Tests and the MSW scenarios are pure.
 The only non-idempotent operations are the live mutations themselves: keiro's preview is a
 dry run and can be repeated freely; `execute` changes state, and a `mutation_outcome_unknown`

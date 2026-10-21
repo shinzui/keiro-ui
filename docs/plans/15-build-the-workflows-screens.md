@@ -10,6 +10,12 @@ provenance:
     model: "claude-fable-5-1"
     harness: "claude-code"
     at: 2026-10-21T14:52:33Z
+  revisions:
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T15:56:48Z
+      mode: "update"
+      note: "Switch workspace tooling from pnpm to bun; vitest and Playwright kept on Node 22"
 ---
 
 # Build the Workflows screens
@@ -44,7 +50,7 @@ keiro's workflow sample scenario, and watching the list change without a reload:
 ```bash
 cd /Users/shinzui/Keikaku/bokuno/keiro-ui
 just stack-up            # from docs/plans/9: Postgres, kiroku-inspect, pgmq-inspect, keiro-ops-http on 9093
-pnpm dev                 # console on http://localhost:5173
+bun run dev                 # console on http://localhost:5173
 # in another shell, in the keiro repository:
 just jitsurei-workflow   # seeds and runs the workflow sample against the stack database
 ```
@@ -139,12 +145,12 @@ above 0), `sleeping` (suspended with `wake_after` set), `awaiting` (suspended wi
 the raw status text (`running`, `suspended`, `completed`, `cancelled`, `failed`); the
 badge shows the class and the tooltip shows the raw status.
 
-**Where things live after the prerequisite plans.** The workspace is a pnpm monorepo
+**Where things live after the prerequisite plans.** The workspace is a bun workspace
 (docs/plans/7-scaffold-the-console-workspace-and-design-system.md). The application is
 `apps/console`; UI primitives come only from `@keiro-ui/ui/components/<name>` (ADR-8,
 `docs/adr/0008-shadcn-ui-on-the-react-aria-base-is-the-console-component-library.md`);
 a primitive this plan needs that is missing from `packages/ui` is added there with
-`pnpm dlx shadcn@latest add <name>` and committed, never imported from
+`bunx shadcn@latest add <name>` and committed, never imported from
 `react-aria-components` directly. The shell (docs/plans/8-build-the-console-app-shell-navigation-and-command-palette.md)
 provides, under `apps/console/src/`: the route tree layout with one directory per section
 (this plan's routes go in the Workflows section directory the shell established, expected
@@ -385,7 +391,7 @@ stated otherwise.
 Confirm the prerequisites are in place before writing code:
 
 ```bash
-pnpm --filter @keiro-ui/client-keiro build && pnpm --filter @keiro-ui/client-keiro test
+bun run --filter @keiro-ui/client-keiro build && bun run --filter @keiro-ui/client-keiro test
 ls apps/console/src/shell apps/console/src/lib/links.ts apps/console/src/lib/format.ts
 ls packages/testing/fixtures/keiro | grep -i wf
 ```
@@ -394,7 +400,7 @@ Expect the client build and tests to pass, the shell modules to exist, and fixtu
 after the workflow routes (for example `wf-inspect-list.json`, `wf-inspect-header.json`,
 `wf-inspect-journal.json`, `wf-inspect-steps.json`, `wf-inspect-children.json`,
 `wf-inspect-awakeables.json`; the exact slugs are set by docs/plans/9's recorder). If a
-fixture is missing, record it with the recorder (`pnpm --filter @keiro-ui/testing record keiro`
+fixture is missing, record it with the recorder (`bun run --filter @keiro-ui/testing record keiro`
 against the live stack) rather than hand-writing JSON.
 
 Add any missing UI primitives to the owned component package (the badge, tooltip, tabs,
@@ -402,7 +408,7 @@ table, sheet, and toggle-group are expected to exist from earlier plans; `kbd` a
 `scroll-area` may not):
 
 ```bash
-cd packages/ui && pnpm dlx shadcn@latest add kbd scroll-area && cd ../..
+cd packages/ui && bunx shadcn@latest add kbd scroll-area && cd ../..
 git status --short packages/ui
 ```
 
@@ -410,18 +416,18 @@ Create the feature directory and route files, then run the route generator and t
 checks after each milestone:
 
 ```bash
-pnpm --filter @keiro-ui/console generate-routes
-pnpm check
-pnpm --filter @keiro-ui/console test -- workflows
+bun run --filter @keiro-ui/console generate-routes
+bun run check
+bun run --filter @keiro-ui/console test -- workflows
 ```
 
-Expected: `pnpm check` prints no type, lint, or format errors; the vitest run lists the
+Expected: `bun run check` prints no type, lint, or format errors; the vitest run lists the
 workflows tests and ends with `Test Files N passed`.
 
 Run the console in mock mode to develop without the Haskell stack:
 
 ```bash
-VITE_MOCK=1 pnpm dev
+VITE_MOCK=1 bun run dev
 ```
 
 Open `http://localhost:5173/workflows`; the fixture instances appear and the scripted
@@ -431,7 +437,7 @@ For the live-stack check (M1 acceptance), bring up the stack and seed workflows:
 
 ```bash
 just stack-up
-pnpm dev
+bun run dev
 ```
 
 ```bash
@@ -460,7 +466,7 @@ that moved.
 Run the end-to-end suite (M4):
 
 ```bash
-pnpm test:e2e -- workflows
+bun run test:e2e -- workflows
 ```
 
 Expected: every test in `apps/console/e2e/workflows.spec.ts` passes against the mock
@@ -493,7 +499,7 @@ opens that child's detail.
 
 M4 is accepted when: the rail highlights Workflows on these routes; the sidebar shows the
 presets and recents (a visited instance appears at the top); ⌘K with `workflow <name>/<id>`
-navigates to the detail; and `pnpm test:e2e -- workflows` passes in mock mode.
+navigates to the detail; and `bun run test:e2e -- workflows` passes in mock mode.
 
 Required acceptance ends there. Proposals for later scope, not required here: a journal
 diff between two generations; a "stuck" lens combining `retrying` with `next_attempt_at`

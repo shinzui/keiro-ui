@@ -10,6 +10,12 @@ provenance:
     model: "claude-fable-5-1"
     harness: "claude-code"
     at: 2026-10-21T14:52:33Z
+  revisions:
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T15:56:48Z
+      mode: "update"
+      note: "Switch workspace tooling from pnpm to bun; vitest and Playwright kept on Node 22"
 ---
 
 # Build the Projections and Overview screens
@@ -43,7 +49,7 @@ specification is how this plan proves the whole read-only console composes, and 
 what lets the parent MasterPlan tick the gate.
 
 To see it working: start the local stack from `docs/plans/9-provision-the-local-runtime-stack-and-recorded-fixtures.md`,
-run `pnpm dev` at the repository root, open `http://localhost:5173/`, and watch the
+run `bun run dev` at the repository root, open `http://localhost:5173/`, and watch the
 Projections card report the largest global position distance across groups while the
 Queues card reports the age of the oldest ready message; click either card and land on its
 section with the same numbers in the table.
@@ -120,7 +126,7 @@ section with the same numbers in the table.
 
 ## Context and Orientation
 
-**What exists when this plan starts.** The repository is a pnpm workspace created by
+**What exists when this plan starts.** The repository is a bun workspace created by
 `docs/plans/7-scaffold-the-console-workspace-and-design-system.md`: `apps/console` is the
 React 19 + TypeScript + Vite application, `packages/ui` (`@keiro-ui/ui`) holds the
 shadcn-generated React Aria components and Paper Mono, and the Vite dev server proxies the
@@ -261,7 +267,7 @@ the list in a `tooltip`), failure (a red "failed" badge when `failed_at` is set,
 "Load more" button appears while `next_cursor` is present and echoes it as `after`. The
 route validates `search` with a zod 4 schema `{after?: string}`.
 
-Verify: with fixtures (`VITE_MOCK=1 pnpm dev`) the table shows the fixture groups; one
+Verify: with fixtures (`VITE_MOCK=1 bun run dev`) the table shows the fixture groups; one
 group with basis `unmanaged` shows "n/a", one with `serving_applied_position` equal to the
 head shows "caught up", one behind shows a number; when the scripted feed emits an `update`
 with a `changed` item the row updates in place without a refetch, and when it emits
@@ -373,7 +379,7 @@ ownership rows), and `live.spec.ts`.
 The live-stack integration gate is verified in two parts. First the manual walkthrough:
 with the EP-9 stack up (`just stack-up` in this repository, which starts PostgreSQL with
 seeded data, `kiroku-inspect` on 9091, `pgmq-inspect` on 9092, `keiro-ops-http` on 9093, and
-a shibuya-metrics server on 9090), run `pnpm dev`, keep liveness on, and visit in order
+a shibuya-metrics server on 9090), run `bun run dev`, keep liveness on, and visit in order
 `/`, `/streams`, `/categories`, `/events`, `/subscriptions`, `/queues`, `/processors`,
 `/workflows`, `/process-managers`, `/timers`, `/aggregates`, `/projections`, `/shards`,
 confirming each list screen shows rows from the seeded database (or the honest
@@ -398,7 +404,7 @@ of ADR-8): check `packages/ui/src/components/` for `table`, `badge`, `progress`,
 `collapsible`, `card`, `search-field` (or `input`), and run, for each that is absent:
 
 ```bash
-cd packages/ui && pnpm dlx shadcn@latest add badge progress tooltip collapsible card
+cd packages/ui && bunx shadcn@latest add badge progress tooltip collapsible card
 ```
 
 Expected: the CLI reports each component written under `packages/ui/src/components/` using
@@ -407,8 +413,8 @@ the `aria-nova` style from `packages/ui/components.json`; commit the generated f
 Develop against fixtures, then against the live stack:
 
 ```bash
-VITE_MOCK=1 pnpm --filter @keiro-ui/console dev     # mock mode, no Haskell needed
-just stack-up && pnpm --filter @keiro-ui/console dev # live stack on 9090-9093
+VITE_MOCK=1 bun run --filter @keiro-ui/console dev     # mock mode, no Haskell needed
+just stack-up && bun run --filter @keiro-ui/console dev # live stack on 9090-9093
 ```
 
 Expected: Vite prints `Local: http://localhost:5173/`; in live mode the bottom bar shows
@@ -417,10 +423,10 @@ four green dots within one poll interval.
 Run the checks per milestone:
 
 ```bash
-pnpm check                                   # typecheck + oxlint + oxfmt --check
-pnpm --filter @keiro-ui/console test         # vitest, fixtures via @keiro-ui/testing
-pnpm --filter @keiro-ui/console test:e2e     # Playwright against the mock service worker
-KEIRO_UI_LIVE=1 pnpm --filter @keiro-ui/console test:e2e -- --config playwright.live.config.ts
+bun run check                                   # typecheck + oxlint + oxfmt --check
+bun run --filter @keiro-ui/console test         # vitest, fixtures via @keiro-ui/testing
+bun run --filter @keiro-ui/console test:e2e     # Playwright against the mock service worker
+KEIRO_UI_LIVE=1 bun run --filter @keiro-ui/console test:e2e -- --config playwright.live.config.ts
 ```
 
 Expected transcript shape for the live specification:
@@ -485,14 +491,14 @@ filter by lifecycle phase.
 
 Every step is additive and repeatable. Re-running `shadcn add` for a component that already
 exists prompts before overwriting; answer no unless you intend to refresh it. Route files
-regenerate `routeTree.gen.ts` automatically under `pnpm dev`; if the generated tree is
-stale after a rename, run `pnpm --filter @keiro-ui/console generate-routes`. Fixture
+regenerate `routeTree.gen.ts` automatically under `bun run dev`; if the generated tree is
+stale after a rename, run `bun run --filter @keiro-ui/console generate-routes`. Fixture
 variants are files under `packages/testing/fixtures/keiro/`; adding the "aggregates not
 mounted" variant is a new file, never an edit to an existing recording. If the live stack
 is unavailable, every milestone except the gate in M4 is fully verifiable against
 fixtures; the gate waits, and this plan stays In Progress rather than claiming it. If
 `playwright.live.config.ts` finds no dev server, it fails fast with a connection error
-rather than starting one, so start `pnpm dev` first.
+rather than starting one, so start `bun run dev` first.
 
 
 ## Interfaces and Dependencies

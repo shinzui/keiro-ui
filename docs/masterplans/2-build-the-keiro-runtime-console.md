@@ -9,6 +9,12 @@ provenance:
     model: "claude-fable-5-1"
     harness: "claude-code"
     at: 2026-10-21T14:52:33Z
+  revisions:
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T15:56:48Z
+      mode: "update"
+      note: "Switch workspace tooling from pnpm to bun; vitest and Playwright kept on Node 22"
 ---
 
 # Build the keiro runtime console
@@ -31,9 +37,9 @@ direction (`docs/architecture/ui-direction.md`). As of 2026-10-21 the owning rep
 have shipped almost all of those endpoints (see "Endpoint inventory" below). This
 initiative builds the console itself.
 
-When this MasterPlan is complete, this repository contains a pnpm workspace with a
+When this MasterPlan is complete, this repository contains a bun workspace with a
 React + TypeScript + Vite application, `apps/console`, that an operator starts with
-`pnpm dev` against a local runtime stack or deploys as static assets beside a running
+`bun run dev` against a local runtime stack or deploys as static assets beside a running
 application. In the browser they get:
 
 - An **application shell** with a left **rail** (one icon per top-level section), a
@@ -285,8 +291,7 @@ A whole-child hard dependency requires that child to be Complete.
 
 ## Dependency Graph
 
-EP-7 (workspace and design system) has no dependencies and runs first; it creates the pnpm
-workspace, `apps/console`, `packages/ui`, the toolchain, and the Vite dev proxy that every
+EP-7 (workspace and design system) has no dependencies and runs first; it creates the bun workspace, `apps/console`, `packages/ui`, the toolchain, and the Vite dev proxy that every
 other plan assumes exists. EP-9 (local runtime stack and fixtures) also has no hard
 dependency: its Haskell-side work (bringing up Postgres with keiro's seeded `jitsurei`
 database — which holds the kiroku store and keiro's tables, and may or may not provision a
@@ -345,8 +350,8 @@ hand-derived fixtures in the meantime.
 
 ## Integration Points
 
-**Workspace layout and package names** (owner EP-7; consumers: all). The pnpm workspace
-has `apps/*` and `packages/*`. Packages and their published names: `apps/console`
+**Workspace layout and package names** (owner EP-7; consumers: all). The bun workspace
+(root `package.json` `workspaces`, `bun.lock`) has `apps/*` and `packages/*`. Packages and their published names: `apps/console`
 (`@keiro-ui/console`), `packages/ui` (`@keiro-ui/ui`: the shadcn-generated React Aria
 components, Paper Mono, theme tokens, `globals.css`), `packages/client-core`
 (`@keiro-ui/client-core`), `packages/client-kiroku`, `packages/client-pgmq`,
@@ -354,16 +359,17 @@ components, Paper Mono, theme tokens, `globals.css`), `packages/client-core`
 `packages/testing` (`@keiro-ui/testing`: recorded fixtures and MSW handlers, owner EP-9).
 EP-7 creates `apps/console`, `packages/ui`, and the empty-but-wired `packages/testing`
 and `packages/client-core` directories with package manifests so later plans add code, not
-configuration. Root scripts are `pnpm dev`, `pnpm build`, `pnpm check` (typecheck + lint +
-format check), `pnpm test` (vitest), `pnpm test:e2e` (Playwright); the `justfile` mirrors
-them. Tooling mirrors `mori://shinzui/keiro-runtime-kenshou-insights` (TypeScript 7,
-oxlint, oxfmt, Vite 8, React 19, Tailwind 4, Playwright) except that this workspace uses
-pnpm, as the direction document specifies, rather than bun.
+configuration. Root scripts are `bun run dev`, `bun run build`, `bun run check` (typecheck + lint +
+format check), `bun run test` (vitest — always through `bun run`, since a bare `bun test`
+starts bun's own runner), `bun run test:e2e` (Playwright); the `justfile` mirrors them. Tooling mirrors `mori://shinzui/keiro-runtime-kenshou-insights` (TypeScript 7,
+oxlint, oxfmt, Vite 8, React 19, Tailwind 4, Playwright, bun as package manager, workspace
+manager, and script runner); vitest and Playwright execute on Node 22, which the Nix dev
+shell provides beside bun.
 
 **The UI import boundary** (owner EP-7; consumers: EP-8, EP-13..EP-19). Screens and the
 shell import UI primitives only from `@keiro-ui/ui/components/<name>`; `react-aria-components`
 is a dependency of `packages/ui` alone. A screen that needs a primitive not yet present runs
-`pnpm dlx shadcn@latest add <name>` inside `packages/ui` (the `components.json` there
+`bunx shadcn@latest add <name>` inside `packages/ui` (the `components.json` there
 selects the `aria-nova` style) and commits the generated source. This is the discipline
 ADR-8 records. Two package facts EP-7 fixed: shadcn 4.x components import `cn` from the
 `cn` package and the stylesheet imports `shadcn/tailwind.css`, so `cn` and `shadcn` are
@@ -554,7 +560,7 @@ EP-10 follow EP-7. No child plan has started.
 
 Cross-plan gates with their own acceptance:
 
-- [ ] Live-stack integration gate: the console at `pnpm dev` renders every section's list
+- [ ] Live-stack integration gate: the console at `bun run dev` renders every section's list
   screen against the EP-9 stack (kiroku-inspect, pgmq-inspect, keiro-ops-http, and a
   shibuya-metrics server) through the Vite proxy with liveness on, and the int64 round-trip
   check of Integration Points passes. (Owner: EP-17, verified with EP-9 running.)
@@ -646,12 +652,14 @@ Cross-plan gates with their own acceptance:
   cheap.
   Date: 2026-10-21
 
-- Decision: The workspace is pnpm (per `docs/architecture/ui-direction.md`), with
-  TypeScript 7, Vite 8, React 19, Tailwind 4, oxlint, oxfmt, vitest, and Playwright, and a
-  Nix flake providing the toolchain, mirroring `mori://shinzui/keiro-runtime-kenshou-insights`
-  except for the package manager.
-  Rationale: the direction document fixed pnpm; everything else follows the proven sibling
-  so conventions do not fork within the keiro family.
+- Decision: The workspace is bun (package manager, `workspaces`, script runner, `bun.lock`),
+  with TypeScript 7, Vite 8, React 19, Tailwind 4, oxlint, oxfmt, vitest, and Playwright,
+  and a Nix flake providing the toolchain, mirroring `mori://shinzui/keiro-runtime-kenshou-insights`
+  in full; vitest and Playwright execute on Node 22, which the dev shell provides beside bun.
+  `docs/architecture/ui-direction.md`'s original "bun workspace" wording is updated to match.
+  Rationale: user directive on 2026-10-21, given after the plans were first drafted with pnpm
+  per the direction document, so the keiro family's frontends share one toolchain; the user
+  chose to keep vitest rather than adopt `bun test`.
   Date: 2026-10-21
 
 - Decision: Screens are decomposed by navigation section (Streams & Subscriptions; Queues &
@@ -702,6 +710,12 @@ Cross-plan gates with their own acceptance:
   Rationale: `mori://shinzui/keiro/okf/adrs/concepts/ADR-40` condition 1 ("no bundled
   browser application"); serving a directory is the host's or a proxy's job.
   Date: 2026-10-21
+
+
+Revision note (2026-10-21): after creation, the workspace tooling was switched from pnpm to
+bun on the user's directive; every child plan's commands, manifests, and Nix notes were
+updated in the same change, vitest and Playwright were kept, and the component library was
+reconfirmed as shadcn/ui on the React Aria base (ADR-8), so no other section changed.
 
 
 ## Outcomes & Retrospective

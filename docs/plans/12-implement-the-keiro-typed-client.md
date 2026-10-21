@@ -10,6 +10,12 @@ provenance:
     model: "claude-fable-5-1"
     harness: "claude-code"
     at: 2026-10-21T14:52:33Z
+  revisions:
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T15:56:48Z
+      mode: "update"
+      note: "Switch workspace tooling from pnpm to bun; vitest and Playwright kept on Node 22"
 ---
 
 # Implement the keiro typed client
@@ -46,9 +52,9 @@ page.next_cursor           // branded WorkflowListCursor | undefined
 and get runtime-validated, correctly typed results, with keiro's cursors, int64 positions,
 error codes, schema-drift refusals, hook-gated routes, the three WebSocket feeds, and the
 mutation protocol all handled once in this package. You can see it working by running the
-package's contract tests against recorded fixtures (`pnpm --filter @keiro-ui/client-keiro test`)
+package's contract tests against recorded fixtures (`bun run --filter @keiro-ui/client-keiro test`)
 and, with the local runtime stack up, against a live `keiro-ops-http` process
-(`KEIRO_UI_LIVE=1 pnpm --filter @keiro-ui/client-keiro test`), where the workflows feed is
+(`KEIRO_UI_LIVE=1 bun run --filter @keiro-ui/client-keiro test`), where the workflows feed is
 shown to reconcile exactly with the paged list read.
 
 No screen is built here. The mutation wrappers are implemented and unit-tested but remain
@@ -62,7 +68,7 @@ console's first release is read-only.
   builds routes per the command-tree rule, `health.get()` and all six `workflows` reads
   return zod-validated values against `packages/testing/fixtures/keiro/*`, cursors are
   branded per read kind, and `cursor_generation_mismatch`, `schema_drift`, `inspection_busy`,
-  and the too-large codes are exposed as typed helpers. Acceptance: `pnpm --filter @keiro-ui/client-keiro test`
+  and the too-large codes are exposed as typed helpers. Acceptance: `bun run --filter @keiro-ui/client-keiro test`
   passes the M1 suite.
 - [ ] M2 — `timers`, `projections`, `shards`, `streams`, `outbox`, `inbox` namespaces with
   schemas validated against fixtures; `projections.position` and `projections.status`
@@ -145,7 +151,7 @@ the end, the nested error envelope, the WebSocket frame shape) are in
 `docs/architecture/inspection-api-conventions.md`.
 
 By the time this plan starts, `docs/plans/7-scaffold-the-console-workspace-and-design-system.md`
-has created the pnpm workspace (`pnpm-workspace.yaml` listing `apps/*` and `packages/*`,
+has created the bun workspace (the root `package.json` `workspaces` field listing `apps/*` and `packages/*`,
 TypeScript 7, vitest, oxlint, oxfmt), and `docs/plans/10-implement-the-client-core-for-http-cursors-int64-websocket-and-live-queries.md`
 has delivered `packages/client-core` (`@keiro-ui/client-core`), the hard prerequisite.
 Verify both before starting:
@@ -153,7 +159,7 @@ Verify both before starting:
 ```bash
 cd /Users/shinzui/Keikaku/bokuno/keiro-ui
 ls packages/client-core/src
-pnpm --filter @keiro-ui/client-core test
+bun run --filter @keiro-ui/client-core test
 ```
 
 The client core exports, under `packages/client-core/src/`:
@@ -539,17 +545,17 @@ Write `packages/client-keiro/package.json`:
 Install and confirm the empty package type-checks:
 
 ```bash
-pnpm install
-pnpm --filter @keiro-ui/client-keiro typecheck
+bun install
+bun run --filter @keiro-ui/client-keiro typecheck
 ```
 
-Expected: `pnpm install` reports the new workspace package and `typecheck` exits 0 with no
+Expected: `bun install` reports the new workspace package and `typecheck` exits 0 with no
 output.
 
 Run the unit suites as each milestone lands:
 
 ```bash
-pnpm --filter @keiro-ui/client-keiro test
+bun run --filter @keiro-ui/client-keiro test
 ```
 
 Expected (after M5):
@@ -570,7 +576,7 @@ for `just stack-up`):
 
 ```bash
 just stack-up
-KEIRO_UI_LIVE=1 pnpm --filter @keiro-ui/client-keiro test
+KEIRO_UI_LIVE=1 bun run --filter @keiro-ui/client-keiro test
 ```
 
 Expected additional lines:
@@ -594,8 +600,8 @@ must record exactly `GET /keiro/wf/inspect/list?status_class=running&status_clas
 
 The plan is accepted when all of the following hold.
 
-The unit suites pass with `pnpm --filter @keiro-ui/client-keiro test`, and the package
-type-checks and lints under the root `pnpm check`.
+The unit suites pass with `bun run --filter @keiro-ui/client-keiro test`, and the package
+type-checks and lints under the root `bun run check`.
 
 Every read namespace produces the documented request line, validates the recorded or
 hand-derived fixture for its route, and returns `bigint` for every field declared `int64()`,
@@ -622,11 +628,11 @@ its request line, produced from the request-line tests, for the screen plans to 
 ## Idempotence and Recovery
 
 Every step is additive inside `packages/client-keiro`; re-running scaffolding commands
-over an existing package is harmless (`mkdir -p`, `cp` over identical files). `pnpm install`
+over an existing package is harmless (`mkdir -p`, `cp` over identical files). `bun install`
 is idempotent. Live tests only read from the stack except the feed reconcile test, which
 invokes a jitsurei scenario that appends to the seed database; re-running it appends more
 rows but never breaks subsequent runs. If keiro's working tree moves and a fixture no longer
-validates, re-record with EP-9's recorder (`pnpm fixtures:record keiro`) or regenerate the
+validates, re-record with EP-9's recorder (`bun run fixtures:record keiro`) or regenerate the
 hand-derived fixture from the encoder, note the new commit in Surprises & Discoveries, and
 re-run the suites. Nothing in this plan touches `packages/client-core`; if a core export is
 missing, add a note here and request the addition from EP-10 rather than patching the core

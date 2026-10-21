@@ -10,6 +10,12 @@ provenance:
     model: "claude-fable-5-1"
     harness: "claude-code"
     at: 2026-10-21T14:52:33Z
+  revisions:
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T15:56:48Z
+      mode: "update"
+      note: "Switch workspace tooling from pnpm to bun; vitest and Playwright kept on Node 22"
 ---
 
 # Package the console for deployment
@@ -22,12 +28,12 @@ If durable project context changes, update or create ADRs in docs/adr/ in the sa
 ## Purpose / Big Picture
 
 After this plan an operator can take the console that `docs/masterplans/2-build-the-keiro-runtime-console.md`
-builds and actually put it in front of a running application. Today `pnpm dev` serves the
+builds and actually put it in front of a running application. Today `bun run dev` serves the
 console on the Vite development server and proxies the four inspection surfaces; nothing
 produces a deployable artifact, nothing documents how to serve it, and nothing proves the
 built bundle still works when it is not at the root of an origin. When this plan is
-complete, `pnpm build` produces a production bundle that works at a sub-path such as
-`/console/`, `pnpm release:pack` produces a versioned tarball that contains the bundle and
+complete, `bun run build` produces a production bundle that works at a sub-path such as
+`/console/`, `bun run release:pack` produces a versioned tarball that contains the bundle and
 the font licence notices, `docs/deployment.md` gives three copy-pasteable recipes (one
 origin behind Caddy or nginx; one origin where the application host already composes the
 surfaces; four separate origins with the exact CORS flag per server), a checked-in
@@ -41,7 +47,7 @@ milestone here executes `release/CHECKLIST.md`, cuts the git tag `v0.1.0`, and c
 "Read-only release gate" box in the MasterPlan's Progress section with evidence.
 
 You can see it working by running the stack from `docs/plans/9-provision-the-local-runtime-stack-and-recorded-fixtures.md`,
-then `VITE_BASE_PATH=/console/ pnpm build`, then `caddy run --config dev/caddy/Caddyfile`,
+then `VITE_BASE_PATH=/console/ bun run build`, then `caddy run --config dev/caddy/Caddyfile`,
 and opening `http://localhost:8080/console/`: the Overview renders populated headline
 numbers, the browser's network panel shows requests to `/kiroku/...`, `/pgmq/...`,
 `/shibuya/...` and `/keiro/...` on the same origin with **no** `OPTIONS` preflight requests,
@@ -50,11 +56,11 @@ and at least one WebSocket connection (for example `/keiro/ws`) is upgraded with
 
 ## Progress
 
-- [ ] M1 — Base-path-aware production build: `VITE_BASE_PATH=/console/ pnpm build` emits
+- [ ] M1 — Base-path-aware production build: `VITE_BASE_PATH=/console/ bun run build` emits
   hashed assets under `dist/assets/`, every asset URL in `dist/index.html` starts with
   `/console/`, the router resolves deep links under `/console/` on a hard reload via
-  `pnpm preview`, and the bottom bar's version slot shows the real version and commit.
-- [ ] M2 — Release packaging: `pnpm release:pack` writes
+  `bun run preview`, and the bottom bar's version slot shows the real version and commit.
+- [ ] M2 — Release packaging: `bun run release:pack` writes
   `release/keiro-ui-console-<version>.tar.gz` containing the bundle, `VERSION`,
   `NOTICE.md`, the Paper Mono `OFL.txt`, and the two proxy examples; the optional Nix
   output `packages.<system>.console` builds the same bundle or is recorded as deferred with
@@ -63,7 +69,7 @@ and at least one WebSocket connection (for example `/keiro/ws`) is upgraded with
   carries recipes A, B and C plus the authentication posture; `dev/caddy/Caddyfile` serves
   `dist/` at `/console/` and proxies the four prefixes including WebSocket upgrades; the
   MasterPlan's early producer/consumer check (4) passes against the EP-9 stack.
-- [ ] M4 — Production smoke and the read-only release: `pnpm test:e2e:production` passes
+- [ ] M4 — Production smoke and the read-only release: `bun run test:e2e:production` passes
   (tier 1 always, tier 2 against the live stack), `release/CHECKLIST.md` is executed, tag
   `v0.1.0` exists, `CHANGELOG.md` has the `0.1.0` entry, and the MasterPlan's "Read-only
   release gate" checkbox is checked with evidence.
@@ -125,14 +131,14 @@ package per surface and has no server of its own —
 files plus instructions for whatever sits in front of them.
 
 **The workspace.** `docs/plans/7-scaffold-the-console-workspace-and-design-system.md`
-creates a pnpm workspace with `apps/console` (the Vite + React + TypeScript application,
+creates a bun workspace with `apps/console` (the Vite + React + TypeScript application,
 published name `@keiro-ui/console`), `packages/ui` (the shadcn-generated React Aria
 components, the Paper Mono font at `packages/ui/src/fonts/PaperMono[wght].woff2` with its
 licence at `packages/ui/src/fonts/OFL.txt`, and `globals.css`), `packages/client-core` and
 the four `packages/client-<surface>` packages, and `packages/testing` (recorded fixtures and
 mock handlers). It also provides a Nix flake at `flake.nix` with modules under `nix/` for the
-toolchain, a `justfile`, and the root scripts `pnpm dev`, `pnpm build`, `pnpm check`,
-`pnpm test`, `pnpm test:e2e`. `apps/console/vite.config.ts` already contains the
+toolchain, a `justfile`, and the root scripts `bun run dev`, `bun run build`, `bun run check`,
+`bun run test`, `bun run test:e2e`. `apps/console/vite.config.ts` already contains the
 development proxy that maps the four prefixes to the local ports; this plan extends that
 file, it does not replace it.
 
@@ -250,18 +256,18 @@ literal absolute paths and the test added in this milestone asserts that
 
 Mirror the development proxy into the preview server: copy the `server.proxy` table from
 `docs/plans/7` into `preview.proxy` (same targets, `rewrite` stripping the prefix, `ws: true`),
-so `pnpm preview` reaches the EP-9 stack exactly as `pnpm dev` does. Add a small
+so `bun run preview` reaches the EP-9 stack exactly as `bun run dev` does. Add a small
 `scripts/check-dist.sh` that fails when `dist/index.html` references an asset not under the
 base path or when any emitted asset lacks a content hash in its filename.
 
-At the end of this milestone, `VITE_BASE_PATH=/console/ pnpm build && pnpm preview` serves
+At the end of this milestone, `VITE_BASE_PATH=/console/ bun run build && bun run preview` serves
 the console at `http://localhost:4173/console/`, a reload on
 `http://localhost:4173/console/workflows` renders the Workflows screen (or its empty state
 when no backend answers), and the version slot shows the real values.
 
 ### Milestone 2 — a release artifact
 
-Add `scripts/release-pack.sh` (POSIX shell, run through the root script `pnpm release:pack`)
+Add `scripts/release-pack.sh` (POSIX shell, run through the root script `bun run release:pack`)
 that builds with the base path given by `VITE_BASE_PATH` (default `/`), then assembles
 `release/keiro-ui-console-<version>/` containing the contents of `apps/console/dist/`,
 a `VERSION` file (`0.1.0+<commit>`), `NOTICE.md` (third-party notices: Paper Mono under the
@@ -272,13 +278,15 @@ documentation written in Milestone 3. It then writes `release/keiro-ui-console-<
 and prints its SHA-256. `release/` is git-ignored except for `release/CHECKLIST.md`.
 
 Optionally, add `packages.<system>.console` to `flake.nix` through a new module
-`nix/console-package.nix`: a `stdenv.mkDerivation` using nixpkgs' `pnpmConfigHook` and
-`pnpm.fetchDeps` (with the recorded dependency hash), running the same build with
+`nix/console-package.nix`: a `stdenv.mkDerivation` whose dependencies come from a fixed-output derivation that runs
+`bun install --frozen-lockfile` against `bun.lock` with a recorded `outputHash` (nixpkgs has
+no first-class bun fetcher the way it has `pnpm.fetchDeps`; the `bun2nix` tool is the
+alternative), running the same build with
 `KEIRO_UI_GIT_COMMIT` set from the flake's `self.shortRev` and installing `dist/` into
 `$out/share/keiro-ui-console`. This part is labelled **prototyping**: promote it if
 `nix build .#console` succeeds with the nixpkgs revision the flake pins; discard it and record
-the reason in Surprises & Discoveries if that nixpkgs has no pnpm fetcher compatible with the
-workspace's lockfile version. The tarball is the required artifact; the Nix package is a
+the reason in Surprises & Discoveries if neither the fixed-output derivation nor `bun2nix`
+reproduces the install with the pinned nixpkgs. The tarball is the required artifact; the Nix package is a
 convenience.
 
 ### Milestone 3 — the deployment document and the development Caddyfile
@@ -351,7 +359,7 @@ on reload of a deep link means SPA fallback is missing; a failed WebSocket with 
 `/pgmq/ws` or `/kiroku/ws` over plain HTTP means the proxy is not forwarding the upgrade.
 
 Verify the MasterPlan's early producer/consumer check (4) at the end of this milestone:
-with the EP-9 stack running and `VITE_BASE_PATH=/console/ pnpm build` done, run
+with the EP-9 stack running and `VITE_BASE_PATH=/console/ bun run build` done, run
 `caddy run --config dev/caddy/Caddyfile`, open `http://localhost:8080/console/`, and record
 in Progress that the Overview rendered with no `OPTIONS` request in the network panel.
 Add `caddy` to the Nix development shell so the command is available to every contributor.
@@ -359,7 +367,7 @@ Add `caddy` to the Nix development shell so the command is available to every co
 ### Milestone 4 — the production smoke test and the read-only release
 
 Add `apps/console/playwright.production.config.ts` and the root script
-`pnpm test:e2e:production`. Its `webServer` runs `caddy run --config dev/caddy/Caddyfile`
+`bun run test:e2e:production`. Its `webServer` runs `caddy run --config dev/caddy/Caddyfile`
 (with `reuseExistingServer` outside CI) and its `baseURL` is `http://127.0.0.1:8080/console/`.
 Tests live in `apps/console/tests/production/`.
 
@@ -377,8 +385,8 @@ request to `/pgmq/queues` is answered from the same origin as the page.
 
 Then write `release/CHECKLIST.md` and execute it. The checklist, in order: every plan from
 `docs/plans/13-build-the-streams-and-subscriptions-screens.md` through this plan is marked
-Complete in the MasterPlan registry; `pnpm check && pnpm test && pnpm test:e2e` are green;
-`pnpm test:e2e:production` is green with tier 2 executed (not skipped); a grep proves no
+Complete in the MasterPlan registry; `bun run check && bun run test && bun run test:e2e` are green;
+`bun run test:e2e:production` is green with tier 2 executed (not skipped); a grep proves no
 mutation path is reachable from the application —
 
 ```bash
@@ -398,13 +406,13 @@ until that box is checked.
 ## Concrete Steps
 
 All commands run from the repository root `/Users/shinzui/Keikaku/bokuno/keiro-ui` unless
-stated otherwise. The Nix development shell from `docs/plans/7` provides `node`, `pnpm`,
+stated otherwise. The Nix development shell from `docs/plans/7` provides `bun`, `node`,
 `just`, and (after Milestone 3) `caddy`.
 
 Build at a sub-path and inspect the output:
 
 ```bash
-VITE_BASE_PATH=/console/ pnpm build
+VITE_BASE_PATH=/console/ bun run build
 sh scripts/check-dist.sh apps/console/dist /console/
 ```
 
@@ -419,7 +427,7 @@ check-dist: 1 html, 23 hashed assets, all under /console/ — OK
 Preview and reload a deep link:
 
 ```bash
-VITE_BASE_PATH=/console/ pnpm preview
+VITE_BASE_PATH=/console/ bun run preview
 ```
 
 Open `http://localhost:4173/console/workflows` in a browser and reload. The Workflows screen
@@ -428,7 +436,7 @@ renders; the bottom bar reads `v0.1.0 · <7-char commit>`.
 Pack a release:
 
 ```bash
-pnpm release:pack
+bun run release:pack
 ```
 
 Expected:
@@ -459,7 +467,7 @@ Run the single-origin deployment locally (stack from `docs/plans/9` running firs
 
 ```bash
 just stack-up            # from docs/plans/9; starts 9090..9093 against the seeded database
-VITE_BASE_PATH=/console/ pnpm build
+VITE_BASE_PATH=/console/ bun run build
 caddy run --config dev/caddy/Caddyfile --adapter caddyfile
 ```
 
@@ -470,7 +478,7 @@ with method `OPTIONS`. Filter by `WS`: `/keiro/ws` shows status 101.
 Run the production smoke:
 
 ```bash
-pnpm test:e2e:production
+bun run test:e2e:production
 ```
 
 Expected (with the stack running):
@@ -508,14 +516,14 @@ and `ExecPlan: docs/plans/18-package-the-console-for-deployment.md`.
 
 Required acceptance, each phrased as something a person observes:
 
-1. `VITE_BASE_PATH=/console/ pnpm build` succeeds and `sh scripts/check-dist.sh apps/console/dist /console/`
+1. `VITE_BASE_PATH=/console/ bun run build` succeeds and `sh scripts/check-dist.sh apps/console/dist /console/`
    prints `OK`; building with no `VITE_BASE_PATH` produces asset URLs starting with
    `/assets/`.
-2. With `pnpm preview`, a browser reload on `http://localhost:4173/console/workflows`
+2. With `bun run preview`, a browser reload on `http://localhost:4173/console/workflows`
    renders the Workflows screen, and the bottom bar shows `v0.1.0` and a seven-character
    commit; `vitest` in `apps/console` includes a passing test that `useSurfaceBaseUrl("kiroku")`
    is `/kiroku` when `import.meta.env.BASE_URL` is `/console/`.
-3. `pnpm release:pack` writes `release/keiro-ui-console-0.1.0.tar.gz` whose listing includes
+3. `bun run release:pack` writes `release/keiro-ui-console-0.1.0.tar.gz` whose listing includes
    `VERSION`, `NOTICE.md`, `OFL.txt`, `index.html`, hashed assets, and
    `deployment/Caddyfile.example`; running it twice produces the same listing.
 4. With the EP-9 stack running and Caddy serving the build, `http://localhost:8080/console/`
@@ -525,7 +533,7 @@ Required acceptance, each phrased as something a person observes:
 5. `docs/deployment.md` exists, restates the authentication posture, and contains recipes
    A, B and C with the exact CORS flags; a reader following recipe A on a clean machine
    needs no information outside the document and the tarball.
-6. `pnpm test:e2e:production` passes with tier 2 executed; without the stack, tier 2 is
+6. `bun run test:e2e:production` passes with tier 2 executed; without the stack, tier 2 is
    skipped with the probe named and tier 1 still passes.
 7. `release/CHECKLIST.md` has every item checked, `git tag -l v0.1.0` prints the tag,
    `CHANGELOG.md` has the `0.1.0` entry, the grep for mutation paths prints `OK`, and the

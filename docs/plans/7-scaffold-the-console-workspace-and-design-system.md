@@ -10,6 +10,12 @@ provenance:
     model: "claude-fable-5-1"
     harness: "claude-code"
     at: 2026-10-21T14:52:33Z
+  revisions:
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T15:56:48Z
+      mode: "update"
+      note: "Switch workspace tooling from pnpm to bun; vitest and Playwright kept on Node 22"
 ---
 
 # Scaffold the console workspace and design system
@@ -22,17 +28,17 @@ If durable project context changes, update or create ADRs in docs/adr/ in the sa
 ## Purpose / Big Picture
 
 This repository holds the plans, conventions, and decisions for the keiro runtime console
-but no application code. After this plan, it holds a working pnpm workspace: a React
-application in `apps/console` that starts with `pnpm dev`, a repository-owned component
+but no application code. After this plan, it holds a working bun workspace: a React
+application in `apps/console` that starts with `bun run dev`, a repository-owned component
 package in `packages/ui` built from shadcn/ui's React Aria base, the Paper Mono typeface
 vendored and declared once, light and dark theme tokens, and the toolchain every later plan
 assumes (TypeScript, oxlint, oxfmt, vitest, Playwright, a `justfile`, and a Nix flake whose
 dev shell also provides `caddy`, which docs/plans/18-package-the-console-for-deployment.md
 uses for the composed-origin smoke test).
 
-You can see it working by cloning the repository, running `pnpm install`, then
-`pnpm check && pnpm test && pnpm build && pnpm test:e2e`, and seeing all four succeed.
-Running `pnpm dev` and opening `http://localhost:5173` shows a placeholder page set in
+You can see it working by cloning the repository, running `bun install`, then
+`bun run check && bun run test && bun run build && bun run test:e2e`, and seeing all four succeed.
+Running `bun run dev` and opening `http://localhost:5173` shows a placeholder page set in
 Paper Mono with a working dark-mode toggle, a shadcn Button, and a Sheet that slides in from
 the right. The Vite development server also proxies `/kiroku`, `/shibuya`, `/pgmq`, and
 `/keiro` to the four inspection servers on ports 9091, 9090, 9092, and 9093, which is how
@@ -45,20 +51,20 @@ exists so that each of them adds code, not configuration.
 
 ## Progress
 
-- [ ] M1 — Workspace and toolchain: `pnpm-workspace.yaml`, root `package.json`, shared
+- [ ] M1 — Workspace and toolchain: root `package.json` with `workspaces`, shared
   `tsconfig.base.json`, oxlint and oxfmt configuration, vitest and Playwright wiring, and
   the empty-but-wired `packages/client-core` and `packages/testing` manifests exist;
-  `pnpm install` and `pnpm check` succeed on a tree with no application code yet.
+  `bun install` and `bun run check` succeed on a tree with no application code yet.
 - [ ] M2 — Design system package: `packages/ui` (`@keiro-ui/ui`) is generated from the
   shadcn React Aria base with the `aria-nova` style, ships the initial component set, the
   vendored Paper Mono variable font with its OFL licence, and the light/dark oklch tokens;
-  `pnpm test` renders the Button component through vitest and passes.
+  `bun run test` renders the Button component through vitest and passes.
 - [ ] M3 — Console application skeleton: `apps/console` builds with Vite 8, the TanStack
-  Router file-based plugin, Tailwind 4, and the four-surface dev proxy; `pnpm dev` serves
+  Router file-based plugin, Tailwind 4, and the four-surface dev proxy; `bun run dev` serves
   the placeholder page in Paper Mono with a dark-mode toggle, a Button, and a Sheet; the
   Playwright smoke test passes against `vite preview`.
 - [ ] M4 — Developer entry points: `justfile`, Nix flake dev shell, `.gitignore`
-  additions, and a README quickstart exist; `nix develop -c pnpm check` succeeds.
+  additions, and a README quickstart exist; `nix develop -c bun run check` succeeds.
 
 
 ## Surprises & Discoveries
@@ -83,7 +89,7 @@ exists so that each of them adds code, not configuration.
   `add`. The CLI's one-shot monorepo scaffold is an optional shortcut whose output is
   reconciled against the hand-written layout, never the source of truth.
   Rationale: The template targets ESLint, Prettier, and Turbo; this workspace uses oxlint,
-  oxfmt, and plain pnpm scripts. Mirroring the layout keeps the generated
+  oxfmt, and plain package scripts run by bun. Mirroring the layout keeps the generated
   `components.json` aliases and `exports` identical to what later plans import, while the
   CLI remains the only thing that writes component source.
   Date: 2026-10-21
@@ -123,9 +129,8 @@ Nix flake. It holds `docs/` (architecture documents, ADRs, MasterPlans, ExecPlan
 ```text
 keiro-ui/
 ├── package.json                 workspace root: scripts dev/build/check/test/test:e2e
-├── pnpm-workspace.yaml          packages: apps/*, packages/*
-├── pnpm-lock.yaml
-├── .npmrc
+├── bun.lock                     bun's text lockfile
+├── bunfig.toml                  optional bun settings (only if needed)
 ├── tsconfig.base.json           shared strict compiler options
 ├── .oxlintrc.json  .oxfmtrc.json
 ├── vitest.config.ts             projects: apps/*, packages/*
@@ -152,8 +157,9 @@ keiro-ui/
     └── testing/                 @keiro-ui/testing — placeholder manifest (EP-9 fills it)
 ```
 
-**Terms used in this plan.** A *pnpm workspace* is a directory of several npm packages
-installed together by pnpm, where one package can depend on another by name
+**Terms used in this plan.** A *bun workspace* is a directory of several npm packages
+installed together by bun (listed in the root `package.json` `workspaces` field), where one
+package can depend on another by name
 (`"@keiro-ui/ui": "workspace:*"`) without publishing. *shadcn/ui* is not a library you
 install; it is a command-line tool (`shadcn`) that copies component source files into your
 own repository, after which you own and edit them. Its *base* is the accessibility
@@ -189,8 +195,9 @@ imports `shadcn/tailwind.css` from the `shadcn` package, so both are dependencie
 the keiro family built with shadcn `aria-vega`, TanStack Router, Tailwind 4, oxlint, oxfmt,
 Playwright, and a Nix flake. Its `src/styles.css` is the model for the token block, its
 `tsconfig.json` for compiler strictness, its `flake.nix`, `nix/bun.nix`, `nix/tooling.nix`,
-and `nix/pre-commit.nix` for the Nix shell, and its `justfile` for recipes. It uses bun;
-this workspace uses pnpm because `docs/architecture/ui-direction.md` fixed pnpm.
+and `nix/pre-commit.nix` for the Nix shell, and its `justfile` for recipes. It uses bun, and so
+does this workspace (the parent MasterPlan's Decision Log records the switch from the
+direction document's original pnpm wording).
 
 **Relevant decisions.** [ADR-5](../adr/0005-no-backend-for-frontend.md) fixes the package
 split (one typed client per surface, consumed directly by the browser), which is why
@@ -211,43 +218,51 @@ typescript 7.0.2, @tanstack/react-router 1.170.45, @tanstack/router-plugin 1.168
 @tanstack/react-query 5.104.5, react-aria-components 1.22.1, shadcn 4.22.1, tailwindcss
 4.3.3, @tailwindcss/vite 4.3.3, zod 4.6.7, vitest 5.0.5, @playwright/test 1.64.1. Use
 exact versions (no caret) in every `package.json` so the lockfile and the plan agree.
-Node 22 is the runtime (`node --version` prints `v22.x`); pnpm 12 is the package manager.
+bun 1.4 (`bun --version`) is the package manager, workspace manager, and script runner.
+Node 22 (`node --version` prints `v22.x`) must also be on the path: `bun run` honors the
+`node` shebang of the vitest and Playwright binaries, so tests execute on Node while bun
+installs packages and runs scripts.
 
 
 ## Plan of Work
 
 ### Milestone 1 — Workspace and toolchain
 
-Create the workspace skeleton so that `pnpm install` and `pnpm check` succeed before any
+Create the workspace skeleton so that `bun install` and `bun run check` succeed before any
 component or screen exists. The root `package.json` is private, `"type": "module"`,
-declares `"packageManager": "pnpm@12.9.0"` (or the installed pnpm), and exposes the five
-scripts every later plan and the `justfile` call:
+declares `"packageManager": "bun@1.4.2"` (or the installed bun), lists the workspaces, and
+exposes the five scripts every later plan and the `justfile` call (always `bun run <name>`:
+a bare `bun test` would start bun's own test runner instead of vitest):
 
 ```json
 {
   "name": "keiro-ui",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@12.9.0",
+  "packageManager": "bun@1.4.2",
+  "workspaces": ["apps/*", "packages/*"],
   "scripts": {
-    "dev": "pnpm --filter @keiro-ui/console dev",
-    "build": "pnpm -r --filter './packages/**' build && pnpm --filter @keiro-ui/console build",
-    "typecheck": "pnpm -r --parallel typecheck",
+    "dev": "bun run --filter @keiro-ui/console dev",
+    "build": "bun run --filter './packages/*' build && bun run --filter @keiro-ui/console build",
+    "typecheck": "bun run --filter './packages/*' typecheck && bun run --filter './apps/*' typecheck",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
-    "check": "pnpm typecheck && pnpm lint && pnpm format:check",
+    "check": "bun run typecheck && bun run lint && bun run format:check",
     "test": "vitest run",
-    "test:e2e": "pnpm --filter @keiro-ui/console test:e2e"
+    "test:e2e": "bun run --filter @keiro-ui/console test:e2e"
   }
 }
 ```
 
-`pnpm-workspace.yaml` lists `apps/*` and `packages/*` and approves the build scripts pnpm
-12 blocks by default (`allowBuilds: { esbuild: true, msw: false }`, as the shadcn template
-does; add `"@tailwindcss/oxide": true` if pnpm reports it). `.npmrc` sets
-`auto-install-peers=true` and `strict-peer-dependencies=false`. `tsconfig.base.json` holds
+The `workspaces` field replaces pnpm's the root `package.json` `workspaces` field; packages depend on each other
+with `"workspace:*"`, which bun resolves. bun does not run dependencies' lifecycle scripts
+unless they are listed in the root `trustedDependencies`; start with none and add a package
+there only if `bun install` warns that it blocked a script you actually need (`esbuild` and
+`@tailwindcss/oxide` ship platform binaries as optional dependencies and need no scripts;
+`msw`'s postinstall only prints a message). `bunfig.toml` is optional; add it only when a
+setting is needed (for example `[install] exact = true` so `bun add` pins exact versions). `tsconfig.base.json` holds
 the strict options copied from the sibling's `tsconfig.json` (`strict`,
 `noUncheckedIndexedAccess`, `noImplicitOverride`, `noFallthroughCasesInSwitch`,
 `noUnusedLocals`, `noUnusedParameters`, `verbatimModuleSyntax`, `isolatedModules`,
@@ -269,12 +284,12 @@ and the same shape for `packages/testing` (`@keiro-ui/testing`, with an empty
 Add `.oxlintrc.json` (recommended rules plus the React and TypeScript plugins, ignoring
 `**/routeTree.gen.ts`, `dist`, `node_modules`) and `.oxfmtrc.json` (the sibling's choices:
 no semicolons, double quotes, sorted imports, 100-column width, ignoring
-`routeTree.gen.ts` and `pnpm-lock.yaml`). Add a root `vitest.config.ts` that declares
+`routeTree.gen.ts` and `bun.lock`). Add a root `vitest.config.ts` that declares
 `test.projects: ["apps/*", "packages/*"]` so `vitest run` at the root discovers each
 package's own `vitest.config.ts`; packages without tests simply have none yet.
 
-The milestone is done when `pnpm install` completes, `pnpm check` prints no errors, and
-`pnpm test` reports no test files (exit code 0 with `--passWithNoTests` set in the root
+The milestone is done when `bun install` completes, `bun run check` prints no errors, and
+`bun run test` reports no test files (exit code 0 with `--passWithNoTests` set in the root
 config).
 
 ### Milestone 2 — The design system package
@@ -330,7 +345,7 @@ shadcn Vite monorepo template's `packages/ui/components.json` with these values:
 }
 ```
 
-If you prefer to let the CLI write this file, run `pnpm dlx shadcn@latest init --base aria
+If you prefer to let the CLI write this file, run `bunx shadcn@latest init --base aria
 --preset aria-nova --cwd packages/ui` and then diff the result against the block above; the
 only acceptable differences are field order. If the CLI rejects `aria-nova` as a preset
 name, run `init` without `--preset`, choose "React Aria" and "Nova" interactively, and
@@ -394,7 +409,7 @@ this package's `components.json` and installs `react-aria-components`, `cn`,
 
 ```bash
 cd packages/ui
-pnpm dlx shadcn@latest add button sidebar sheet command dialog alert-dialog tabs table \
+bunx shadcn@latest add button sidebar sheet command dialog alert-dialog tabs table \
   data-table badge tooltip kbd resizable separator scroll-area skeleton sonner input \
   input-group select dropdown-menu breadcrumb popover toggle switch empty spinner card \
   field collapsible
@@ -413,8 +428,8 @@ Add the package's `vitest.config.ts` (environment `jsdom`, setup file registerin
 `@testing-library/jest-dom/vitest`) and one test,
 `packages/ui/src/components/button.test.tsx`, that renders `<Button onPress={spy}>Save</Button>`,
 finds it by role `button` and name `Save`, presses it with `@testing-library/user-event`,
-and asserts the spy was called once. The milestone is done when `pnpm test` reports that
-test passing and `pnpm check` is still clean.
+and asserts the spy was called once. The milestone is done when `bun run test` reports that
+test passing and `bun run check` is still clean.
 
 ### Milestone 3 — The console application skeleton
 
@@ -484,23 +499,27 @@ regenerated by the plugin on every dev and build run and ignored by the linter a
 formatter.
 
 Add Playwright: `apps/console/playwright.config.ts` with `testDir: "e2e"`, a `webServer`
-that runs `pnpm exec vite preview --port 4173 --strictPort` after `pnpm build`, and
+that runs `bunx vite preview --port 4173 --strictPort` after `bun run build`, and
 `e2e/smoke.spec.ts` which opens `/`, expects the heading, asserts
 `document.fonts.check('400 16px "Paper Mono"')` is true after `document.fonts.ready`,
 clicks the toggle and expects `html` to have class `dark`, and opens the sheet and expects
-a dialog to be visible. The milestone is done when `pnpm build` writes `apps/console/dist`
-and `pnpm test:e2e` passes.
+a dialog to be visible. The milestone is done when `bun run build` writes `apps/console/dist`
+and `bun run test:e2e` passes.
 
 ### Milestone 4 — Developer entry points
 
 Write the `justfile` (recipes `install`, `dev`, `build`, `typecheck`, `lint`, `lint-fix`,
 `format`, `format-check`, `check`, `test`, `test-e2e`, each delegating to the matching
-pnpm script, with `default` listing recipes). Write the Nix flake by copying the sibling's
-`flake.nix`, `nix/tooling.nix`, and `nix/pre-commit.nix` and replacing `nix/bun.nix` with
-`nix/node.nix`: the dev shell provides `pkgs.nodejs_22`, `pkgs.pnpm`, `pkgs.just`, and the
-`tooling` derivations for `typescript`, `oxlint`, and `oxfmt`; the shell hook installs the
-pre-commit hooks and prints a reminder to run `just install` when `node_modules` is
-missing. Playwright browsers are installed by `pnpm exec playwright install chromium`
+package script, with `default` listing recipes). Write the Nix flake by copying the sibling's
+`flake.nix`, `nix/bun.nix`, `nix/tooling.nix`, `nix/tooling-sources.json`, and
+`nix/pre-commit.nix` unchanged: `nix/bun.nix` already provides `pkgs.bun`, `pkgs.just`, and
+the `tooling` derivations for `typescript`, `oxlint`, and `oxfmt`, and its shell hook installs
+the pre-commit hooks and prints a reminder to run `just install` when `node_modules` is
+missing. Add a committed `flake.module.nix` (the sibling keeps the template as
+`flake.module.nix.example`) that sets `bunProject.extraDevPackages = [ pkgs.nodejs_22 pkgs.caddy ]`
+— Node 22 because vitest and Playwright execute on Node, caddy for
+docs/plans/18-package-the-console-for-deployment.md. Playwright browsers are installed by
+`bunx playwright install chromium`
 into the default cache rather than from Nix; on NixOS the Chromium it downloads will not
 start, so document the alternative of setting `PLAYWRIGHT_BROWSERS_PATH` to
 `${pkgs.playwright-driver.browsers}` in `flake.module.nix` (keep the sibling's
@@ -510,16 +529,16 @@ same revisions the sibling pins, then run `nix flake update` only if evaluation 
 Extend `.gitignore` with `node_modules`, `dist`, `.vite`, `.tanstack/`, `test-results/`,
 `playwright-report/`, `.direnv`, `result`, `result-*`, `*.log`, `.env`, `.env.local`,
 `.pre-commit-config.yaml`, and `.DS_Store`. Write a `README.md` quickstart: prerequisites
-(Nix, or Node 22 plus pnpm 12), the five commands, the port and prefix table, and a pointer
-to `docs/architecture/ui-direction.md`. The milestone is done when `nix develop -c pnpm check`
+(Nix, or bun 1.4 plus Node 22), the five commands, the port and prefix table, and a pointer
+to `docs/architecture/ui-direction.md`. The milestone is done when `nix develop -c bun run check`
 succeeds and `just --list` shows the recipes.
 
 
 ## Concrete Steps
 
 All commands run from the repository root `/Users/shinzui/Keikaku/bokuno/keiro-ui` unless
-a `cd` is shown. Node 22 and pnpm 12 must be on the path (`node --version`,
-`pnpm --version`).
+a `cd` is shown. bun 1.4 and Node 22 must be on the path (`bun --version`,
+`node --version`).
 
 1. Verify the dependency floors before pinning:
 
@@ -536,16 +555,16 @@ Orientation.
 2. Create the Milestone 1 files, then install and check:
 
 ```bash
-pnpm install
-pnpm check
-pnpm test
+bun install
+bun run check
+bun run test
 ```
 
 Expected tail of the transcript:
 
 ```text
 > keiro-ui@ check /Users/shinzui/Keikaku/bokuno/keiro-ui
-> pnpm typecheck && pnpm lint && pnpm format:check
+> bun run typecheck && bun run lint && bun run format:check
 ...
 Found 0 warnings and 0 errors.
 ...
@@ -557,15 +576,15 @@ No test files found, exiting with code 0
 
 ```bash
 cd packages/ui
-pnpm dlx shadcn@latest add button sidebar sheet command dialog alert-dialog tabs table \
+bunx shadcn@latest add button sidebar sheet command dialog alert-dialog tabs table \
   data-table badge tooltip kbd resizable separator scroll-area skeleton sonner input \
   input-group select dropdown-menu breadcrumb popover toggle switch empty spinner card \
   field collapsible
 grep -l "react-aria-components" src/components/*.tsx | wc -l   # expect most files listed
 grep -n '"style"' components.json                                # expect "aria-nova"
 cd ../..
-pnpm install
-pnpm test
+bun install
+bun run test
 ```
 
 Expected: `✓ packages/ui/src/components/button.test.tsx (1 test)` and
@@ -574,7 +593,7 @@ Expected: `✓ packages/ui/src/components/button.test.tsx (1 test)` and
 4. Create `apps/console` as described in Milestone 3, then:
 
 ```bash
-pnpm dev
+bun run dev
 ```
 
 Expected output includes `Local: http://localhost:5173/`. In a second terminal:
@@ -590,9 +609,9 @@ port 9092; a `404` from the SPA would mean the proxy is not matching. Stop the d
 then:
 
 ```bash
-pnpm exec playwright install chromium
-pnpm build
-pnpm test:e2e
+bunx playwright install chromium
+bun run build
+bun run test:e2e
 ```
 
 Expected: `vite v8.x building for production...` followed by `✓ built in`, and Playwright
@@ -602,13 +621,13 @@ reporting `1 passed`.
 
 ```bash
 just --list
-nix develop -c pnpm check
+nix develop -c bun run check
 ```
 
 6. Commit at each milestone boundary with the trailers the MasterPlan requires:
 
 ```text
-feat(workspace): scaffold the pnpm workspace and toolchain
+feat(workspace): scaffold the bun workspace and toolchain
 
 MasterPlan: docs/masterplans/2-build-the-keiro-runtime-console.md
 ExecPlan: docs/plans/7-scaffold-the-console-workspace-and-design-system.md
@@ -618,17 +637,17 @@ ExecPlan: docs/plans/7-scaffold-the-console-workspace-and-design-system.md
 ## Validation and Acceptance
 
 Required acceptance, all from a fresh clone (`git clone` into a scratch directory, then
-`pnpm install`):
+`bun install`):
 
-- `pnpm check` exits 0 with no lint or format findings and no type errors across
+- `bun run check` exits 0 with no lint or format findings and no type errors across
   `apps/console`, `packages/ui`, `packages/client-core`, and `packages/testing`.
-- `pnpm test` runs the Button component test under jsdom and passes.
-- `pnpm build` produces `apps/console/dist/index.html` and a CSS bundle that contains the
+- `bun run test` runs the Button component test under jsdom and passes.
+- `bun run build` produces `apps/console/dist/index.html` and a CSS bundle that contains the
   string `Paper Mono` (the `@font-face` survived) and a class emitted only by the Sheet
   component (the `@source` globs reach `packages/ui`).
-- `pnpm test:e2e` passes the smoke test: heading visible, `document.fonts.check` true for
+- `bun run test:e2e` passes the smoke test: heading visible, `document.fonts.check` true for
   Paper Mono, dark class toggles, sheet opens as a dialog.
-- `pnpm dev` serves `http://localhost:5173`; the placeholder page renders in Paper Mono
+- `bun run dev` serves `http://localhost:5173`; the placeholder page renders in Paper Mono
   (inspect the computed `font-family` of the heading in browser devtools, or use the
   Playwright check), weights from thin to extra-bold are visibly distinct, and the toggle
   switches between light and dark tokens.
@@ -636,14 +655,14 @@ Required acceptance, all from a fresh clone (`git clone` into a scratch director
   returns `200` when a pgmq-inspect server listens on 9092 and `502` otherwise; the same
   for `/kiroku/health/live` (9091), `/shibuya/health/live` (9090), and `/keiro/health`
   (9093). A WebSocket upgrade to `ws://localhost:5173/pgmq/ws` reaches port 9092 when it is
-  running (verify with `pnpm dlx wscat -c ws://localhost:5173/pgmq/ws` and a `{"type":"ping"}`
+  running (verify with `bunx wscat -c ws://localhost:5173/pgmq/ws` and a `{"type":"ping"}`
   frame answered by `{"type":"pong"}`).
 - `components.json` in `packages/ui` reads `"style": "aria-nova"`, and no file outside
   `packages/ui` imports from `react-aria-components`
   (`grep -rl react-aria-components apps packages --include=*.tsx --include=*.ts | grep -v packages/ui` prints nothing).
-- `nix develop -c pnpm check` succeeds and `just --list` prints the recipes.
+- `nix develop -c bun run check` succeeds and `just --list` prints the recipes.
 
-Proposed, not required: a GitHub Actions workflow running `pnpm check && pnpm test && pnpm build`
+Proposed, not required: a GitHub Actions workflow running `bun run check && bun run test && bun run build`
 can be added here or by the packaging plan
 (`docs/plans/18-package-the-console-for-deployment.md`); this plan only needs the local
 commands to pass.
@@ -651,15 +670,15 @@ commands to pass.
 
 ## Idempotence and Recovery
 
-Every step can be repeated. `pnpm install` is idempotent; `shadcn add` refuses to overwrite
+Every step can be repeated. `bun install` is idempotent; `shadcn add` refuses to overwrite
 existing component files unless `--overwrite` is passed, so re-running the `add` command
 after a partial failure is safe and only writes the missing files. If a generated
 component is edited by hand later and a re-add is needed, pass `--overwrite` for that one
 name only. The font download can be repeated; `CHECKSUMS.txt` lets you confirm the vendored
 bytes with `shasum -a 256 -c CHECKSUMS.txt` from `packages/ui/src/fonts`. The TanStack
 plugin rewrites `routeTree.gen.ts` on every run, so a stale tree is fixed by starting
-`pnpm dev` once. If `pnpm install` fails on a blocked build script, add the package to
-`allowBuilds` in `pnpm-workspace.yaml` and re-run. To roll back a milestone, `git checkout`
+`bun run dev` once. If `bun install` reports that it blocked a lifecycle script a package needs, add that
+package to `trustedDependencies` in the root `package.json` and re-run. To roll back a milestone, `git checkout`
 the files it added and delete `node_modules` — nothing in this plan touches anything
 outside the repository except the Playwright browser cache.
 
@@ -669,11 +688,11 @@ outside the repository except the Playwright browser cache.
 This plan is the first child of `docs/masterplans/2-build-the-keiro-runtime-console.md` and
 has no prerequisite plan. The artifacts it defines and that other plans depend on are:
 
-- The workspace scripts `pnpm dev`, `pnpm build`, `pnpm check`, `pnpm test`, and
-  `pnpm test:e2e` at the repository root, and the `justfile` recipes of the same names.
+- The workspace scripts `bun run dev`, `bun run build`, `bun run check`, `bun run test`, and
+  `bun run test:e2e` at the repository root, and the `justfile` recipes of the same names.
 - `@keiro-ui/ui` and its export paths `@keiro-ui/ui/globals.css`, `@keiro-ui/ui/components/<name>`,
   `@keiro-ui/ui/hooks/<name>`, `@keiro-ui/ui/lib/utils`, `@keiro-ui/ui/fonts/*`; the rule that
-  a new primitive is added by running `pnpm dlx shadcn@latest add <name>` inside
+  a new primitive is added by running `bunx shadcn@latest add <name>` inside
   `packages/ui` and committing the generated source; the theme tokens in
   `packages/ui/src/styles/globals.css`.
 - `apps/console` with the Vite proxy for `/kiroku` → 9091, `/shibuya` → 9090, `/pgmq` → 9092,

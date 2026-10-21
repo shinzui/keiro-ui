@@ -10,6 +10,12 @@ provenance:
     model: "claude-fable-5-1"
     harness: "claude-code"
     at: 2026-10-21T14:52:33Z
+  revisions:
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T15:56:48Z
+      mode: "update"
+      note: "Switch workspace tooling from pnpm to bun; vitest and Playwright kept on Node 22"
 ---
 
 # Provision the local runtime stack and recorded fixtures
@@ -32,7 +38,7 @@ database to run a unit test.
 
 After this plan, a developer in this repository can run `just stack-up` and get a seeded
 PostgreSQL database plus all four surfaces listening on fixed local ports, verified by
-`just stack-check`. They can run `pnpm fixtures:record` to capture every response the
+`just stack-check`. They can run `bun run fixtures:record` to capture every response the
 console will ever depend on into `packages/testing/fixtures/`, byte for byte. And every
 later plan's tests (unit tests under vitest, browser tests under Playwright, and the
 console's `VITE_MOCK=1` mode) can import `@keiro-ui/testing` and get those recorded
@@ -42,8 +48,8 @@ console needs, this plan hand-derives fixtures from the owning repository's enco
 files the improvement requests that would close the gap.
 
 You can see it working by running `just stack-check` (every surface answers), then
-`pnpm fixtures:record` (fixture files appear with a `_meta.json` naming the source commits),
-then `pnpm --filter @keiro-ui/testing test` (every fixture parses, every handler answers,
+`bun run fixtures:record` (fixture files appear with a `_meta.json` naming the source commits),
+then `bun run --filter @keiro-ui/testing test` (every fixture parses, every handler answers,
 every scripted feed plays snapshot-then-delta in order).
 
 
@@ -56,7 +62,7 @@ every scripted feed plays snapshot-then-delta in order).
 - [ ] M2 — shibuya baseline: the decision in the Decision Log is recorded (jitsurei's own
   metrics server if it has one, otherwise the shibuya-pgmq-adapter example consumer), a
   shibuya-metrics server answers on 9090, and `just stack-check` is green for all four.
-- [ ] M3 — Recorder and recorded fixtures: `pnpm fixtures:record` writes one raw-text
+- [ ] M3 — Recorder and recorded fixtures: `bun run fixtures:record` writes one raw-text
   fixture per manifest entry for all four surfaces plus `_meta.json` with source commits,
   versions, and seed name; the pgmq message-id fixture contains an id above 2^53 unchanged.
 - [ ] M4 — Mock handlers, scripted feeds, and entry points: `@keiro-ui/testing` exports
@@ -119,7 +125,7 @@ all four surfaces follow: `snake_case` fields on new routes, cursor pages as
 snapshot-then-delta and in-band `error` frames), `docs/adr/` (decisions), and the plans. The
 TypeScript workspace is created by `docs/plans/7-scaffold-the-console-workspace-and-design-system.md`
 (EP-7); this plan's Haskell-side milestones (M1, M2) do not need it, and its TypeScript
-milestones (M3, M4, M5) assume EP-7 has produced `pnpm-workspace.yaml`, `apps/console`, and
+milestones (M3, M4, M5) assume EP-7 has produced the root `package.json` `workspaces` field, `apps/console`, and
 an empty `packages/testing` directory with a `package.json` named `@keiro-ui/testing`. If
 `packages/testing/package.json` does not exist when you reach M3, create it as described in
 Concrete Steps; EP-7 will not overwrite it.
@@ -242,7 +248,7 @@ only. Record the choice in the Decision Log. Add it to `process-compose.yaml` an
 **Milestone 3 — the recorder.** Write `packages/testing/manifests/<surface>.json`, one
 entry per request the console will make (method, path template, query, the expected
 status, and for list routes the instruction to follow `next_cursor` once so a second page
-is recorded). Write `packages/testing/scripts/record.ts`, run with `pnpm fixtures:record`,
+is recorded). Write `packages/testing/scripts/record.ts`, run with `bun run fixtures:record`,
 which reads `dev/.env`, resolves path parameters by first fetching the list routes and
 taking the first item (a stream name, a queue name, a message id, a workflow name and id,
 a timer id, a subscription name), performs each request against the local ports, and
@@ -261,7 +267,7 @@ dialect), `packages/testing/src/scenario.ts` (a small API to swap a route's resp
 recorded error fixture or to inject an overflow into a feed), `src/node.ts`
 (`startMockServer()`), and `src/browser.ts` (`startMockWorker()`), plus the worker file in
 `apps/console/public/`. Write the package's own tests. At the end of M4
-`pnpm --filter @keiro-ui/testing test` passes.
+`bun run --filter @keiro-ui/testing test` passes.
 
 **Milestone 5 — gaps.** Derive fixtures for keiro `/aggregate/types`, `/aggregate/list`,
 `/aggregate/show`, `/aggregate/snapshot`, `/pm/list`, `/pm/show`, and for shibuya detailed
@@ -435,7 +441,7 @@ and `ws 9090/ws -> 101`.
 }
 ```
 
-and add `"fixtures:record": "pnpm --filter @keiro-ui/testing record"` to the root
+and add `"fixtures:record": "bun run --filter @keiro-ui/testing record"` to the root
 `package.json`. Write the manifests. The kiroku manifest, for example, names
 `GET /capabilities`, `/health`, `/health/live`, `/health/ready`, `/metrics`,
 `/subscriptions`, `/subscription-checkpoints`,
@@ -472,7 +478,7 @@ fixture (recorded first), performs the request with `fetch`, and writes
 `await response.text()` unchanged. Run it:
 
 ```bash
-pnpm fixtures:record
+bun run fixtures:record
 ```
 
 Expected transcript (abbreviated):
@@ -528,7 +534,7 @@ reconcile logic sees consistent keys.
 Generate the browser worker once EP-7's app exists:
 
 ```bash
-pnpm dlx msw init apps/console/public --save
+bunx msw init apps/console/public --save
 ```
 
 Tests under `packages/testing/test/`: `fixtures.test.ts` (every file under `fixtures/`
@@ -539,7 +545,7 @@ first frame is the dialect's snapshot or `event_stream_started`, assert the over
 arrives when requested). Run:
 
 ```bash
-pnpm --filter @keiro-ui/testing test
+bun run --filter @keiro-ui/testing test
 ```
 
 **M5.** Derived fixtures: from keiro's encoders write `fixtures/keiro/aggregate-types.json`,
@@ -601,15 +607,15 @@ M2 is accepted when `just stack-check` additionally prints `{"alive":true}` for 
 `101` for `9090/ws`, and `curl -s http://127.0.0.1:9090/metrics` returns at least one
 processor whose `state.status` is `processing` or `idle`.
 
-M3 is accepted when `pnpm fixtures:record` exits 0, every manifest entry has a file,
+M3 is accepted when `bun run fixtures:record` exits 0, every manifest entry has a file,
 `_meta.json` names the source commits and seed, at least one `*.page2.json` exists for a
 surface whose first page had a `next_cursor`, and the int64 check above prints the exact
 digits.
 
-M4 is accepted when `pnpm --filter @keiro-ui/testing test` passes and a smoke script in
+M4 is accepted when `bun run --filter @keiro-ui/testing test` passes and a smoke script in
 the test suite starts `startMockServer()`, fetches `http://localhost/kiroku/streams?limit=100`
 and `http://localhost/pgmq/queues`, and receives the recorded bodies byte for byte; and
-when, with EP-7's console present, `VITE_MOCK=1 pnpm dev` serves a page whose network
+when, with EP-7's console present, `VITE_MOCK=1 bun run dev` serves a page whose network
 requests are answered by the worker (visible in the browser devtools as "(from
 ServiceWorker)").
 

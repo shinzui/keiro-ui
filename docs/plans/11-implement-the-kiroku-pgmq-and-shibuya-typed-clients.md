@@ -10,6 +10,12 @@ provenance:
     model: "claude-fable-5-1"
     harness: "claude-code"
     at: 2026-10-21T14:52:33Z
+  revisions:
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T15:56:48Z
+      mode: "update"
+      note: "Switch workspace tooling from pnpm to bun; vitest and Playwright kept on Node 22"
 ---
 
 # Implement the kiroku, pgmq, and shibuya typed clients
@@ -46,7 +52,7 @@ that read raw events) consume these packages and never touch `fetch` or frame pa
 ## Progress
 
 - [ ] M1 — `@keiro-ui/client-kiroku` covers every kiroku-metrics route with zod schemas and
-  passes its contract tests against fixtures (`pnpm --filter @keiro-ui/client-kiroku test`)
+  passes its contract tests against fixtures (`bun run --filter @keiro-ui/client-kiroku test`)
   and, with `KEIRO_UI_LIVE=1`, against `kiroku-inspect` on port 9091; the smoke script
   prints the live `/capabilities` document.
 - [ ] M2 — `@keiro-ui/client-pgmq` is generated from the checked-in OpenAPI golden, its zod
@@ -112,11 +118,11 @@ fixtures. Read the MasterPlan's "Endpoint inventory (audited 2026-10-21)" and
 "Integration Points" sections first; this plan restates what it needs from them so it stands
 alone, but the MasterPlan is the coordination source if the two ever disagree.
 
-**The workspace.** After plan 7 the repository is a pnpm workspace with `apps/*` and
+**The workspace.** After plan 7 the repository is a bun workspace with `apps/*` and
 `packages/*`. Packages are consumed as TypeScript source inside the workspace (their
 `package.json` `exports` point at `src/`), there is no build step, and the root scripts are
-`pnpm check` (typecheck, lint, format check), `pnpm test` (vitest), and
-`pnpm test:e2e` (Playwright). TypeScript is version 7 with `strict`,
+`bun run check` (typecheck, lint, format check), `bun run test` (vitest), and
+`bun run test:e2e` (Playwright). TypeScript is version 7 with `strict`,
 `noUncheckedIndexedAccess`, `verbatimModuleSyntax`, and `moduleResolution: "bundler"`.
 Linting is oxlint and formatting is oxfmt. Runtime dependencies that matter here: `zod`
 4 (schemas; zod 4 is the version where `.int()` and `bigint` helpers behave as used below),
@@ -588,8 +594,8 @@ Bring in the pgmq OpenAPI document and generate types:
 cp /Users/shinzui/Keikaku/bokuno/libraries/pgmq-hs-project/pgmq-hs/pgmq-inspect/test/golden/openapi.json \
    packages/client-pgmq/openapi/pgmq-inspect.openapi.json
 git -C /Users/shinzui/Keikaku/bokuno/libraries/pgmq-hs-project/pgmq-hs rev-parse --short HEAD   # record in openapi/SOURCE.md
-pnpm --filter @keiro-ui/client-pgmq add -D openapi-typescript
-pnpm --filter @keiro-ui/client-pgmq generate
+(cd packages/client-pgmq && bun add --dev openapi-typescript)
+bun run --filter @keiro-ui/client-pgmq generate
 ```
 
 Expected tail of the generate step:
@@ -602,8 +608,8 @@ Expected tail of the generate step:
 Install and run the suites against fixtures:
 
 ```bash
-pnpm install
-pnpm --filter "@keiro-ui/client-kiroku" --filter "@keiro-ui/client-pgmq" --filter "@keiro-ui/client-shibuya" test
+bun install
+bun run --filter '@keiro-ui/client-*' test
 ```
 
 Expected shape of each package's vitest summary (counts will differ):
@@ -620,10 +626,10 @@ MasterPlan):
 
 ```bash
 just stack-up        # from docs/plans/9-provision-the-local-runtime-stack-and-recorded-fixtures.md
-KEIRO_UI_LIVE=1 pnpm --filter "@keiro-ui/client-*" test
-pnpm --filter @keiro-ui/client-kiroku smoke
-pnpm --filter @keiro-ui/client-pgmq smoke
-pnpm --filter @keiro-ui/client-shibuya smoke
+KEIRO_UI_LIVE=1 bun run --filter '@keiro-ui/client-*' test
+bun run --filter @keiro-ui/client-kiroku smoke
+bun run --filter @keiro-ui/client-pgmq smoke
+bun run --filter @keiro-ui/client-shibuya smoke
 ```
 
 Expected first lines of the kiroku smoke script:
@@ -637,7 +643,7 @@ store head: 4211
 Finish with the workspace checks:
 
 ```bash
-pnpm check
+bun run check
 ```
 
 
@@ -645,13 +651,13 @@ pnpm check
 
 Acceptance is behavioral and per milestone.
 
-M1 is accepted when `pnpm --filter @keiro-ui/client-kiroku test` passes with every route
+M1 is accepted when `bun run --filter @keiro-ui/client-kiroku test` passes with every route
 covered by at least one assertion on decoded shape and cursor typing; when
 `KEIRO_UI_LIVE=1` against `kiroku-inspect` on 9091 the live suite pages `/events` to the
 end and the smoke script prints the capabilities document and the store head; and when
 calling `streams.page({ limit: 5000 })` throws a `RangeError` before any request is sent.
 
-M2 is accepted when `pnpm --filter @keiro-ui/client-pgmq generate` is idempotent (a second
+M2 is accepted when `bun run --filter @keiro-ui/client-pgmq generate` is idempotent (a second
 run changes nothing in `git status`), the parity test passes for every component schema
 with a zod mirror, the fixture message with id `9007199254740993` decodes to that exact
 `bigint` and is re-serialized exactly in the path of `messages.get`, and the live suite
@@ -681,7 +687,7 @@ kiroku later publishes OpenAPI; Prometheus text parsing (the console does not re
 ## Idempotence and Recovery
 
 Every step is safe to repeat. Package scaffolding is additive; re-running `generate`
-rewrites `src/generated/schema.d.ts` deterministically; `pnpm install` is idempotent. The
+rewrites `src/generated/schema.d.ts` deterministically; `bun install` is idempotent. The
 live suites are read-only against the servers (every route they call is a GET; the
 WebSocket cases only subscribe) and leave no state behind. If a live test fails because a
 server is down, the failure names the port; bring the stack up with plan 9's recipe and

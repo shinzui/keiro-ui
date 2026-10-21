@@ -10,6 +10,12 @@ provenance:
     model: "claude-fable-5-1"
     harness: "claude-code"
     at: 2026-10-21T14:52:33Z
+  revisions:
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T15:56:48Z
+      mode: "update"
+      note: "Switch workspace tooling from pnpm to bun; vitest and Playwright kept on Node 22"
 ---
 
 # Build the console app shell, navigation, and command palette
@@ -29,7 +35,7 @@ sections, a way to drill into an entity without losing the page they came from, 
 jump anywhere by typing, and a place that always says which deployment they are looking
 at and whether the numbers on screen are live.
 
-This plan builds that frame. After it is complete, running `pnpm dev` in this repository and
+This plan builds that frame. After it is complete, running `bun run dev` in this repository and
 opening `http://localhost:5173` shows the console shell: a narrow left **rail** with one
 icon per section, a **sidebar** listing the section's pages and recently visited entities
 that collapses to icons with one keypress, a **bottom bar** showing the active connection
@@ -61,8 +67,8 @@ surface and, later, the store head), and nothing here can mutate anything; see
   selects profiles, the bottom bar shows one health dot per surface for the active profile,
   pause/resume flips every polling query that reads `useLiveness()`.
 - [ ] M5 — Link builders, formatting helpers, and the Playwright suite: every route in the
-  link map has a typed builder; `format.ts` never emits "lag"; `pnpm test` and
-  `pnpm test:e2e --project shell` pass.
+  link map has a typed builder; `format.ts` never emits "lag"; `bun run test` and
+  `bun run test:e2e --project shell` pass.
 
 
 ## Surprises & Discoveries
@@ -112,16 +118,16 @@ surface and, later, the store head), and nothing here can mutate anything; see
 
 **What exists when this plan starts.** The workspace plan
 (`docs/plans/7-scaffold-the-console-workspace-and-design-system.md`) must be Complete. It
-provides a pnpm workspace with `apps/console` (a Vite 8 + React 19 + TypeScript 7
+provides a bun workspace with `apps/console` (a Vite 8 + React 19 + TypeScript 7
 application using `@tanstack/router-plugin` for file-based routing, with
 `src/routes/__root.tsx`, `src/router.tsx`, `src/main.tsx`, and a generated
 `src/routeTree.gen.ts`), `packages/ui` (published as `@keiro-ui/ui`: the shadcn/ui
 components generated on the React Aria base in the `aria-nova` style, Paper Mono declared
 via `@font-face`, and the theme tokens in `src/styles/globals.css`), a Vite dev proxy that
 forwards `/kiroku`, `/shibuya`, `/pgmq`, and `/keiro` to local ports 9091, 9090, 9092, and
-9093 with the prefix stripped and WebSockets enabled, and the toolchain scripts `pnpm dev`,
-`pnpm build`, `pnpm check`, `pnpm test` (vitest with jsdom and React Testing Library), and
-`pnpm test:e2e` (Playwright). If any of those is missing, stop and finish plan 7 first.
+9093 with the prefix stripped and WebSockets enabled, and the toolchain scripts `bun run dev`,
+`bun run build`, `bun run check`, `bun run test` (vitest with jsdom and React Testing Library), and
+`bun run test:e2e` (Playwright). If any of those is missing, stop and finish plan 7 first.
 
 **Terms.** A *section* is one of the console's top-level areas (Overview, Aggregates,
 Workflows, Process Managers & Timers, Projections & Read Models, Streams & Subscriptions,
@@ -141,7 +147,7 @@ the URL; TanStack Router validates them with a schema per route and exposes them
 `.../scroll-area`, `.../resizable`, `.../sonner`, `.../input`, `.../select`, `.../field`,
 `.../switch`, `.../skeleton`). The console never imports `react-aria-components` directly.
 If a primitive this plan needs is absent from `packages/ui/src/components/`, add it from
-inside `packages/ui` with `pnpm dlx shadcn@latest add <name>` and commit the generated
+inside `packages/ui` with `bunx shadcn@latest add <name>` and commit the generated
 file; that is the discipline recorded in
 [ADR-8](../adr/0008-shadcn-ui-on-the-react-aria-base-is-the-console-component-library.md).
 The shadcn `sidebar` component on the aria base exports `SidebarProvider`, `Sidebar`
@@ -198,7 +204,7 @@ behavior an operator can see.
 ### Milestone 1 — Shell layout, theme, and placeholder routes
 
 At the end of this milestone the console has its four regions and every page in the link
-map exists as a placeholder. Run `pnpm dev` and open `http://localhost:5173`: the rail,
+map exists as a placeholder. Run `bun run dev` and open `http://localhost:5173`: the rail,
 sidebar, bottom bar, and a page header are visible; clicking a rail icon changes the
 section and the sidebar's entries; the sidebar collapses to icons with its own trigger and
 stays collapsed after a reload; the theme follows the system and can be forced light or
@@ -362,10 +368,10 @@ actions?, children? })` rendering an `h1`, optional description, and a right-ali
 actions area; `apps/console/src/components/empty-state.tsx` exports `EmptyState({ title,
 description?, action? })`. Both use only `@keiro-ui/ui` primitives and Tailwind classes.
 
-Acceptance for Milestone 1: with no runtime surface running, `pnpm dev` serves the shell;
+Acceptance for Milestone 1: with no runtime surface running, `bun run dev` serves the shell;
 every path in the table above renders its placeholder without a console error; the
 sidebar trigger collapses the sidebar to icons and the state persists across reload;
-`pnpm check` passes.
+`bun run check` passes.
 
 
 ### Milestone 2 — The right sheet
@@ -701,14 +707,14 @@ with `2n ** 63n - 1n`); `connection-profiles` (default profile base URLs, schema
 rejections, persistence round-trip, `useWebSocketUrl` for http and https); `right-sheet`
 (`encodeSheet`/`decodeSheet` including refs with colons); `commands` (`parseJump` for every
 parser and for garbage). End-to-end tests (Playwright, under `apps/console/e2e/shell/`,
-project name `shell`, run against `pnpm dev` with no runtime surfaces): sidebar collapse
+project name `shell`, run against `bun run dev` with no runtime surfaces): sidebar collapse
 persists across reload; ⌘K navigation to Subscriptions; the About sheet opens, the URL
 contains `sheet=`, reload restores it, Escape closes it; a new `separate` profile changes
 the probed health URL (asserted with `page.waitForRequest`); `[`, `?`, and `g s` work and
 do not fire while typing in the palette; pause/resume flips the bottom bar label.
 
-Acceptance: `pnpm test` and `pnpm test:e2e --project shell` pass; `pnpm check` passes;
-`pnpm build` produces `apps/console/dist` with no warnings about dynamic imports failing.
+Acceptance: `bun run test` and `bun run test:e2e --project shell` pass; `bun run check` passes;
+`bun run build` produces `apps/console/dist` with no warnings about dynamic imports failing.
 
 
 ## Concrete Steps
@@ -719,17 +725,17 @@ stated otherwise.
 1. Confirm the prerequisites from plan 7:
 
    ```bash
-   pnpm install
-   pnpm check
+   bun install
+   bun run check
    ls packages/ui/src/components
    ```
 
-   Expect `pnpm check` to end with no errors and the component directory to list at least
+   Expect `bun run check` to end with no errors and the component directory to list at least
    `button.tsx sidebar.tsx sheet.tsx command.tsx dialog.tsx tooltip.tsx`. Add any missing
    primitive from inside `packages/ui`:
 
    ```bash
-   cd packages/ui && pnpm dlx shadcn@latest add sidebar sheet command dialog tooltip kbd dropdown-menu scroll-area resizable sonner input select field switch skeleton badge separator
+   cd packages/ui && bunx shadcn@latest add sidebar sheet command dialog tooltip kbd dropdown-menu scroll-area resizable sonner input select field switch skeleton badge separator
    ```
 
 2. Milestone 1: write `apps/console/src/shell/{app-shell,rail,section-sidebar,status-bar,status-slots,theme,navigation,search}.ts(x)`,
@@ -738,8 +744,8 @@ stated otherwise.
    the placeholder route files listed in Plan of Work. Then:
 
    ```bash
-   pnpm --filter @keiro-ui/console exec tsr generate   # or rely on the Vite plugin while `pnpm dev` runs
-   pnpm dev
+   bun run --filter @keiro-ui/console generate-routes   # or rely on the Vite plugin while `bun run dev` runs
+   bun run dev
    ```
 
    Open `http://localhost:5173`, click through every rail icon and sidebar entry, collapse
@@ -751,7 +757,7 @@ stated otherwise.
    the browser as described in the milestone, then:
 
    ```bash
-   pnpm test -- right-sheet
+   bun run test -- right-sheet
    ```
 
 4. Milestone 3: write `apps/console/src/shell/{commands,recent,command-palette,shortcuts}.ts(x)`
@@ -760,31 +766,31 @@ stated otherwise.
    exercised before real screens exist. Run:
 
    ```bash
-   pnpm test -- commands recent
+   bun run test -- commands recent
    ```
 
 5. Milestone 4: write `apps/console/src/settings/connection-profiles.ts`,
    `apps/console/src/shell/{health,liveness}.ts(x)`, the settings page, and the bottom-bar
-   wiring. Run `pnpm dev`, open `http://localhost:5173/settings/connections`, create the
+   wiring. Run `bun run dev`, open `http://localhost:5173/settings/connections`, create the
    profile described in the milestone's acceptance, select it, and watch the network panel.
    Optionally start a real surface to see a green dot (plan 9 documents the stack; the
    quickest single server is `pgmq-inspect --port 9092` against any pgmq database):
 
    ```bash
-   pnpm test -- connection-profiles health liveness
+   bun run test -- connection-profiles health liveness
    ```
 
 6. Milestone 5: write `apps/console/src/lib/{links,format}.ts`,
    `apps/console/src/components/timestamp.tsx`, the remaining unit tests, and
    `apps/console/e2e/shell/*.spec.ts`; register the `shell` project in
-   `apps/console/playwright.config.ts` (`webServer` command `pnpm dev --port 5173`, `baseURL`
+   `apps/console/playwright.config.ts` (`webServer` command `bun run dev --port 5173`, `baseURL`
    `http://localhost:5173`, `reuseExistingServer` outside CI). Run:
 
    ```bash
-   pnpm check
-   pnpm test
-   pnpm test:e2e --project shell
-   pnpm build
+   bun run check
+   bun run test
+   bun run test:e2e --project shell
+   bun run build
    ```
 
    Expected tail of the end-to-end run:
@@ -809,7 +815,7 @@ stated otherwise.
 The plan is complete when, from a clean checkout with plan 7 complete, the following all
 hold.
 
-**Layout and navigation.** `pnpm dev` serves the shell at `http://localhost:5173`. The rail
+**Layout and navigation.** `bun run dev` serves the shell at `http://localhost:5173`. The rail
 shows eight icons (seven sections plus Settings at the bottom); the active one is
 highlighted according to the pathname. The sidebar lists the active section's pages and
 collapses to icons via its trigger or the `[` key; after a reload it is in the same state.
@@ -839,8 +845,8 @@ are red; with one surface running its dot is green within 30 s. Clicking "Live" 
 "Paused 00:00" counting up; a test query written with `refetchIntervalFor` stops
 refetching while paused and refetches once on resume; the health probes keep going.
 
-**Helpers and tests.** `pnpm test` passes with the unit tests named in Milestone 5;
-`pnpm test:e2e --project shell` passes; `pnpm check` and `pnpm build` pass. The
+**Helpers and tests.** `bun run test` passes with the unit tests named in Milestone 5;
+`bun run test:e2e --project shell` passes; `bun run check` and `bun run build` pass. The
 vocabulary test proves `apps/console/src/lib/format.ts` contains neither "lag" nor
 "backlog".
 
@@ -858,14 +864,14 @@ it; the Streams plan may add the first button); command-palette search over enti
 ## Idempotence and Recovery
 
 Every step is additive and can be re-run. Regenerating the route tree is safe at any time
-(`pnpm --filter @keiro-ui/console exec tsr generate` or simply running `pnpm dev`);
+(`bun run --filter @keiro-ui/console generate-routes` or simply running `bun run dev`);
 `src/routeTree.gen.ts` is generated and must stay excluded from lint and format (plan 7
 configured `oxlint` and `oxfmt` ignores; if not, add `apps/console/src/routeTree.gen.ts` to
 both). Adding a shadcn component twice is a no-op prompt to overwrite; answer no unless
 you intend to reset local edits. All persisted state lives under localStorage keys
 prefixed `keiro-ui.` and versioned `.v1`; a malformed value is ignored and replaced with the
 default rather than thrown, so clearing site data is the universal reset. If a milestone's
-tests fail after a partial edit, `git stash` the working tree and re-run `pnpm check` on
+tests fail after a partial edit, `git stash` the working tree and re-run `bun run check` on
 the last commit to confirm the baseline before resuming.
 
 

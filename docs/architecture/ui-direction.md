@@ -181,7 +181,8 @@ distance "lag".
 
 ## Application architecture
 
-React + TypeScript + Vite, in a pnpm workspace in this repository:
+React + TypeScript + Vite, in a bun workspace in this repository (originally planned as
+pnpm; switched to bun on 2026-10-21, see `docs/masterplans/2-build-the-keiro-runtime-console.md`):
 
 - `apps/console` — the application shell, routing, screens.
 - `packages/client-kiroku`, `packages/client-shibuya`, `packages/client-pgmq`,

@@ -10,6 +10,12 @@ provenance:
     model: "claude-fable-5-1"
     harness: "claude-code"
     at: 2026-10-21T14:52:33Z
+  revisions:
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T15:56:48Z
+      mode: "update"
+      note: "Switch workspace tooling from pnpm to bun; vitest and Playwright kept on Node 22"
 ---
 
 # Implement the client core for HTTP, cursors, int64, WebSocket, and live queries
@@ -45,8 +51,7 @@ console's liveness rules (a global pause toggle, adaptive polling when a backend
 and `useFeedSubscription` to layer a live feed on top of that poll without ever trusting the
 feed as the source of truth.
 
-You can see it working by running the package's test suite (`pnpm --filter
-@keiro-ui/client-core test`), which proves with recorded samples that the identifier
+You can see it working by running the package's test suite (`bun run --filter @keiro-ui/client-core test`), which proves with recorded samples that the identifier
 `9223372036854775807` survives a round trip unchanged and that a scripted WebSocket server
 that overflows causes a refetch, and — when the local runtime stack from
 `docs/plans/9-provision-the-local-runtime-stack-and-recorded-fixtures.md` is running — by
@@ -122,13 +127,13 @@ page of pgmq messages through the development proxy and checks the ids exactly.
 
 ## Context and Orientation
 
-**Repository state.** keiro-ui is a pnpm workspace created by
+**Repository state.** keiro-ui is a bun workspace created by
 `docs/plans/7-scaffold-the-console-workspace-and-design-system.md` (EP-7), which must be
 Complete before this plan starts. EP-7 leaves `apps/console` (the Vite + React
 application), `packages/ui` (the component library), and an empty but wired
 `packages/client-core` directory holding a `package.json` named `@keiro-ui/client-core`,
 a `tsconfig.json` extending the workspace base, and the root `vitest`, `oxlint`, and
-`oxfmt` configuration. The Vite development server (`pnpm dev`, port 5173) proxies the path
+`oxfmt` configuration. The Vite development server (`bun run dev`, port 5173) proxies the path
 prefixes `/kiroku`, `/shibuya`, `/pgmq`, and `/keiro` to local servers on ports 9091, 9090,
 9092, and 9093 with the prefix stripped and WebSocket upgrades forwarded. Nothing in this
 plan touches those files beyond adding dependencies to `packages/client-core/package.json`.
@@ -470,14 +475,16 @@ response text. The transcript of that run is pasted into Progress when M4 is acc
 ## Concrete Steps
 
 All commands run from the repository root `/Users/shinzui/Keikaku/bokuno/keiro-ui` unless
-stated. The workspace, `pnpm`, and the root tooling exist because EP-7 is Complete.
+stated. The workspace, `bun`, and the root tooling exist because EP-7 is Complete.
 
 Add the package's dependencies. Peer dependencies are the ones consumers already have
 (React 19, TanStack Query 5, zod 4); test tooling is local:
 
 ```bash
-pnpm --filter @keiro-ui/client-core add --save-peer react @tanstack/react-query zod
-pnpm --filter @keiro-ui/client-core add -D vitest jsdom @testing-library/react msw ws @types/ws
+cd packages/client-core
+bun add --peer react @tanstack/react-query zod
+bun add --dev vitest jsdom @testing-library/react msw ws @types/ws
+cd ../..
 ```
 
 Create the source files listed in Context and Orientation and fill them per the Plan of
@@ -514,9 +521,9 @@ The kiroku capabilities sample follows `docs/user/metrics.md` in the kiroku repo
 Run the package's checks after each milestone:
 
 ```bash
-pnpm --filter @keiro-ui/client-core typecheck
-pnpm --filter @keiro-ui/client-core test
-pnpm check
+bun run --filter @keiro-ui/client-core typecheck
+bun run --filter @keiro-ui/client-core test
+bun run check
 ```
 
 Expected shape of a passing test run (counts will differ):
@@ -536,8 +543,8 @@ Expected shape of a passing test run (counts will differ):
 The skipped contract test is the live check; it runs when the EP-9 stack is up:
 
 ```bash
-# in another terminal, with the stack from docs/plans/9-... running and `pnpm dev` serving the proxy
-KEIRO_UI_LIVE=1 pnpm --filter @keiro-ui/client-core test -- test/contract.test.ts
+# in another terminal, with the stack from docs/plans/9-... running and `bun run dev` serving the proxy
+KEIRO_UI_LIVE=1 bun run --filter @keiro-ui/client-core test -- test/contract.test.ts
 ```
 
 Expected: the live test prints the kiroku package version from `/capabilities` and the
@@ -559,7 +566,7 @@ ExecPlan: docs/plans/10-implement-the-client-core-for-http-cursors-int64-websock
 
 Required acceptance, all observable from the test runner or a browser console:
 
-1. Int64 round trip. `pnpm --filter @keiro-ui/client-core test -- int64` passes, including
+1. Int64 round trip. `bun run --filter @keiro-ui/client-core test -- int64` passes, including
    the assertions that `parseJsonLossless('{"id":9223372036854775807}').id` is the `bigint`
    `9223372036854775807n`, that `serializeJson({id: 9223372036854775807n})` is the exact
    text `{"id":9223372036854775807}` on a runtime with `JSON.rawJSON`, and that the
@@ -584,7 +591,7 @@ Required acceptance, all observable from the test runner or a browser console:
    against the stack passes with its transcript recorded in this plan. This is the
    MasterPlan's early producer/consumer check 1 and must pass before EP-11 generates the
    pgmq client.
-7. Workspace checks. `pnpm check` (typecheck, oxlint, oxfmt) passes with the package
+7. Workspace checks. `bun run check` (typecheck, oxlint, oxfmt) passes with the package
    included.
 
 Proposals beyond this scope, not required here: a `HEAD`/`OPTIONS` helper, request
@@ -593,8 +600,7 @@ deduplication, and a React DevTools panel for feed status.
 
 ## Idempotence and Recovery
 
-Every step is additive inside `packages/client-core` and can be re-run. Re-running `pnpm
-add` is harmless. Tests are pure or use in-process servers (MSW, `ws` on an ephemeral
+Every step is additive inside `packages/client-core` and can be re-run. Re-running `bun add` is harmless. Tests are pure or use in-process servers (MSW, `ws` on an ephemeral
 port) and leave no state. If the `context.source` feature detection misbehaves in a
 runtime, set the exported override `setJsonSourceSupport(false)` in a test or at app
 start to force the fallback; the two paths are tested for equality so switching is safe.

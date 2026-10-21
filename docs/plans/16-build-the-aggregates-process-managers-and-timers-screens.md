@@ -10,6 +10,12 @@ provenance:
     model: "claude-fable-5-1"
     harness: "claude-code"
     at: 2026-10-21T14:52:33Z
+  revisions:
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T15:56:48Z
+      mode: "update"
+      note: "Switch workspace tooling from pnpm to bun; vitest and Playwright kept on Node 22"
 ---
 
 # Build the Aggregates, Process Managers, and Timers screens
@@ -31,7 +37,7 @@ fire later). No surveyed operations console treats the aggregate as a first-clas
 folded current state side by side, with snapshot metadata" — the console's differentiation
 surface, alongside live process-manager state.
 
-After this plan, an operator running the console (`pnpm dev` in this repository, or the
+After this plan, an operator running the console (`bun run dev` in this repository, or the
 deployed bundle) can open **Aggregates**, pick a kind, page through its instances, and
 open one to see the raw events of its stream on the left and the folded state, hydration
 source, and snapshot health on the right; open **Process managers**, pick a manager and a
@@ -44,7 +50,7 @@ mutates anything: timer requeue and cancel arrive only with
 
 You can see it working by starting the local runtime stack of
 `docs/plans/9-provision-the-local-runtime-stack-and-recorded-fixtures.md` (or the mock mode
-`VITE_MOCK=1 pnpm dev`), opening `http://localhost:5173/timers`, and watching a timer row
+`VITE_MOCK=1 bun run dev`), opening `http://localhost:5173/timers`, and watching a timer row
 update without reloading when its state changes; then opening an aggregate instance and
 seeing both panes populated. When the keiro host behind the console does not mount the
 aggregate and process-manager inspection hooks (today's standalone hosts do not), the
@@ -117,7 +123,7 @@ Aggregates and Process managers pages say so plainly instead of showing an error
 
 ## Context and Orientation
 
-This repository, keiro-ui, is a pnpm workspace (created by
+This repository, keiro-ui, is a bun workspace (created by
 `docs/plans/7-scaffold-the-console-workspace-and-design-system.md`) holding the React +
 TypeScript + Vite console `apps/console` (published name `@keiro-ui/console`), the owned
 component package `packages/ui` (`@keiro-ui/ui`, shadcn/ui components generated on the
@@ -434,9 +440,9 @@ All commands run from the repository root `/Users/shinzui/Keikaku/bokuno/keiro-u
 stated. Confirm the prerequisites first:
 
 ```bash
-pnpm install
-pnpm --filter @keiro-ui/client-keiro exec tsc --noEmit
-pnpm --filter @keiro-ui/client-kiroku exec tsc --noEmit
+bun install
+bun run --filter @keiro-ui/client-keiro typecheck
+bun run --filter @keiro-ui/client-kiroku typecheck
 /bin/ls apps/console/src/shell apps/console/src/lib packages/testing/fixtures/keiro
 ```
 
@@ -450,7 +456,7 @@ Add any missing primitive to the component package before using it (this plan ex
 `sheet`, `kbd` to exist from EP-7/EP-8/EP-13; `resizable` is the most likely addition):
 
 ```bash
-cd packages/ui && pnpm dlx shadcn@latest add resizable && cd ../..
+cd packages/ui && bunx shadcn@latest add resizable && cd ../..
 git status --short packages/ui
 ```
 
@@ -458,18 +464,18 @@ Create the route and feature files named in Plan of Work, then regenerate the ro
 and type-check:
 
 ```bash
-pnpm --filter @keiro-ui/console exec tsr generate
-pnpm check
+bun run --filter @keiro-ui/console generate-routes
+bun run check
 ```
 
-Expected: `pnpm check` ends with the oxlint and oxfmt summaries reporting zero errors and
+Expected: `bun run check` ends with the oxlint and oxfmt summaries reporting zero errors and
 `tsc` producing no output.
 
 Run the unit tests and the end-to-end suite in mock mode:
 
 ```bash
-pnpm --filter @keiro-ui/console test -- aggregates process-managers timers
-VITE_MOCK=1 pnpm --filter @keiro-ui/console test:e2e -- tests/e2e/aggregates.spec.ts tests/e2e/process-managers.spec.ts tests/e2e/timers.spec.ts
+bun run --filter @keiro-ui/console test -- aggregates process-managers timers
+VITE_MOCK=1 bun run --filter @keiro-ui/console test:e2e -- tests/e2e/aggregates.spec.ts tests/e2e/process-managers.spec.ts tests/e2e/timers.spec.ts
 ```
 
 Expected transcript tail:
@@ -488,7 +494,7 @@ For the live-stack smoke (M4), start the EP-9 stack in another terminal, then:
 
 ```bash
 just stack-up          # from docs/plans/9: postgres, seed, kiroku-inspect, pgmq-inspect, keiro-ops-http
-pnpm dev
+bun run dev
 ```
 
 Open `http://localhost:5173/timers`, confirm rows appear and the "as of" stamp advances;
@@ -499,7 +505,7 @@ with a timestamp in Progress.
 
 ## Validation and Acceptance
 
-Acceptance is what an operator sees, in mock mode (`VITE_MOCK=1 pnpm dev`, backed by
+Acceptance is what an operator sees, in mock mode (`VITE_MOCK=1 bun run dev`, backed by
 EP-9's fixtures and scripted feeds) unless stated.
 
 **M1.** Visiting `/aggregates` shows a table of kinds whose first row is the fixture's

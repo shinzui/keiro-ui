@@ -10,6 +10,12 @@ provenance:
     model: "claude-fable-5-1"
     harness: "claude-code"
     at: 2026-10-21T14:52:33Z
+  revisions:
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T15:56:48Z
+      mode: "update"
+      note: "Switch workspace tooling from pnpm to bun; vitest and Playwright kept on Node 22"
 ---
 
 # Build the Queues and Processors screens
@@ -37,7 +43,7 @@ packages `@keiro-ui/client-pgmq` and `@keiro-ui/client-shibuya` built by
 inside the application shell built by
 `docs/plans/8-build-the-console-app-shell-navigation-and-command-palette.md`.
 
-After this plan an operator can start the console with `pnpm dev` (or `VITE_MOCK=1 pnpm dev`
+After this plan an operator can start the console with `bun run dev` (or `VITE_MOCK=1 bun run dev`
 against recorded fixtures), open `http://localhost:5173/queues`, and see every queue sorted
 by the age of its oldest message with visible and total counts; click a queue to watch its
 metrics update live, page through its messages and archive without leasing anything, open
@@ -279,9 +285,9 @@ exact method names those packages export are theirs; this plan isolates every ca
 ## Plan of Work
 
 The work is five milestones, each independently verifiable in the browser against the
-recorded fixtures (`VITE_MOCK=1 pnpm dev`) and, when the local stack from
+recorded fixtures (`VITE_MOCK=1 bun run dev`) and, when the local stack from
 `docs/plans/9-provision-the-local-runtime-stack-and-recorded-fixtures.md` is running,
-against real servers (`pnpm dev`).
+against real servers (`bun run dev`).
 
 **M1 — queue list and queue detail header.** Create the routes
 `apps/console/src/routes/_shell/queues/index.tsx` and `apps/console/src/routes/_shell/queues/$name.tsx`
@@ -406,28 +412,28 @@ copying the owning repository's golden file and editing it minimally; name the s
 1. Confirm the prerequisites are in place and the baseline is green:
 
     ```bash
-    pnpm install
-    pnpm check
-    pnpm test
+    bun install
+    bun run check
+    bun run test
     ls packages/client-pgmq/src packages/client-shibuya/src apps/console/src/shell
     ```
 
-    Expected: `pnpm check` and `pnpm test` exit 0; the three directories exist.
+    Expected: `bun run check` and `bun run test` exit 0; the three directories exist.
 
 2. Add any UI primitive this section needs that `packages/ui` does not yet have — the table,
    tabs, badge, card, input, button, tooltip, skeleton, empty, and separator components are
    expected from EP-7/EP-8; if one is missing:
 
     ```bash
-    cd packages/ui && pnpm dlx shadcn@latest add tabs badge tooltip empty && cd ../..
+    cd packages/ui && bunx shadcn@latest add tabs badge tooltip empty && cd ../..
     ```
 
-    Expected: new files under `packages/ui/src/components/`; `pnpm check` still passes.
+    Expected: new files under `packages/ui/src/components/`; `bun run check` still passes.
 
 3. Create the M1 files and run the dev server in mock mode:
 
     ```bash
-    VITE_MOCK=1 pnpm dev
+    VITE_MOCK=1 bun run dev
     ```
 
     Open `http://localhost:5173/queues`. Expected: the fixture queues, oldest-age descending,
@@ -437,7 +443,7 @@ copying the owning repository's golden file and editing it minimally; name the s
 4. Create the M2 files. Verify the big-id and dead-letter fixtures:
 
     ```bash
-    pnpm --filter @keiro-ui/console test -- src/features/queues
+    bun run --filter @keiro-ui/console test -- src/features/queues
     ```
 
     Expected transcript tail:
@@ -452,7 +458,7 @@ copying the owning repository's golden file and editing it minimally; name the s
 5. Create the M3 and M4 files; run the processor tests:
 
     ```bash
-    pnpm --filter @keiro-ui/console test -- src/features/processors
+    bun run --filter @keiro-ui/console test -- src/features/processors
     ```
 
     Expected: `histogram.test.ts` (per-bucket differences, overflow bucket, quantile
@@ -462,19 +468,19 @@ copying the owning repository's golden file and editing it minimally; name the s
 6. Create the M5 wiring and the end-to-end suite; run it:
 
     ```bash
-    pnpm --filter @keiro-ui/console test:e2e -- tests/e2e/queues.spec.ts tests/e2e/processors.spec.ts
+    bun run --filter @keiro-ui/console test:e2e -- tests/e2e/queues.spec.ts tests/e2e/processors.spec.ts
     ```
 
     Expected: all scenarios pass; Playwright prints `N passed`.
 
 7. When the local stack is running (EP-9's recipe; pgmq-inspect on 9092 and a shibuya
-   metrics server on 9090), run `pnpm dev` without `VITE_MOCK` and repeat the manual checks
+   metrics server on 9090), run `bun run dev` without `VITE_MOCK` and repeat the manual checks
    of steps 3–5 against real data; record the observation in Progress.
 
 8. Run the full gate and commit at each milestone boundary with the trailers:
 
     ```bash
-    pnpm check && pnpm test
+    bun run check && bun run test
     git add -A && git commit -m "feat(console): queues section with live metrics and message browsing" \
       -m "MasterPlan: docs/masterplans/2-build-the-keiro-runtime-console.md" \
       -m "ExecPlan: docs/plans/14-build-the-queues-and-processors-screens.md"
@@ -514,7 +520,7 @@ reads "notify". (4) On `/processors`, the scripted feed emits `terminal {process
 `processor orders`, Enter; the URL is `/processors/orders` and the Control card reads
 "Control enabled: no".
 
-**Live-stack check (when EP-9's stack is up).** `pnpm dev`, `/queues` lists the seeded
+**Live-stack check (when EP-9's stack is up).** `bun run dev`, `/queues` lists the seeded
 queues with real ages; `/queues/<seeded>` shows the header changing after a message is sent
 with `psql` (`SELECT pgmq.send('<queue>', '{"hello": 1}')`); `/processors` shows the running
 example consumer; pausing liveness in the bottom bar stops both polling (no new requests in
@@ -528,11 +534,11 @@ processors by their adapter; any action button.
 ## Idempotence and Recovery
 
 Every step is additive and repeatable: route files, feature modules, fixtures, and tests
-can be rewritten freely until a milestone commit. `pnpm dlx shadcn@latest add` overwrites
+can be rewritten freely until a milestone commit. `bunx shadcn@latest add` overwrites
 an existing component file only with `--overwrite`; without it, re-running is a no-op. The
 TanStack Router plugin regenerates `apps/console/src/routeTree.gen.ts` on every dev or
 build run; if the generated tree is stale after renaming a route file, delete it and run
-`pnpm --filter @keiro-ui/console exec tsr generate`. Nothing in this plan writes to any
+`bun run --filter @keiro-ui/console generate-routes`. Nothing in this plan writes to any
 server: all pgmq reads are non-destructive peeks and no shibuya control route is called.
 If a fixture is wrong, correct it in `packages/testing/fixtures/` and re-run the tests;
 if a recorded fixture disagrees with the live surface, the live surface wins and the

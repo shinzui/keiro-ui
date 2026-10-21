@@ -10,6 +10,12 @@ provenance:
     model: "claude-fable-5-1"
     harness: "claude-code"
     at: 2026-10-21T14:52:33Z
+  revisions:
+    - model: "claude-fable-5-1"
+      harness: "claude-code"
+      at: 2026-10-21T15:56:48Z
+      mode: "update"
+      note: "Switch workspace tooling from pnpm to bun; vitest and Playwright kept on Node 22"
 ---
 
 # Build the Streams and Subscriptions screens
@@ -21,7 +27,7 @@ If durable project context changes, update or create ADRs in docs/adr/ in the sa
 
 ## Purpose / Big Picture
 
-After this plan, an operator running the keiro runtime console (`pnpm dev` in this
+After this plan, an operator running the keiro runtime console (`bun run dev` in this
 repository, with the local runtime stack of `docs/plans/9-provision-the-local-runtime-stack-and-recorded-fixtures.md`
 up) can open the **Streams & Subscriptions** section and see into the kiroku event store
 of their application: every stream and category, the events in any stream read forward
@@ -373,8 +379,8 @@ the examples in kiroku's `docs/user/metrics.md`.
 
 ```bash
 cd /Users/shinzui/Keikaku/bokuno/keiro-ui
-pnpm install
-pnpm check
+bun install
+bun run check
 ls packages/client-kiroku/src apps/console/src/shell apps/console/src/routes/_shell.tsx
 ```
 
@@ -383,7 +389,7 @@ ls packages/client-kiroku/src apps/console/src/shell apps/console/src/routes/_sh
 
 ```bash
 ls packages/ui/src/components
-cd packages/ui && pnpm dlx shadcn@latest add table badge tabs toggle-group collapsible scroll-area tooltip kbd sonner input select separator skeleton && cd ../..
+cd packages/ui && bunx shadcn@latest add table badge tabs toggle-group collapsible scroll-area tooltip kbd sonner input select separator skeleton && cd ../..
 ```
 
 3. Create the files named in Plan of Work. A route file looks like this (the search schema
@@ -454,9 +460,9 @@ const tail = useKirokuEventTail({
 4. Generate the route tree and run the checks after each milestone:
 
 ```bash
-pnpm --filter @keiro-ui/console exec tsr generate
-pnpm check
-pnpm --filter @keiro-ui/console test -- streams
+bun run --filter @keiro-ui/console generate-routes
+bun run check
+bun run --filter @keiro-ui/console test -- streams
 ```
 
    Expected (names will vary with the files you add):
@@ -471,16 +477,16 @@ pnpm --filter @keiro-ui/console test -- streams
 5. Run the console against mock handlers and against the live stack:
 
 ```bash
-VITE_MOCK=1 pnpm dev            # mock handlers from packages/testing
+VITE_MOCK=1 bun run dev            # mock handlers from packages/testing
 # in another terminal, if the local stack is provisioned (plan 9):
 just stack-up
-pnpm dev                        # real kiroku-inspect on :9091 through the /kiroku proxy
+bun run dev                        # real kiroku-inspect on :9091 through the /kiroku proxy
 ```
 
 6. Run the end-to-end suite for this section:
 
 ```bash
-pnpm test:e2e -- streams events subscriptions
+bun run test:e2e -- streams events subscriptions
 ```
 
 Fixtures this plan expects under `packages/testing/fixtures/kiroku/`: `capabilities.json`,
@@ -501,8 +507,8 @@ Acceptance is what an operator sees in the browser; each item below names the UR
 input, and the observation. Run the unit and end-to-end suites first, then walk the live
 checks.
 
-- `pnpm check` and `pnpm --filter @keiro-ui/console test` pass with the new tests.
-- `pnpm test:e2e -- streams events subscriptions` passes against the mock handlers.
+- `bun run check` and `bun run --filter @keiro-ui/console test` pass with the new tests.
+- `bun run test:e2e -- streams events subscriptions` passes against the mock handlers.
 - `http://localhost:5173/streams?category=order` shows only streams whose category column is
   `order`; adding `&prefix=order-4` narrows to names starting with `order-4`; the pager's Next
   rewrites the URL to `...&from=<last name on the page>` and the new page starts strictly after
@@ -551,7 +557,7 @@ jump box on the stream detail page.
 ## Idempotence and Recovery
 
 Every step is additive and safe to repeat: route files, components, tests, and fixtures can be
-rewritten freely, `pnpm dlx shadcn@latest add` is a no-op for components already present
+rewritten freely, `bunx shadcn@latest add` is a no-op for components already present
 (answer "no" if it offers to overwrite a modified file), and `tsr generate` regenerates
 `routeTree.gen.ts` from the files present. Nothing in this plan writes to any server; every
 request is a GET or a WebSocket subscription. If the live tail misbehaves during development,

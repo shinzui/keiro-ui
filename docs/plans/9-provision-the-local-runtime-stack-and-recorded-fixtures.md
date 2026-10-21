@@ -21,6 +21,11 @@ provenance:
       at: 2026-10-21T18:42:29Z
       mode: "update"
       note: "Round 2: align to owning-plan spellings, correct audited upstream facts, e2e layout, light theme where applicable"
+    - model: "claude-opus-5-5"
+      harness: "claude-code"
+      at: 2026-10-21T20:30:00Z
+      mode: "update"
+      note: "kiroku mocks: query-keyed paging, stateful mock event log, from_position/category-aware /ws/events script, /ws/metrics script, derived subscription fixtures, pinned entities and role-named slugs"
   reviews:
     - model: "claude-fable-5-1"
       harness: "claude-code"
@@ -75,12 +80,17 @@ every scripted feed plays snapshot-then-delta in order).
   shibuya-metrics server answers on 9090, and `just stack-check` is green for all four.
 - [ ] M3 — Recorder and recorded fixtures: `bun run fixtures:record` writes one raw-text
   fixture per manifest entry for all four surfaces plus `_meta.json` with source commits,
-  versions, and seed name; the pgmq message-id fixture contains an id above 2^53 unchanged.
+  versions, and seed name; the pgmq message-id fixture contains an id above 2^53 unchanged;
+  manifest `pins` name the entities the screen plans address (kiroku stream, category,
+  subscription, and the two causation events).
 - [ ] M4 — Mock handlers, scripted feeds, and entry points: `@keiro-ui/testing` exports
   `startMockServer()` (node) and `startMockWorker()` (browser), serves every recorded route
-  with cursor-paging emulation and on-demand error envelopes, replays a snapshot-then-delta
-  WebSocket script per dialect with an overflow error, and its own test suite passes.
-- [ ] M5 — Gaps handled: hand-derived fixtures exist for keiro `/aggregate/*` and `/pm/*`
+  with cursor-paging emulation keyed on the full query and on-demand error envelopes,
+  replays a snapshot-then-delta WebSocket script per dialect with an overflow error (the
+  kiroku `/ws/events` script honouring `from_position` and `category` over the stateful
+  `kirokuLog`, plus a `/ws/metrics` script), and its own test suite passes.
+- [ ] M5 — Gaps handled: hand-derived fixtures exist for keiro `/aggregate/*` and `/pm/*`,
+  for kiroku's populated live registry, subscription metrics, and dead letters,
   and for shibuya detailed metrics and the `terminal`/`error` frames, each marked
   `derived: true` in `_meta.json`; the keiro and shibuya improvement requests are filed,
   validated by their repositories' own recipes, and their handles recorded here.
@@ -88,7 +98,36 @@ every scripted feed plays snapshot-then-delta in order).
 
 ## Surprises & Discoveries
 
-(None yet.)
+- Planning review (2026-10-21), kiroku mocks: the standalone `kiroku-inspect` "runs no
+  subscriptions", so a recording of `/subscriptions` is `200 []` and the recorded `/metrics`
+  and `/ws/metrics` snapshots very likely carry no subscription entries; the
+  Subscriptions screen of `docs/plans/13-build-the-streams-and-subscriptions-screens.md`
+  would have nothing to render. jitsurei's only dead-letter setting
+  (`useDeadLetter = True` in `jitsurei/src/Jitsurei/ShipmentNotices.hs` of
+  `mori://shinzui/keiro`) is a pgmq job retry policy, not kiroku subscription dead letters,
+  so recorded dead-letter pages are expected to be empty. The first draft also resolved
+  `{subscription}` from the first item of `/subscriptions`, which is empty. Resolved by
+  resolving it from `/subscription-checkpoints` and deriving populated fixtures (M5).
+- Planning review (2026-10-21): the first handler sketch treated any non-null `from` as a
+  page-2 request, but the manifest records kiroku's `/events` and `/streams/{s}/events`
+  with `from=0`, which kiroku defines as "from the beginning" (forward) or "from the newest"
+  (backward); every recorded first page would have been served as an empty page, and the
+  `direction=backward` and `?category=` variants share a path with their defaults.
+  Resolved by keying page selection on the full query (M4).
+- Planning review (2026-10-21): kiroku's guide (`docs/guides/building-an-inspection-ui.md`
+  in `mori://shinzui/kiroku`) says a `subscribe_events` without `from_position` is
+  live-from-now and one with it replays history first; the first-draft script replayed the
+  whole recorded `$all` page regardless, so a tail opened at the head would receive
+  duplicates and a category tail foreign events. Static fixtures also cannot satisfy
+  ADR-3: a pushed event that the next poll does not return looks like a phantom, and the
+  overflow re-read of `useKirokuEventTail` (plan 11) would find nothing to recover.
+  Resolved by the stateful `kirokuLog` (Decision Log).
+- Planning review (2026-10-21): this plan's kiroku slugs (`streams-list`, `events-all`)
+  and the fixture names `docs/plans/13-build-the-streams-and-subscriptions-screens.md`
+  expected (`stream-order-42.json`, `dead-letters-order-projector.json`, ...) disagreed, and
+  the "first item" resolution could not produce the specific entities EP-13 tests (an event
+  whose causation resolves and one whose causation answers 404). Resolved by role-named
+  slugs and manifest `pins` owned here; EP-13 now refers to them.
 
 
 ## Decision Log
@@ -118,6 +157,39 @@ every scripted feed plays snapshot-then-delta in order).
   Rationale: `docs/adr/0005-no-backend-for-frontend.md` and ADR-1's lineage forbid
   building a host for another project's concept here; the console can be built and tested
   against derived fixtures and re-recorded when the hosts land.
+  Date: 2026-10-21
+
+- Decision: The kiroku `$all` log is mocked by a small stateful in-memory event log,
+  `kirokuLog` in `packages/testing/src/kiroku-log.ts`, seeded from the recorded
+  `events-forward` pages. The `/ws/events` script appends synthesized events to it before
+  pushing them, and the `/events`, `/categories/{category}/events`, and `/events/{id}`
+  handlers page over it once it has grown; while it is unchanged since `reset()` those
+  handlers serve the recorded bytes untouched. Every other route stays a static fixture.
+  Rationale: `docs/adr/0003-push-is-a-hint-poll-is-truth.md` requires that a pushed event
+  is also returned by the next poll, and the overflow path re-reads from the last seen
+  position to recover dropped events; neither can be exercised against fixtures that never
+  grow. Limiting the state to one log keeps the mock honest without becoming a second
+  kiroku, and serving recorded bytes until the first append keeps the byte-for-byte
+  handler tests meaningful.
+  Date: 2026-10-21
+
+- Decision: For kiroku's `/subscriptions`, `/metrics`, and
+  `/subscriptions/{subscription}/dead-letters`, the default mock response is a derived,
+  populated fixture whose subscription and member names come from the recorded
+  `subscription-checkpoints`; the recorded (empty) bodies are kept beside them as
+  `<slug>.recorded.json` and selected with `useScenario({ recorded: ... })`.
+  Rationale: the standalone server can never produce a populated live registry or
+  subscription metrics, and the seed produces no kiroku dead letters, yet those are exactly
+  what the Subscriptions screen must render; the recorded empties stay available so the
+  empty states are tested too.
+  Date: 2026-10-21
+
+- Decision: Fixture slugs name the route's role (`stream-events-backward`,
+  `event-with-causation`), never a seeded entity, and each manifest carries a `pins` object
+  naming the entities to record; tests read those names with `pins(surface)` instead of
+  hard-coding them.
+  Rationale: one owner for naming (this plan), stable file names across re-seeds, and
+  screen plans that keep working when the seed's entity names change.
   Date: 2026-10-21
 
 
@@ -270,10 +342,14 @@ only. Record the choice in the Decision Log. Add it to `process-compose.yaml` an
 **Milestone 3 — the recorder.** Write `packages/testing/manifests/<surface>.json`, one
 entry per request the console will make (method, path template, query, the expected
 status, and for list routes the instruction to follow `next_cursor` once so a second page
-is recorded). Write `packages/testing/scripts/record.ts`, run with `bun run fixtures:record`,
-which reads `dev/.env`, resolves path parameters by first fetching the list routes and
-taking the first item (a stream name, a queue name, a message id, a workflow name and id,
-a timer id, a subscription name), performs each request against the local ports, and
+is recorded) plus a top-level `pins` object naming the entities the screen plans address.
+Write `packages/testing/scripts/record.ts`, run with `bun run fixtures:record`,
+which reads `dev/.env`, resolves path parameters from `pins` first and otherwise by first
+fetching the list routes and taking the first item (a stream name, a queue name, a message
+id, a workflow name and id, a timer id; a kiroku subscription name comes from
+`/subscription-checkpoints`, never from `/subscriptions`, which the standalone server
+answers with `[]`), writes the resolved values back into `pins` so the fixtures and the
+names tests use agree, performs each request against the local ports, and
 writes the raw body text to `packages/testing/fixtures/<surface>/<slug>.json` with status
 and content type in `_meta.json`. Record error responses too (unknown stream, bad limit,
 bad cursor, control disabled, mutations disabled). Optionally start a second
@@ -283,18 +359,24 @@ message fixture round-trips an id above 2^53 byte for byte.
 
 **Milestone 4 — mock handlers and feeds.** Implement `packages/testing/src/handlers/<surface>.ts`
 (MSW `http` handlers matched on `*/<prefix>/...` so the same handlers work for
-`http://localhost:5173/kiroku/streams` in the browser and for relative URLs in Node),
+`http://localhost:5173/kiroku/streams` in the browser and for relative URLs in Node, and
+choosing a fixture by the full query, not just the path),
+`packages/testing/src/kiroku-log.ts` (the stateful `$all` log of the Decision Log),
 `packages/testing/src/feeds/<surface>.ts` (MSW `ws` handlers that play a script per
-dialect), `packages/testing/src/scenario.ts` (a small API to swap a route's response for a
-recorded error fixture or to inject an overflow into a feed), `src/node.ts`
+dialect; kiroku has two, `/ws/events` over `kirokuLog` and `/ws/metrics`),
+`packages/testing/src/scenario.ts` (a small API to swap a route's response for a
+recorded error fixture or its recorded original, to inject an overflow into a feed, and to
+read the manifest pins), `src/node.ts`
 (`startMockServer()`), and `src/browser.ts` (`startMockWorker()`), plus the worker file in
 `apps/console/public/`. Write the package's own tests. At the end of M4
 `bun run --filter @keiro-ui/testing test` passes.
 
 **Milestone 5 — gaps.** Derive fixtures for keiro `/aggregate/types`, `/aggregate/list`,
 `/aggregate/show`, `/aggregate/snapshot`, `/pm/list`, `/pm/show`, and for shibuya detailed
-metrics plus `terminal` and `error` frames, from the owners' encoders and goldens; mark
-them `derived: true`. File the two improvement requests in the owning repositories and
+metrics plus `terminal` and `error` frames, from the owners' encoders and goldens; derive
+kiroku's populated live registry, subscription metrics, and dead-letter pages from
+kiroku's `docs/user/metrics.md` examples with names taken from the recorded checkpoints;
+mark them `derived: true`. File the two improvement requests in the owning repositories and
 record their handles in Progress. At the end of M5 every route any screen plan names has
 a fixture, recorded or derived.
 
@@ -468,19 +550,48 @@ and `ws 9090/ws -> 101`.
 is needed) and add `"fixtures:record": "bun run --filter @keiro-ui/testing record"` to the
 root `package.json`. The recorder accepts optional surface names as arguments
 (`bun run fixtures:record keiro pgmq`) and records every surface when none is given. Write
-the manifests. The kiroku manifest, for example, names `GET /capabilities`, `/health`,
-`/health/live`, `/health/ready`, `/metrics`, `/subscriptions` (the standalone
-`kiroku-inspect` mounts the live registry, so this records `200 []`; the legacy 404
-envelope `{"error":"subscription status not configured"}` that embedded hosts without a
-provider return cannot be recorded from this stack and is hand-written as
-`subscriptions-404-legacy.json` from `docs/user/metrics.md`), `/subscription-checkpoints`,
-`/subscriptions/{subscription}/dead-letters?limit=100`, `/streams?limit=100`,
-`/streams?category={category}&limit=100`, `/streams/{stream}`,
-`/streams/{stream}/events?from=0&limit=100` (forward and `direction=backward`),
-`/categories?limit=100`, `/categories/{category}/events?from=0&limit=100`,
-`/events?from=0&limit=100` (both directions), `/events/{event_id}`, and the error cases
-`/streams/does-not-exist` (404), `/events?limit=abc` (400 `invalid_query_parameter`),
-`/metrics/does-not-exist` (legacy 404 string envelope). The pgmq manifest names `/`,
+the manifests. Slugs name the route's role, never a seeded entity; a second page is
+`<slug>.page2.json`, a route's error fixture is `<slug>.error.json`, and the recorded
+original of a route whose default is derived (M5) is `<slug>.recorded.json`. The kiroku
+manifest is the reference for the convention:
+
+```text
+slug                          route                                                    notes
+capabilities                  GET /capabilities
+health, health-live,          GET /health, /health/live, /health/ready
+  health-ready
+metrics                       GET /metrics                                             default derived (M5); recorded → metrics.recorded.json
+metrics-subscription          GET /metrics/{subscription}                              .error.json from /metrics/does-not-exist (legacy string envelope)
+subscriptions-live            GET /subscriptions                                       default derived (M5); recorded 200 [] → .recorded.json;
+                                                                                        .error.json hand-written legacy 404 {"error":"subscription status not configured"}
+subscription-checkpoints      GET /subscription-checkpoints
+dead-letters                  GET /subscriptions/{subscription}/dead-letters?limit=100 default derived with .page2 (M5); recorded → .recorded.json
+streams                       GET /streams?limit=100                                   follow_next_cursor
+streams-by-category           GET /streams?category={category}&limit=100
+stream                        GET /streams/{stream}                                    .error.json from /streams/does-not-exist (404)
+stream-events-forward         GET /streams/{stream}/events?from=0&limit=100            follow_next_cursor
+stream-events-backward        GET /streams/{stream}/events?from=0&limit=100&direction=backward
+categories                    GET /categories?limit=100
+category-events               GET /categories/{category}/events?from=0&limit=100       follow_next_cursor
+events-forward                GET /events?from=0&limit=100                             follow_next_cursor; .error.json from /events?limit=abc (400 invalid_query_parameter)
+events-backward               GET /events?from=0&limit=100&direction=backward
+event-with-causation          GET /events/{event_with_causation}
+event-cause                   GET /events/{event_cause}                                the event the previous one names as causationId
+event-causation-unresolved    GET /events/{event_causation_unresolved}                 its causationId answers 404
+event                         .error.json only, from /events/00000000-0000-0000-0000-000000000000 (404)
+```
+
+The kiroku `pins` are `stream`, `category`, `subscription`, `member`,
+`event_with_causation`, `event_cause`, and `event_causation_unresolved`. Leave `stream` and
+`category` empty to take the first stream with at least two events and its category
+(prefer the `order` category when the seed has one, so the examples in the screen plans
+read naturally); `subscription` and `member` come from the first checkpoint row. The
+recorder fills the three event pins by scanning the recorded `events-forward` pages for
+an event whose `causationId` equals another recorded `eventId` (that pair becomes
+`event_with_causation` and `event_cause`) and for an event whose `causationId` is non-null
+and answers 404; if the seed has no such event, it writes a derived single-event fixture
+from a recorded event with the `causationId` replaced, marks it `derived: true`, and says
+so in its transcript. The pgmq manifest names `/`,
 `/openapi.json`, `/queues`, `/queues/{queue}`, `/queues/{queue}/metrics`, `/metrics`,
 `/queues/{queue}/messages?limit=50`, `/queues/{queue}/messages/{msg_id}`,
 `/queues/{queue}/archive?limit=50`, `/queues/{queue}/archive/{msg_id}`,
@@ -514,7 +625,7 @@ Expected transcript (abbreviated):
 
 ```text
 kiroku   GET /capabilities                      200  packages/testing/fixtures/kiroku/capabilities.json
-kiroku   GET /streams?limit=100                 200  packages/testing/fixtures/kiroku/streams-list.json
+kiroku   GET /streams?limit=100                 200  packages/testing/fixtures/kiroku/streams.json
 ...
 pgmq     GET /queues/console_demo/messages/1    200  packages/testing/fixtures/pgmq/queue-message.json
 ...
@@ -532,29 +643,78 @@ prints the exact digits.
 ```typescript
 // packages/testing/src/handlers/kiroku.ts
 import { http, HttpResponse } from "msw"
-import { fixture } from "../fixtures"
+import { fixture, page } from "../fixtures"
+import { kirokuLog } from "../kiroku-log"
 
 export const kirokuHandlers = [
   http.get("*/kiroku/capabilities", () => fixture("kiroku", "capabilities")),
   http.get("*/kiroku/streams", ({ request }) => {
-    const from = new URL(request.url).searchParams.get("from")
-    return from === null ? fixture("kiroku", "streams-list") : fixture("kiroku", "streams-list", { page: 2, cursor: from })
+    const q = new URL(request.url).searchParams
+    const slug = q.has("category") ? "streams-by-category" : "streams"
+    return page("kiroku", slug, q)
+  }),
+  http.get("*/kiroku/events", ({ request }) => {
+    const q = new URL(request.url).searchParams
+    if (kirokuLog.grown()) return kirokuLog.page(q)
+    return page("kiroku", q.get("direction") === "backward" ? "events-backward" : "events-forward", q)
   }),
   // ... one handler per manifest entry
 ]
 ```
 
-`fixture()` returns `new HttpResponse(rawText, { status, headers: { "content-type": meta.contentType } })`,
-serving page 2 when the requested cursor equals the recorded `next_cursor` and an empty
-last page otherwise. `scenario.ts` exports `useScenario({ fail: { kiroku: ["streams-list"] } })`
-which swaps the named routes for their recorded error fixtures, and `feedScript(surface, { overflowAfter })`.
-Feeds use MSW's `ws.link("ws://*/kiroku/ws/events")` and, on a `subscribe_events` frame,
-send `event_stream_started`, then the `event` frames taken from the recorded `events-all`
-fixture, then (when `overflowAfter` is set)
-`{"type":"error","code":"event_stream_overflowed","message":"event stream overflowed; 3 undelivered batch(es) dropped since the last notice; re-read from your last position"}`
-before continuing (the count lives only in the message text, which kiroku documents as not
-a contract; the frame has no structured count field, so no consumer may parse it), and
-`{"type":"goodbye"}` when the scenario closes. The pgmq script sends
+`fixture()` returns `new HttpResponse(rawText, { status, headers: { "content-type": meta.contentType } })`.
+`page(surface, slug, query)` chooses within a variant: the variant (path plus `direction`
+and `category`) picks the slug, as above; within it, an absent `from` or kiroku's `from=0`
+serves the first page; a `from` equal to the `next_cursor` recorded in that same variant's
+first page serves `<slug>.page2.json`; any other `from` serves an empty last page
+(`{"items":[]}`). A `limit` other than the recorded one still serves the recorded variant,
+and the handler logs a one-line warning so a test that depends on page size notices.
+Pages are never sliced or re-serialized.
+
+`kiroku-log.ts` exports `kirokuLog`, the stateful `$all` log of the Decision Log. It is
+seeded lazily from the recorded `events-forward` pages, keeping each event's raw JSON text
+beside its `globalPosition` and `eventId` (extracted textually, never through
+`JSON.parse`, so positions above 2^53 survive). Its methods are `head(): bigint`,
+`append(init?: { category?: string; eventType?: string }): void` (synthesizes one event in
+kiroku's published shape — camelCase keys plus `original_stream_name` — at `head() + 1`,
+in a stream of the given category, defaulting to `pins("kiroku").category`),
+`grown(): boolean`, `page(query: URLSearchParams, category?: string): HttpResponse`
+(serves kiroku's page semantics over the log: `from` exclusive, `from=0` forward from the
+start or backward from the newest, `next_cursor` the last position on a full page), `get(id: string)`,
+and `reset()`. While `grown()` is false the `/events`, `/categories/{category}/events`, and
+`/events/{id}` handlers serve the recorded fixtures; after an append they answer from the
+log, and `/subscription-checkpoints` has the log head substituted textually into its
+`store_position` field so the head the console shows agrees with the tail. `startMockServer`
+and `startMockWorker` call `kirokuLog.reset()` on every `reset`.
+
+`scenario.ts` exports `useScenario({ fail?: { [surface]: slug[] }, recorded?: { [surface]: slug[] } })`
+(`fail` swaps the named routes for their `<slug>.error.json`; `recorded` swaps a derived
+default for its `<slug>.recorded.json`, for example
+`useScenario({ recorded: { kiroku: ["subscriptions-live", "dead-letters"] } })` for the
+empty states), `feedScript(surface, { overflowAfter?, append?, dropped?, intervalMs? })`,
+`pins(surface): Record<string, string>` (the manifest's resolved pins), and `kirokuLog`.
+
+The kiroku events feed uses MSW's `ws.link("ws://*/kiroku/ws/events")`. On a
+`subscribe_events` frame it honours both optional fields the way kiroku does: it sends
+`{"type":"event_stream_started","from_position":N}` with `N` the given `from_position`, or
+the log head when it is absent (live-from-now); when `from_position` was given it replays
+the log's events after `N` in global-position order, filtered to `category` when one was
+given; then, every `intervalMs` (default 250), it calls `kirokuLog.append({ category })`
+and pushes the new event as an `event` frame, `append` times (default 3). When
+`overflowAfter` is set, after that many pushed events it appends `dropped` events (default 2) to the
+log *without* pushing them, sends
+`{"type":"error","code":"event_stream_overflowed","message":"event stream overflowed; 3 undelivered batch(es) dropped since the last notice; re-read from your last position"}`,
+and continues with the survivors, so a re-read of `/events?from=<last seen>` returns the
+dropped events followed by the survivors (the count lives only in the message text, which
+kiroku documents as not a contract; the frame has no structured count field, so no
+consumer may parse it). A second `subscribe_events` restarts from its new position,
+`unsubscribe_events` stops the appends, `ping` gets `pong`, and `{"type":"goodbye"}` is
+sent when the scenario closes. The kiroku metrics feed, `ws.link("ws://*/kiroku/ws/metrics")`,
+sends `{"type":"snapshot","metrics":<body of the metrics fixture>}` on connect and again
+every `intervalMs` (default 1000), stops on `unsubscribe_metrics`, sends a fresh snapshot
+and resumes on `subscribe_metrics`, and answers `ping` with `pong`; the snapshot body is the
+same bytes `/metrics` serves (derived by default, recorded under `recorded`), as
+`docs/user/metrics.md` in `mori://shinzui/kiroku` describes the channel. The pgmq script sends
 `snapshot {queue, metrics, push:true}` then `update {source:"poll"}`, an
 `error {code:"overflow", message, queue: null}` (overflow is a connection-level error, so
 `queue` is `null`, exactly as pgmq-inspect's `ws-error.json` golden shows);
@@ -574,9 +734,17 @@ bunx msw init apps/console/public --save
 Tests under `packages/testing/test/`: `fixtures.test.ts` (every file under `fixtures/`
 parses, every manifest slug has a file, `_meta.json` lists every file), `handlers.test.ts`
 (start the server, `fetch` each manifest route, compare status and that the body equals the
-fixture text), `feeds.test.ts` (open each scripted feed with the `ws` client, assert the
+fixture text, including `from=0` and `direction=backward` variants serving their own first
+pages and the recorded `next_cursor` serving `.page2`), `kiroku-log.test.ts` (an append
+raises `head()` by one, the new event is returned by `/events?from=<old head>`, by the
+category route for its category, and by `/events/{id}`, and `reset()` restores the
+recorded bytes), `feeds.test.ts` (open each scripted feed with the `ws` client, assert the
 first frame is the dialect's snapshot or `event_stream_started`, assert the overflow error
-arrives when requested). Run:
+arrives when requested; for kiroku, assert a subscribe without `from_position` replays
+nothing, one with `from_position` replays only later events, a `category` filter delivers
+only that category, every pushed event is then returned by the poll route, and after an
+overflow `/events?from=<last pushed before the notice>` returns the dropped events; and
+assert `/ws/metrics` sends a snapshot on connect and another after `intervalMs`). Run:
 
 ```bash
 bun run --filter @keiro-ui/testing test
@@ -594,6 +762,25 @@ recorded jitsurei stream fixtures where possible. From shibuya's golden copy a d
 `ProcessorMetrics` into `fixtures/shibuya/processor-detailed.json` and script `terminal`
 and `error` frames from `docs/architecture/METRICS.md`. Set `"derived": true` and a
 `derived_from` path for each in `_meta.json`.
+
+For kiroku, move the recorded bodies of `/subscriptions`, `/metrics`, and the dead-letter
+page to `subscriptions-live.recorded.json`, `metrics.recorded.json`, and
+`dead-letters.recorded.json` (the first is `[]`; the other two are expected to carry no
+subscription entries and no items, because `kiroku-inspect` runs no subscriptions and the
+seed parks nothing), and write the derived defaults from the examples in kiroku's
+`docs/user/metrics.md`, using the subscription and member names of the recorded
+`subscription-checkpoints` so every screen joins cleanly: `subscriptions-live.json` (one
+row per checkpoint row, `{subscription, member, phase, global_position}`, with one member in
+a non-running phase and one `global_position` behind its checkpoint by a few hundred);
+`metrics.json` (the recorded store fields plus a `subscriptions` entry per subscription
+with `last_known_position`, `lag`, `db_error_count`, and `last_stop_reason`, one of them
+non-null); `dead-letters.json` and `dead-letters.page2.json` (a 100-item first page with a
+`next_cursor` and a short second page for `pins("kiroku").subscription`, spread over two
+members, each `event_id` and `global_position` taken from a recorded `$all` event so the
+event links resolve); and `subscriptions-live.error.json`, the legacy 404
+`{"error":"subscription status not configured"}` that embedded hosts without a provider
+return and the standalone server never does. Re-derive them whenever the checkpoints are
+re-recorded.
 
 File the keiro request from the keiro checkout:
 
@@ -648,14 +835,18 @@ digits.
 
 M4 is accepted when `bun run --filter @keiro-ui/testing test` passes and a smoke script in
 the test suite starts `startMockServer()`, fetches `http://localhost/kiroku/streams?limit=100`
-and `http://localhost/pgmq/queues`, and receives the recorded bodies byte for byte; and
+and `http://localhost/pgmq/queues`, and receives the recorded bodies byte for byte, and
+fetches `http://localhost/kiroku/events?from=0&limit=100&direction=backward` and receives
+the `events-backward` bytes (not an empty page); a kiroku feed test appends through the
+`/ws/events` script and then finds the pushed events through `/events`; and
 when, with EP-7's console present, `VITE_MOCK=1 bun run dev` serves a page whose network
 requests are answered by the worker (visible in the browser devtools as "(from
 ServiceWorker)").
 
 M5 is accepted when every route named in the MasterPlan's endpoint inventory for aggregates,
-process managers, and shibuya detail has a fixture whose `_meta.json` entry says
-`"derived": true`, `okf validate` passes in both owning repositories with the new requests,
+process managers, and shibuya detail, and kiroku's `/subscriptions`, `/metrics`, and
+dead-letter routes, has a fixture whose `_meta.json` entry says `"derived": true` (the
+kiroku ones naming only subscriptions present in `subscription-checkpoints.json`), `okf validate` passes in both owning repositories with the new requests,
 and the handles are recorded in Progress.
 
 The early producer/consumer check the MasterPlan assigns to EP-9 with EP-10 (the client
@@ -689,8 +880,12 @@ This plan owns and other plans consume: the fixture layout
 `packages/testing/fixtures/<surface>/<slug>.json` plus `_meta.json`; the manifests
 `packages/testing/manifests/<surface>.json`; `@keiro-ui/testing/node` exporting
 `startMockServer(): { server, use, reset, close }`; `@keiro-ui/testing/browser` exporting
-`startMockWorker(): Promise<void>`; `@keiro-ui/testing/scenario` exporting `useScenario` and
-`feedScript`; and the dev stack recipes `stack-db-up`, `stack-seed`, `stack-build`,
+`startMockWorker(): Promise<void>`; `@keiro-ui/testing/scenario` exporting
+`useScenario({ fail?: { [surface]: slug[] }, recorded?: { [surface]: slug[] } })`,
+`feedScript(surface, { overflowAfter?, append?, dropped?, intervalMs? })`,
+`pins(surface): Record<string, string>`, and `kirokuLog` (`head`, `append`, `grown`,
+`page`, `get`, `reset`); the slug conventions (role names, `.page2`, `.error`,
+`.recorded`) and the kiroku slug table of M3; and the dev stack recipes `stack-db-up`, `stack-seed`, `stack-build`,
 `stack-up`, `stack-down`, `stack-check` with the ports 9090–9093.
 
 Prerequisites: none hard. The TypeScript milestones expect the workspace from

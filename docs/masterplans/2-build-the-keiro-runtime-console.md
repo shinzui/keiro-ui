@@ -20,6 +20,11 @@ provenance:
       at: 2026-10-21T18:42:29Z
       mode: "update"
       note: "Round 2 corrections: endpoint inventory, origin/port rules, shell and client-core contracts, light theme default, interface-ownership decision"
+    - model: "claude-opus-5-5"
+      harness: "claude-code"
+      at: 2026-10-21T20:30:00Z
+      mode: "update"
+      note: "kiroku mock review: testing API gains useScenario recorded, feedScript append options, pins, kirokuLog, and a /ws/metrics script; cascaded to EP-9, EP-11, EP-13"
   reviews:
     - model: "claude-fable-5-1"
       harness: "claude-code"
@@ -574,9 +579,16 @@ source commit and database seed; `packages/testing/src/handlers/<surface>.ts` se
 through MSW; `packages/testing/src/node.ts` exposes `startMockServer()` for vitest (serving every
 fixture at its real path under `http://localhost/<surface>`) and
 `packages/testing/src/browser.ts` exposes `startMockWorker()` for Playwright and the mock dev
-mode; `packages/testing/src/scenario.ts` exposes `useScenario` (swap routes for recorded
-error fixtures) and `feedScript(surface, {overflowAfter})` (drive the scripted feeds). WebSocket feeds are mocked with scripted frame sequences in
-`packages/testing/src/feeds/<surface>.ts`. EP-7 owns the opt-in bootstrap in
+mode; `packages/testing/src/scenario.ts` exposes
+`useScenario({ fail?: { [surface]: slug[] }, recorded?: { [surface]: slug[] } })` (swap
+routes for their recorded error fixtures, or a derived default for its recorded original),
+`feedScript(surface, { overflowAfter?, append?, dropped?, intervalMs? })` (drive the
+scripted feeds), `pins(surface)` (the entity names the manifests pinned; tests never
+hard-code seeded names), and `kirokuLog` (a stateful mock of kiroku's `$all` log that the
+`/ws/events` script appends to and the `/events` and category-events handlers page over,
+so a pushed event is also polled, per ADR-3). Fixture slugs name a route's role, with
+`.page2`, `.error`, and `.recorded` suffixes, and EP-9 owns them. WebSocket feeds are mocked with scripted frame sequences in
+`packages/testing/src/feeds/<surface>.ts` (kiroku has two: `/ws/events` and `/ws/metrics`). EP-7 owns the opt-in bootstrap in
 `apps/console/src/main.tsx` that starts the mock worker when `VITE_MOCK=1`, and the root
 `justfile` into which EP-9 merges its `stack-*` and `fixtures-*` recipes; EP-9 owns the
 worker, handlers, feeds, and recorder.
@@ -714,6 +726,17 @@ Cross-plan gates with their own acceptance:
   names (`/pm/list` requires one) — and `/timer/stuck/list` returns a bare array unlike the
   pending page. EP-15, EP-16, and EP-17 record candidate improvement requests to keiro and
   degrade honestly (omitted link, `?subscription=` parameter, profile-configured names).
+- Planning review (2026-10-21), kiroku mocks: the standalone `kiroku-inspect` runs no
+  subscriptions, so recordings of `/subscriptions` (`200 []`), `/metrics`, and `/ws/metrics`
+  carry no subscription data, and the jitsurei seed parks no kiroku dead letters (its
+  `useDeadLetter` is a pgmq job policy); EP-9 now derives populated fixtures named after the
+  recorded checkpoints. EP-9's first handler sketch would have served kiroku's `from=0`
+  first pages as empty pages and could not tell `direction`/`category` variants apart; its
+  `/ws/events` script ignored `from_position` and `category`; static fixtures could not
+  make pushed events appear in the next poll (ADR-3) or give the overflow re-read anything
+  to recover, so EP-9 adds the stateful `kirokuLog`; no `/ws/metrics` script existed; and
+  EP-9's and EP-13's fixture names disagreed. All corrected in EP-9, EP-11, and EP-13 in the
+  same pass.
 - Audit (2026-10-21): kiroku's guide says known query parameters reject duplicates, but
   only the dead-letters route does; the browse routes take the first value. The client
   never sends duplicate keys, so this is a documentation note for EP-11, not a bug to

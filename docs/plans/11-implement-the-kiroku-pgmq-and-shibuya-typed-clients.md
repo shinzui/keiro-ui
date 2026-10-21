@@ -21,6 +21,11 @@ provenance:
       at: 2026-10-21T18:42:29Z
       mode: "update"
       note: "Round 2: align to owning-plan spellings, correct audited upstream facts, e2e layout, light theme where applicable"
+    - model: "claude-opus-5-5"
+      harness: "claude-code"
+      at: 2026-10-21T20:30:00Z
+      mode: "update"
+      note: "Cascade plan 9's testing API: feedScript options, useScenario recorded, pins, kirokuLog, /ws/metrics script"
   reviews:
     - model: "claude-fable-5-1"
       harness: "claude-code"
@@ -206,7 +211,14 @@ with a `_meta.json` naming the source commit; `startMockServer()` from
 Node and browsers) serving every fixture at its real path under
 `http://localhost/<surface>`, and `packages/testing/src/feeds/<surface>.ts` holds MSW
 WebSocket handlers that play a scripted snapshot-then-delta sequence per dialect, driven by
-`feedScript(surface, { overflowAfter })` from `@keiro-ui/testing/scenario`.
+`feedScript(surface, { overflowAfter?, append?, dropped?, intervalMs? })` from
+`@keiro-ui/testing/scenario`, which also exports
+`useScenario({ fail?: { [surface]: slug[] }, recorded?: { [surface]: slug[] } })`,
+`pins(surface)`, and `kirokuLog`, plan 9's stateful mock of kiroku's `$all` log: the
+`/ws/events` script appends to it before pushing, honours `from_position` and `category`,
+and the `/events` and `/categories/<name>/events` handlers page over it, so a pushed event
+is also returned by the next poll. Kiroku has a second script for `/ws/metrics`
+(a `snapshot` on connect and every `intervalMs`).
 This plan's tests go through those entry points and never name fixture files, so plan 9
 owns the naming. If plan 9 has not landed when this plan runs, seed
 `packages/testing/fixtures/<surface>/` with the samples named under each milestone,
@@ -581,7 +593,12 @@ pgmq metrics 5 s, pgmq pages 10 s, shibuya metrics 2 s, health 5 s) to `useSurfa
 Tests: `test/feeds.test.ts` in each package plays the scripted frame sequences from
 `packages/testing/src/feeds/<surface>.ts` through `feedScript` and asserts the cache
 after each frame; one sequence per dialect includes the overflow code and asserts that the
-poll fetcher was invoked and the cache matches the re-read. `test/live.test.ts` gains one
+poll fetcher was invoked and the cache matches the re-read. For kiroku events that sequence
+is `feedScript("kiroku", { append: 4, overflowAfter: 2, dropped: 3 })`, and the assertion
+is that after recovery `useKirokuEventTail`'s `events` hold all five appended events once
+each, in global-position order (the three dropped ones come only from the re-read of
+`kirokuLog`); the kiroku metrics case asserts a second snapshot replaces the first in the
+`useKirokuMetrics()` cache entry. `test/live.test.ts` gains one
 feed case per surface: connect to the live port, receive the first snapshot within 5 s, and
 disconnect cleanly (the kiroku events case subscribes from the current store head and
 expects `event_stream_started`).

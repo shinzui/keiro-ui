@@ -21,6 +21,11 @@ provenance:
       at: 2026-10-21T18:42:29Z
       mode: "update"
       note: "Round 2: align to owning-plan spellings, correct audited upstream facts, e2e layout, light theme where applicable"
+    - model: "claude-opus-5-5"
+      harness: "claude-code"
+      at: 2026-10-21T20:30:00Z
+      mode: "update"
+      note: "Adopt plan 9's kiroku slugs, pins, feedScript options, and stateful kirokuLog; drop entity-named fixtures"
   reviews:
     - model: "claude-fable-5-1"
       harness: "claude-code"
@@ -80,7 +85,14 @@ kiroku has not specified an endpoint for it (see Decision Log).
 
 ## Surprises & Discoveries
 
-(None yet.)
+- Planning review (2026-10-21): this plan's fixture list named seeded entities
+  (`stream-order-42.json`, `dead-letters-order-projector.json`) that plan 9's recorder could
+  not produce, and plan 9's standalone `kiroku-inspect` records an empty live registry, no
+  subscription metrics, and (with the jitsurei seed) no dead letters. Plan 9 now owns
+  role-named slugs, manifest `pins`, and derived populated subscription fixtures; this plan
+  refers to those and reads entity names with `pins("kiroku")`. The scripted tail now
+  appends to a stateful mock `$all` log, so the overflow spec can assert that the re-read
+  recovers the dropped events rather than only that a notice appeared.
 
 
 ## Decision Log
@@ -399,8 +411,8 @@ under `apps/console/e2e/streams/streams.spec.ts`, `events.spec.ts`, and
 All commands run from the repository root, `/Users/shinzui/Keikaku/bokuno/keiro-ui`. Plan 7
 must be complete (workspace, `apps/console`, `packages/ui`), plan 8 complete (shell), and
 plan 11 complete (kiroku client). Plan 9's fixtures are used when present; otherwise create
-the kiroku fixtures named below yourself, following plan 9's `_meta.json` convention, from
-the examples in kiroku's `docs/user/metrics.md`.
+the kiroku slugs named below yourself, following plan 9's slug and `_meta.json`
+conventions, from the examples in kiroku's `docs/user/metrics.md`.
 
 1. Confirm the prerequisites exist and the workspace is healthy:
 
@@ -516,18 +528,30 @@ bun run dev                        # real kiroku-inspect on :9091 through the /k
 bun run test:e2e -- e2e/streams
 ```
 
-Fixtures this plan expects under `packages/testing/fixtures/kiroku/`: `capabilities.json`,
-`streams.json`, `streams-category-order.json`, `stream-order-42.json`,
-`stream-order-42-events-forward.json`, `stream-order-42-events-backward.json`,
-`categories.json`, `category-order-events.json`, `events-latest.json`, `event-<uuid>.json`
-(at least two, one with a `causationId` that resolves and one whose causation answers 404),
-`subscription-checkpoints.json`, `subscriptions.json`, `subscriptions-404-legacy.json`
-(hand-written from kiroku's `docs/user/metrics.md`, because the standalone server never
-answers that way), `metrics.json`, `dead-letters-order-projector.json`. The scripted feed
-for tests is `packages/testing/src/feeds/kiroku.ts` with sequences `started-then-events`
-(an `event_stream_started` frame followed by three `event` frames) and `overflow` (an
-`event_stream_overflowed` error whose message text names three dropped batches, then two
-`event` frames).
+Fixtures this plan uses are plan 9's kiroku slugs under `packages/testing/fixtures/kiroku/`
+(plan 9 owns the names; see its M3 slug table): `capabilities`, `streams` (with `.page2`),
+`streams-by-category`, `stream` (and `stream.error` for the 404), `stream-events-forward`,
+`stream-events-backward`, `categories`, `category-events`, `events-forward`,
+`events-backward`, `event-with-causation`, `event-cause`, `event-causation-unresolved`
+(and `event.error` for its 404), `subscription-checkpoints`, `subscriptions-live` (derived,
+populated; `.recorded` is the standalone server's `[]`; `.error` is the hand-written legacy
+404), `metrics` (derived with subscription entries; `.recorded` without), and
+`dead-letters` (derived, with `.page2`; `.recorded` is empty). Tests never hard-code the
+entity names: they read `pins("kiroku")` from `@keiro-ui/testing/scenario` (`stream`,
+`category`, `subscription`, `member`, `event_with_causation`, `event_cause`,
+`event_causation_unresolved`); the `order-42` and `order-projector` names in this plan are
+examples of what an operator sees on the live stack. Empty states use
+`useScenario({ recorded: { kiroku: ["subscriptions-live", "dead-letters"] } })` and the
+legacy 404 uses `useScenario({ fail: { kiroku: ["subscriptions-live"] } })`. The scripted
+tail is plan 9's `/ws/events` script over the stateful `kirokuLog`, driven by
+`feedScript("kiroku", { overflowAfter?, append?, dropped?, intervalMs? })`: the default
+(`append: 3`) sends `event_stream_started` and then three appended `event` frames, each of
+which the next poll of `/events` also returns; `{ append: 4, overflowAfter: 2, dropped: 3 }`
+pushes two events, silently appends three more, sends the `event_stream_overflowed` error
+(whose message text names three dropped batches), then pushes the remaining two, so the
+re-read from the last position seen before the notice returns all five. The tail honours
+`from_position` and `category` as kiroku does, so `/events?category=<c>` receives only that
+category. If plan 9 has not landed, create these slugs yourself following its conventions.
 
 
 ## Validation and Acceptance
@@ -556,9 +580,10 @@ checks.
   running application (for example by re-running a jitsurei scenario from plan 9) makes it
   appear at the top within about one second without a reload; pausing liveness stops the tail
   (the indicator reads paused, no new events appear); resuming refetches and resumes.
-- With the scripted `overflow` feed in the Playwright spec, the notice
-  "events were dropped — reloading" appears with the server's message text under it, and
-  the list is re-read from the poll path.
+- With `feedScript("kiroku", { append: 4, overflowAfter: 2, dropped: 3 })` in the
+  Playwright spec, the notice "events were dropped — reloading" appears with the server's
+  message text under it, the list is re-read from the poll path, and all five appended
+  events (the three dropped and the two survivors) are on screen exactly once.
 - `http://localhost:5173/events?category=order` shows the category tail from the head and the
   "Browse history of order" link to `/categories/order`.
 - `http://localhost:5173/events/<uuid>` renders every field, payload and metadata viewers with
@@ -567,9 +592,11 @@ checks.
   id as copyable text with the "not available on this surface" note.
 - `http://localhost:5173/subscriptions` shows the store head, one group per subscription, each
   member's checkpoint position and "N positions behind head" (never the word "lag" in the
-  console's own labels); live rows carry the "process-local" badge; against the
-  `subscriptions-404-legacy.json` fixture the page shows the "live registry not configured"
-  note and no error.
+  console's own labels); live rows carry the "process-local" badge; under
+  `useScenario({ fail: { kiroku: ["subscriptions-live"] } })` (the legacy 404) the page
+  shows the "live registry not configured" note and no error, and under
+  `useScenario({ recorded: { kiroku: ["subscriptions-live"] } })` (the standalone server's
+  `[]`) it shows checkpoints with no process-local annotations.
 - `http://localhost:5173/subscriptions/order-projector` lists dead letters with reason summary
   and attempts, `?member=2` keeps only member 2, each event link opens `/events/<event_id>`,
   and the redrive-unavailable line is present; no button mutates anything.

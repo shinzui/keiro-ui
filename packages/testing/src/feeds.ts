@@ -279,6 +279,13 @@ const keiroFeedSources: Record<string, string> = {
   projection_groups: "keiro/projection-status.json",
 }
 
+/** The key object a `removed` entry carries: the fields the feed's items are keyed by. */
+function keiroKey(itemText: string): string {
+  const item = JSON.parse(itemText) as Record<string, unknown>
+  const fields = ["workflow_name", "workflow_id", "timer_id", "group_id"].filter((f) => f in item)
+  return JSON.stringify(Object.fromEntries(fields.map((f) => [f, item[f]])))
+}
+
 function keiro(): WebSocketHandler[] {
   return links("/keiro/ws").map((link) =>
     link.addEventListener("connection", ({ client }) => {
@@ -307,7 +314,9 @@ function keiro(): WebSocketHandler[] {
         }
         const body = fixtureText(source)
         const items = fieldText(body, "items") ?? "[]"
-        const first = arrayElements(body, "items")[0]
+        const elements = arrayElements(body, "items")
+        const first = elements[0]
+        const last = elements.length > 1 ? elements[elements.length - 1] : undefined
         let sequence = 0
         const frame = (fields: string) =>
           `{"type":"%T","feed":${JSON.stringify(name)},"sequence":${sequence},${fields}}`
@@ -316,19 +325,26 @@ function keiro(): WebSocketHandler[] {
             `"trigger":"subscribe","observed_at":"${new Date().toISOString()}","items":${items}`,
           ).replace("%T", "snapshot"),
         )
-        const { append, intervalMs, overflowAfter } = options("keiro", {
+        const { append, intervalMs, overflowAfter, changedFields, removeLast } = options("keiro", {
           append: 3,
           dropped: 2,
           intervalMs: 250,
         })
+        // Only a scripted change re-serializes the item (the feed items carry no int64 fields).
+        const changedItem =
+          first && changedFields
+            ? JSON.stringify({ ...JSON.parse(first), ...changedFields })
+            : first
+        const removedKey = last && removeLast ? keiroKey(last) : undefined
         let pushed = 0
         const step = () => {
           if (pushed >= append) return
           sequence += 1
-          const changed = first ? `[${first}]` : "[]"
+          const changed = changedItem ? `[${changedItem}]` : "[]"
+          const removed = pushed === 0 && removedKey ? `[${removedKey}]` : "[]"
           client.send(
             frame(
-              `"trigger":"notify","observed_at":"${new Date().toISOString()}","changed":${changed},"removed":[]`,
+              `"trigger":"notify","observed_at":"${new Date().toISOString()}","changed":${changed},"removed":${removed}`,
             ).replace("%T", "update"),
           )
           pushed += 1

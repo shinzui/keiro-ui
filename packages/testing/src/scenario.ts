@@ -13,6 +13,10 @@ export interface FeedOptions {
   intervalMs?: number
   /** shibuya only: end the script with a `terminal` frame for the pinned processor. */
   terminal?: "stopped" | "failed"
+  /** keiro only: fields merged into the item every `update` sends as `changed`. */
+  changedFields?: Record<string, unknown>
+  /** keiro only: the first `update` also removes the snapshot's last item by its key. */
+  removeLast?: boolean
 }
 
 export interface ScenarioState {

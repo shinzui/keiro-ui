@@ -321,7 +321,7 @@ repository.
 
 | # | Title | Path | Hard Deps | Soft Deps | Status |
 |---|-------|------|-----------|-----------|--------|
-| 7 | Scaffold the console workspace and design system | docs/plans/7-scaffold-the-console-workspace-and-design-system.md | None | None | In Progress |
+| 7 | Scaffold the console workspace and design system | docs/plans/7-scaffold-the-console-workspace-and-design-system.md | None | None | Complete |
 | 8 | Build the console app shell, navigation, and command palette | docs/plans/8-build-the-console-app-shell-navigation-and-command-palette.md | EP-7 | EP-10 | Not Started |
 | 9 | Provision the local runtime stack and recorded fixtures | docs/plans/9-provision-the-local-runtime-stack-and-recorded-fixtures.md | None | EP-7 | Not Started |
 | 10 | Implement the client core for HTTP, cursors, int64, WebSocket, and live queries | docs/plans/10-implement-the-client-core-for-http-cursors-int64-websocket-and-live-queries.md | EP-7 | EP-9 | Not Started |
@@ -646,8 +646,8 @@ they bite: no rebuild/replay UI; no adapter dead-letter redrive until upstream s
 
 ## Progress
 
-Phase 1 is ready to start: EP-7 and EP-9 can begin immediately and in parallel; EP-8 and
-EP-10 follow EP-7. No child plan has started.
+Phase 1 is under way: EP-7 is Complete (2026-10-21), so EP-8, EP-9, and EP-10 are all
+ready.
 
 Cross-plan gates with their own acceptance:
 
@@ -742,6 +742,17 @@ Cross-plan gates with their own acceptance:
   to recover, so EP-9 adds the stateful `kirokuLog`; no `/ws/metrics` script existed; and
   EP-9's and EP-13's fixture names disagreed. All corrected in EP-9, EP-11, and EP-13 in the
   same pass.
+- EP-7 (2026-10-21): the user's global bun configuration enforces a seven-day
+  `minimumReleaseAge`, so every child plan's dependency floors that are younger than a week
+  cannot be installed; pin the newest release older than seven days instead (EP-7 records
+  the substitutions) and call the shadcn CLI as `bunx shadcn@4.21.5`, since `@latest` is
+  blocked too. `msw` 3.0.3 (EP-9) is old enough.
+- EP-7 (2026-10-21): a `redpanda-0` container on this machine listens on 127.0.0.1:9092,
+  pgmq's fixed dev port; EP-9's `stack-up` must detect and report it rather than assume the
+  port is free.
+- EP-7 (2026-10-21): the React Aria Sheet composes as `<SheetTrigger>` wrapping its trigger
+  and `<Sheet side>` content; the right-sheet host of EP-8 should drive it with
+  `isOpen`/`onOpenChange` rather than a Radix-style controlled `open` prop.
 - Audit (2026-10-21): kiroku's guide says known query parameters reject duplicates, but
   only the dead-letters route does; the browse routes take the first value. The client
   never sends duplicate keys, so this is a documentation note for EP-11, not a bug to

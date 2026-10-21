@@ -59,16 +59,45 @@ export function encodeQuery(query: Query | undefined): string {
   return text ? `?${text}` : ""
 }
 
+/**
+ * At most `max` tasks run at once; the rest wait in arrival order. A finishing task hands its
+ * slot straight to the next waiter, so a new caller can never overtake the queue.
+ */
+export function createLimiter(max: number): <T>(task: () => Promise<T>) => Promise<T> {
+  let active = 0
+  const waiting: (() => void)[] = []
+  return async (task) => {
+    if (active < max) active += 1
+    else await new Promise<void>((resolve) => waiting.push(resolve))
+    try {
+      return await task()
+    } finally {
+      const next = waiting.shift()
+      if (next) next()
+      else active -= 1
+    }
+  }
+}
+
 export function createHttpClient(options: {
   surface: Surface
   baseUrl: string
   fetch?: typeof fetch
   headers?: Record<string, string>
+  /**
+   * Requests in flight at once (unbounded when absent). keiro-ops-http refuses reads beyond its
+   * inspection budget with 503 `inspection_busy`, so its client stays under that budget.
+   */
+  maxConcurrent?: number
 }): HttpClient {
   const { surface } = options
   const base = resolveBase(options.baseUrl)
   const doFetch =
     options.fetch ?? ((input: RequestInfo | URL, init?: RequestInit) => fetch(input, init))
+  const limit =
+    options.maxConcurrent === undefined
+      ? <T>(task: () => Promise<T>) => task()
+      : createLimiter(options.maxConcurrent)
 
   const url = (path: string, query?: Query) =>
     `${base}${path.startsWith("/") ? path : `/${path}`}${encodeQuery(query)}`
@@ -89,8 +118,13 @@ export function createHttpClient(options: {
       init.body = serializeJson(opts.body)
     }
     let response: Response
+    let text: string
     try {
-      response = await doFetch(url(path, opts.query), init)
+      // The body is read inside the slot: the server holds the read until it is sent.
+      ;[response, text] = await limit(async () => {
+        const answer = await doFetch(url(path, opts.query), init)
+        return [answer, await answer.text()] as const
+      })
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") throw error
       throw new ApiError({
@@ -101,7 +135,6 @@ export function createHttpClient(options: {
         raw: error,
       })
     }
-    const text = await response.text()
     if (!response.ok && !(opts.okStatuses ?? []).includes(response.status)) {
       throw normalizeError(surface, response.status, text, response.headers)
     }

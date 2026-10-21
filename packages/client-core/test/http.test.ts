@@ -1,9 +1,9 @@
 import { http, HttpResponse } from "msw"
 import { setupServer } from "msw/node"
-import { afterAll, afterEach, beforeAll, expect, test } from "vitest"
+import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest"
 
 import { ApiError } from "../src/errors"
-import { createHttpClient, encodeQuery } from "../src/http"
+import { createHttpClient, createLimiter, encodeQuery } from "../src/http"
 
 const requests: Request[] = []
 const server = setupServer(
@@ -114,4 +114,35 @@ test("a network failure becomes network_error; an abort is rethrown", async () =
     fetch: () => Promise.reject(new DOMException("aborted", "AbortError")),
   })
   await expect(aborting.get("/x")).rejects.toMatchObject({ name: "AbortError" })
+})
+
+describe("maxConcurrent", () => {
+  test("keeps at most N requests in flight and serves the rest in order", async () => {
+    let inFlight = 0
+    let peak = 0
+    const order: string[] = []
+    const fetch = async (input: RequestInfo | URL) => {
+      inFlight += 1
+      peak = Math.max(peak, inFlight)
+      await new Promise((resolve) => setTimeout(resolve, 5))
+      inFlight -= 1
+      order.push(String(input).split("/").at(-1)!)
+      return new Response("{}", { status: 200 })
+    }
+    const http = createHttpClient({
+      surface: "keiro",
+      baseUrl: "http://x",
+      fetch,
+      maxConcurrent: 2,
+    })
+    await Promise.all(["a", "b", "c", "d", "e"].map((p) => http.get(`/${p}`)))
+    expect(peak).toBe(2)
+    expect(order).toEqual(["a", "b", "c", "d", "e"])
+  })
+
+  test("a failing request releases its slot", async () => {
+    const limit = createLimiter(1)
+    await expect(limit(async () => Promise.reject(new Error("boom")))).rejects.toThrow("boom")
+    expect(await limit(async () => "next")).toBe("next")
+  })
 })

@@ -756,6 +756,17 @@ Cross-plan gates with their own acceptance:
 - EP-7 (2026-10-21): the React Aria Sheet composes as `<SheetTrigger>` wrapping its trigger
   and `<Sheet side>` content; the right-sheet host of EP-8 should drive it with
   `isOpen`/`onOpenChange` rather than a Radix-style controlled `open` prop.
+- EP-9 (2026-10-21): the jitsurei seed is thin after a re-seed (30 events, 2 workflows, no
+  kiroku subscriptions, checkpoints, causation links, or dead letters, no pending timers), so
+  many kiroku and keiro fixtures are derived (`packages/testing/scripts/derive.ts`, flagged
+  `derived: true`). Two findings for later plans: keiro's aggregate and process-manager
+  routes take the type, id, and correlation as **query flags**
+  (`/aggregate/show?name=order&id=...`, `/pm/show?name=...&correlation=...`), not path
+  segments, and an unknown correlation answers `200 null`; and the local shibuya baseline
+  (Hackage 0.10.0.x) has no `/control`, no detailed fields, and no CORS. The user chose a mori
+  stack profile (EP-9 M6) as the source of real subscription, dead-letter, and job-queue
+  data; rei and mori both pin keiro `e6ef560`, which has no keiro-ops-http and no aggregate
+  hooks, so the aggregate gap stays derived.
 - EP-8 (2026-10-21): the router uses a custom search serializer
   (`apps/console/src/lib/search.ts`) — scalar search values stay exact strings and only
   JSON arrays/objects are parsed — because TanStack's default would turn int64 positions in

@@ -87,22 +87,36 @@ every scripted feed plays snapshot-then-delta in order).
   shibuya-metrics server answers on 9090, and `just stack-check` is green for all four.
   (2026-10-21: `{"alive":true}` and `ws shibuya /ws 101`; `/metrics` lists the `orders`,
   `payments`, `notifications`, ... processors with `state.status` `idle`/`processing`.)
-- [ ] M3 — Recorder and recorded fixtures: `bun run fixtures:record` writes one raw-text
+- [x] M3 — Recorder and recorded fixtures: `bun run fixtures:record` writes one raw-text
   fixture per manifest entry for all four surfaces plus `_meta.json` with source commits,
   versions, and seed name; the pgmq message-id fixture contains an id above 2^53 unchanged;
   manifest `pins` name the entities the screen plans address (kiroku stream, category,
-  subscription, and the two causation events).
-- [ ] M4 — Mock handlers, scripted feeds, and entry points: `@keiro-ui/testing` exports
+  subscription, and the two causation events). (2026-10-21: 79 fixtures; `_meta.json` names
+  kiroku `ea364cf`, pgmq-hs `d6750a6`, shibuya `0967f45`, shibuya-pgmq-adapter `c443ac3`, keiro
+  `b63ed846`; `pgmq/queue-message-big-id.json` holds `"msg_id":9007199254740994`; `.page2`
+  files for kiroku streams/events, pgmq messages, keiro workflows.)
+- [x] M4 — Mock handlers, scripted feeds, and entry points: `@keiro-ui/testing` exports
   `startMockServer()` (node) and `startMockWorker()` (browser), serves every recorded route
   with cursor-paging emulation keyed on the full query and on-demand error envelopes,
   replays a snapshot-then-delta WebSocket script per dialect with an overflow error (the
   kiroku `/ws/events` script honouring `from_position` and `category` over the stateful
-  `kirokuLog`, plus a `/ws/metrics` script), and its own test suite passes.
-- [ ] M5 — Gaps handled: hand-derived fixtures exist for keiro `/aggregate/*` and `/pm/*`,
+  `kirokuLog`, plus a `/ws/metrics` script), and its own test suite passes. (2026-10-21:
+  `bun run --filter @keiro-ui/testing test` passes — every recorded request answered byte for
+  byte, `from=0`/`direction=backward` variants, `.page2` by cursor, `kirokuLog` append/poll/
+  reset, and every feed including the overflow re-read; `VITE_MOCK=1` serves a
+  service-worker-controlled page whose pgmq HTTP and WebSocket requests are mocked.)
+- [x] M5 — Gaps handled: hand-derived fixtures exist for keiro `/aggregate/*` and `/pm/*`,
   for kiroku's populated live registry, subscription metrics, and dead letters,
   and for shibuya detailed metrics and the `terminal`/`error` frames, each marked
-  `derived: true` in `_meta.json`; the keiro and shibuya improvement requests are filed,
-  validated by their repositories' own recipes, and their handles recorded here.
+  `derived: true` in `_meta.json`. (2026-10-21: `scripts/derive.ts`; recorded originals kept as
+  `<slug>.recorded.json`. The two upstream improvement requests were not filed: on
+  2026-10-21 the user chose a mori stack profile (M6) as the source of real subscription,
+  dead-letter, and job-queue data instead; both requests remain candidates, recorded in the
+  Decision Log.)
+- [ ] M6 — mori profile: `just stack-up mori` points kiroku-inspect, pgmq-inspect, and
+  keiro-ops-http at a seeded local mori database with `mori automate daemon` running, and
+  the kiroku subscription, checkpoint, dead-letter and pgmq job-queue fixtures are
+  re-recorded from it in place of the derived ones.
 
 
 ## Surprises & Discoveries
@@ -149,6 +163,20 @@ every scripted feed plays snapshot-then-delta in order).
 
 
 ## Decision Log
+
+- Decision: Add a second stack profile backed by mori (`mori://shinzui/mori`), seeded with
+  its automation test repositories and running `mori automate daemon`, and record the kiroku
+  subscription/checkpoint/dead-letter and pgmq job-queue fixtures from it; keep jitsurei as
+  the baseline for workflows and for the aggregate and process-manager fixtures that link
+  into jitsurei's streams. The keiro and shibuya improvement requests of M5 are not filed
+  for now; they remain candidates ("runnable inspection host mounting jitsurei's aggregate
+  and process-manager hooks"; "long-running shibuya example with detailed metrics, control,
+  and CORS"). rei was considered and rejected: it has no local data except a
+  production-derived dump.
+  Rationale: user decision on 2026-10-21 after a survey of rei and mori: mori runs real
+  subscriptions with dead letters, four pgmq job queues with dead-letter queues, timers, and
+  projections, and has a scripted seed; neither app has durable workflows, so jitsurei stays.
+  Date: 2026-10-21
 
 - Decision: pgmq-inspect runs on port 9095, not 9092, and reads a `pgmq_dev` database in
   pgmq-hs's own socket-only dev cluster (`<PGMQ_HS_REPO>/.dev/db`), not jitsurei.

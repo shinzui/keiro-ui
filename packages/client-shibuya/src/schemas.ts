@@ -104,6 +104,30 @@ export type Liveness = z.output<typeof Liveness>
 export const ControlStatus = z.object({ enabled: z.boolean(), operations: z.array(z.string()) })
 export type ControlStatus = z.output<typeof ControlStatus>
 
+/**
+ * A pause or resume answer (shibuya-metrics/src/Shibuya/Metrics/Control.hs in
+ * mori://shinzui/shibuya): the processor's intake state; repeating an operation returns the
+ * same body with the original `pausedAt`.
+ */
+export const ControlResult = z
+  .object({
+    processor: z.string(),
+    state: z.enum(["running", "paused"]),
+    pausedAt: z.string().optional(),
+  })
+  .passthrough()
+export type ControlResult = z.output<typeof ControlResult>
+
+/** The flat-envelope codes a control POST can refuse with. */
+export type ShibuyaControlRefusal =
+  | "control_disabled"
+  | "origin_not_allowed"
+  | "processor_not_found"
+  | "processor_not_controllable"
+  | "processor_terminal"
+  | "processor_draining"
+  | "method_not_allowed"
+
 export interface HealthResult<T> {
   status: number
   body: T

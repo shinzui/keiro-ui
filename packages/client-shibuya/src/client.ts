@@ -3,6 +3,7 @@ import type { z } from "zod"
 
 import {
   CombinedHealth,
+  ControlResult,
   ControlStatus,
   type HealthResult,
   Liveness,
@@ -59,8 +60,20 @@ export function createShibuyaClient(options: { baseUrl: string; fetch?: typeof f
       combined: (signal?: AbortSignal) => health(CombinedHealth, "/health", signal),
     },
     control: {
-      /** Whether pause/resume are enabled on this host (off by default). Actions arrive with plan 19. */
+      /** Whether pause/resume are enabled on this host (off by default). */
       status: (signal?: AbortSignal) => get(ControlStatus, "/control", signal),
+      /**
+       * Stops intake at the adapter source; in-flight work finishes. No body and no custom
+       * headers: the browser's Origin must be in the host's corsAllowedOrigins.
+       */
+      pause: async (processorId: string) =>
+        ControlResult.parse(
+          await http.post(`/control/processors/${encodeURIComponent(processorId)}/pause`),
+        ),
+      resume: async (processorId: string) =>
+        ControlResult.parse(
+          await http.post(`/control/processors/${encodeURIComponent(processorId)}/resume`),
+        ),
     },
   }
 }

@@ -1,5 +1,6 @@
 import { registerQueuesFeature } from "./queues/register"
 import { registerStreamsFeature } from "./streams/register"
+import { registerWorkflowsFeature } from "./workflows/register"
 
 // One line per screen plan: registerStreamsFeature(), registerQueuesFeature(),
 // registerWorkflowsFeature(), registerAggregatesFeature(), registerProjectionsFeature().
@@ -7,4 +8,5 @@ import { registerStreamsFeature } from "./streams/register"
 export function registerAllFeatures(): void {
   registerStreamsFeature()
   registerQueuesFeature()
+  registerWorkflowsFeature()
 }

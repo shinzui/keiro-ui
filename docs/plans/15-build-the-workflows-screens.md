@@ -21,6 +21,11 @@ provenance:
       at: 2026-10-21T18:42:29Z
       mode: "update"
       note: "Round 2: align to owning-plan spellings, correct audited upstream facts, e2e layout, light theme where applicable"
+    - model: "claude-opus-5-5"
+      harness: "claude-code"
+      at: 2026-10-21T21:53:04Z
+      mode: "implement"
+      note: "M1-M4 implemented: list with feed reconcile, detail tabs, journal timeline and sheet, navigation and suites"
   reviews:
     - model: "claude-fable-5-1"
       harness: "claude-code"
@@ -73,20 +78,53 @@ the recorded steps in order with the time between them.
 
 ## Progress
 
-- [ ] M1 — `/workflows` lists instances with URL-held filters, cursor paging, and the
-  `workflows` feed reconciling the first page; the live-stack check (MasterPlan early check 3)
-  passes and is recorded with evidence.
-- [ ] M2 — `/workflows/$name/$id` renders the header, URL-held tabs, and a journal timeline
-  with lenses, grouping by step, generation selection, and infinite cursor paging.
-- [ ] M3 — Journal entries open a `journal-entry` right sheet with payload and store links;
-  derived step segments are shown; Steps, Children, and Awakeables tabs link out correctly.
-- [ ] M4 — Navigation is wired (rail, sidebar presets, palette commands, recents), and the
-  vitest and Playwright suites for the section pass in mock mode.
+- [x] M1 (2026-10-21): `/workflows` with every filter in the URL (chips, name, created and
+  updated windows, ordering, page size), cursor paging with a session trail, a stale cursor
+  clearing `after`, and the `workflows` feed reconciling page one. Evidence:
+  `workflow-list.test.tsx` (scripted snapshot → update changing a badge to `failed` and
+  removing a row → `queue_overflow` → re-read). Live (early check 3 at the screen): with
+  `/workflows` open, `just jitsurei-workflow` in keiro added two instances, rows 6 → 8 with no
+  navigation, through frame `update#1 notify changed=order-fulfillment:completed,ship-order:completed`.
+  The scenario finishes in about 16 ms, so the server coalesced the instances' transitions and
+  no row was observed as `running`; the running → completed badge change is covered by the
+  scripted feed (vitest and Playwright) rather than live.
+- [x] M2 (2026-10-21): `/workflows/$name/$id` with the header (generation selector when the
+  current generation is above 0), URL tabs, and the journal timeline grouped by step with
+  `all | steps | errors` lenses, generation-scoped paging, and "load more". Evidence:
+  `workflow-detail.test.tsx`, `journal.test.ts`; live against the jitsurei instance.
+- [x] M3 (2026-10-21): the `journal-entry` sheet (reopens from the URL), derived spans with
+  the legend and time to first step, and the Steps, Children, and Awakeables tabs; a child
+  links to its own page. Evidence: `segments.test.ts`, `workflow-detail.test.tsx`; live, the
+  sheet shows global position 20 and stream `wf:order-fulfillment-…` from kiroku.
+- [x] M4 (2026-10-21): `registerWorkflowsFeature()` adds the sheet, the Running, Retrying,
+  and Failed sidebar presets, and one "Workflows: <class>" palette command per class; visits
+  are recorded. Evidence: `bunx playwright test --project=screens e2e/workflows` → 5 passed
+  (screens and shell projects: 40 passed); `bun run test` 500 passed; `bun run check` clean.
 
 
 ## Surprises & Discoveries
 
-(None yet.)
+- keiro's journal entries report `global_position: 0` for every entry, live and in the
+  recorded fixture: `readWorkflowJournalPage` reads with kiroku's `readStreamForward`, whose
+  records do not carry the global position, while kiroku's own `/events/{id}` for the same
+  event id reports the real one (20 for the first jitsurei entry) and the journal stream
+  (`wf:order-fulfillment-<id>`). The sheet therefore reads the event from kiroku by
+  `event_id` for the position, the `$all` link, and the journal stream link, and the
+  timeline never shows keiro's zero. Candidate keiro improvement request (not filed): "report
+  the journal entry's real global position", source `keiro/src/Keiro/Workflow/Inspection.hs`
+  in `mori://shinzui/keiro`.
+- The keiro client's `journal` and `steps` did not accept `generation`, although keiro-ops
+  takes `--generation` on both (`keiro-ops/src/Keiro/Ops/Workflow.hs`); added to
+  `packages/client-keiro/src/client.ts` (additive; verified live: `generation=3` on a
+  generation-0 instance answers an empty page with `"generation":3`).
+- Registering palette commands from a feature exposed an import cycle: `shell/commands.ts`
+  imports `lib/links.ts`, which imported the router, whose route tree loads `__root.tsx`,
+  which registers features and calls `registerCommands` before `commands.ts` finished
+  initializing (`liveness-integration.test.tsx` failed with "Cannot access 'registry' before
+  initialization"). `lib/links.ts` no longer imports the router; `router.tsx` calls
+  `bindLinkRouter(router)`.
+- The scripted keiro feed re-sent its first item unchanged, so no test could show a badge
+  change; `@keiro-ui/testing`'s `FeedOptions` gained `changedFields` and `removeLast`.
 
 
 ## Decision Log
@@ -119,11 +157,35 @@ the recorded steps in order with the time between them.
   Rationale: the console never fabricates stream names (the generation stream naming
   function is a keiro implementation detail that could change).
   Date: 2026-10-21
+  Revision (2026-10-21): the journal-entry sheet does link the journal stream, using the
+  stream name kiroku returns for the entry's `event_id` (a store fact, not a derived name).
+
+- Decision: A malformed list filter is dropped (each search field `.catch(undefined)`)
+  rather than rendering a search-error component; the shell has none, and EP-13 and EP-14
+  use the same rule.
+  Rationale: a shared URL with one bad value should still show the list for the rest.
+  Date: 2026-10-21
+
+- Decision: Rows the feed removes from page one are listed in a transient "Moved off this
+  page" notice (eight seconds) instead of fading in place.
+  Rationale: the merged cache no longer holds the removed rows, so a fading row would need a
+  second copy of the page; the notice says the same thing honestly.
+  Date: 2026-10-21
 
 
 ## Outcomes & Retrospective
 
-(To be filled during and after implementation.)
+Complete (2026-10-21). The Workflows section lists instances with URL-held filters and
+cursor paging, reconciles page one from the `workflows` feed (seen live), and shows one
+instance with a step-grouped journal, lenses, generation selection, derived spans, a
+journal-entry sheet backed by both keiro and kiroku, and the steps, children, and
+awakeables tabs. Nothing mutates.
+
+Beyond the section: keiro's journal reports no real global position (worked around through
+kiroku, candidate request recorded above); the client gained `generation` on journal and
+steps; the testing feed script gained scripted changes and removals; and an import cycle
+between the link builders and the router was removed. Live coverage of a `running` →
+`completed` transition needs a slower scenario than jitsurei's; the scripted feed covers it.
 
 
 ## Context and Orientation

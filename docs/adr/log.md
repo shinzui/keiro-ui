@@ -1,6 +1,10 @@
 # Bundle Update Log
 
 ## 2026-10-21
+* **Addition**: Add ADR-13: honest gates
+* **Addition**: Add ADR-12: poll-first live queries
+* **Addition**: Add ADR-11: one error shape over three envelopes
+* **Addition**: Add ADR-10: 64-bit integers are bigint end to end
 * **Addition**: Add ADR-9: a static bundle in front of surfaces at their composed prefixes
 * **Update**: Mark ADR-6 superseded by ADR-8
 * **Addition**: Add ADR-8: shadcn/ui on the React Aria base is the console component library

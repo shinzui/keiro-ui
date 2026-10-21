@@ -334,7 +334,7 @@ repository.
 | 16 | Build the Aggregates, Process Managers, and Timers screens | docs/plans/16-build-the-aggregates-process-managers-and-timers-screens.md | EP-8, EP-11, EP-12 | EP-9, EP-13 | Complete |
 | 17 | Build the Projections and Overview screens | docs/plans/17-build-the-projections-and-overview-screens.md | EP-8, EP-11, EP-12 | EP-13, EP-14, EP-15, EP-16 | Complete |
 | 18 | Package the console for deployment | docs/plans/18-package-the-console-for-deployment.md | EP-8 | EP-9, EP-17 | Complete |
-| 19 | Add gated operator actions | docs/plans/19-add-gated-operator-actions.md | EP-14, EP-16, EP-17, EP-18 | None | Not Started |
+| 19 | Add gated operator actions | docs/plans/19-add-gated-operator-actions.md | EP-14, EP-16, EP-17, EP-18 | None | Complete |
 
 Status values: Not Started, In Progress, Complete, Cancelled.
 Hard Deps and Soft Deps reference other rows by their # prefix (e.g., EP-7, EP-10).
@@ -637,12 +637,15 @@ EP-15 — the `workflows` feed's `snapshot`/`update`/`removed` reconcile against
 wired. (4) EP-18 with EP-9 — the built console served at `/console/` behind a reverse
 proxy that composes the four surfaces renders the Overview with no CORS headers involved.
 
-**Candidate ADRs.** Written now: ADR-8 (shadcn/ui on the React Aria base; `packages/ui`
-as the import boundary; Paper Mono; supersedes ADR-6). Expected later: the int64-as-bigint
-wire rule and the three-envelope error normalization (after EP-10); the poll-first live
-query contract as the application of ADR-3 (after EP-10); the composed-prefix deployment
-convention and the console-at-a-sub-path packaging (after EP-18); the honest-gate rendering
-rules as the application of ADR-7 (after EP-19). Deliberate exclusions worth recording when
+**Candidate ADRs.** Written: ADR-8 (shadcn/ui on the React Aria base; `packages/ui`
+as the import boundary; Paper Mono; supersedes ADR-6); and, at the initiative's completion,
+[ADR-9](../adr/0009-a-static-bundle-in-front-of-surfaces-at-composed-prefixes.md) (the
+composed-prefix deployment and the console at a sub-path),
+[ADR-10](../adr/0010-64-bit-integers-are-bigint-end-to-end.md) (int64 as bigint),
+[ADR-11](../adr/0011-one-error-shape-over-three-envelopes.md) (three-envelope error
+normalization), [ADR-12](../adr/0012-poll-first-live-queries.md) (the poll-first live query
+contract, applying ADR-3), and [ADR-13](../adr/0013-honest-gates.md) (honest-gate rendering,
+applying ADR-7). Deliberate exclusions worth recording when
 they bite: no rebuild/replay UI; no adapter dead-letter redrive until upstream ships it.
 
 
@@ -653,7 +656,9 @@ through the dev proxy) and 2 (shell liveness drives a real poll) pass. Phase 2 i
 EP-12, 2026-10-21), and early check 3 (the workflows feed reconciles with the list on the
 live stack) passes. Phase 3 is Complete (EP-13 through EP-17, 2026-10-21) and the live-stack
 integration gate passed. Phase 4 is Complete (EP-18, 2026-10-21): the console packs for any
-base path and passed its production smoke; the read-only release gate follows. Screen suites run in the Playwright `screens`
+base path and passed its production smoke; the read-only release `v0.1.0` is tagged. Phase 5
+is Complete (EP-19, 2026-10-21): the three gated operator actions. Every child plan is
+Complete. Screen suites run in the Playwright `screens`
 project against the mock worker; component tests render the real route tree through
 `apps/console/src/test/render-route.tsx` (added by EP-14) against `startMockServer()`. The local stack has two profiles (`just stack-up`
 for jitsurei, `just stack-up mori` for a live mori daemon); fixtures come from jitsurei only.
@@ -976,4 +981,37 @@ unchanged.
 
 ## Outcomes & Retrospective
 
-(To be filled during and after the initiative.)
+Complete (2026-10-21). The keiro runtime console exists end to end: a shell with navigation,
+palette, right-sheet inspectors, connection profiles, and liveness; four typed clients over a
+shared core (lossless int64, one error shape, cursor pages, feeds, poll-first queries); the
+Streams & Subscriptions, Queues & Processors, Workflows, Aggregates, Process managers, Timers,
+Projections, Shards, and Overview sections; a release `v0.1.0` (read-only, tagged locally, not
+pushed) packaged for any base path and proven behind a single-origin proxy; and three gated
+operator actions after it. Every section was verified against recorded fixtures (vitest 576,
+Playwright 57 across the smoke, shell, and screens projects, production smoke 9) and against the
+live jitsurei stack (`e2e/live.spec.ts`, the client core's live int64 contract, and a live
+feed reconcile).
+
+What the initiative learned about the stack, beyond its own code:
+
+- kiroku's single-stream reads report `global_position` 0 (`readStreamForwardSQL`), so every
+  read built on them — kiroku-inspect's stream route, keiro's workflow journal, keiro's last
+  reaction — carries no position; the console shows "not reported" and reads the event by id.
+- keiro-ops-http admits 4 concurrent inspection reads by default; the console caps its keiro
+  client at 3 so a page's reads and the health probe fit.
+- Wire details the clients had wrong, found by screens and fixed: the timers feed filter is
+  `correlation_id`; stuck-timer rows carry no `last_error`; journal and steps accept
+  `generation`; the projection feed's head must stay a bigint.
+- The runnable hosts mount neither keiro's inspection hooks nor shibuya's `/control`, and
+  keiro's redrive acts on pgmq in keiro's own database; the console names each of these states.
+
+Candidate improvement requests recorded by the child plans and not filed: kiroku — report the
+global position on single-stream reads (or document the 0); keiro — a `pm types` read, a
+per-category projection mapping, the feeding subscription on `/projection/status` rows, and a
+workflow status-class count read. Filed during the initiative as local commits in their
+repositories (not pushed): keiro IR-55 (a runnable inspection host mounting the jitsurei hooks)
+and shibuya IR-9 (a long-running example serving detailed metrics with control and CORS
+configurable).
+
+Not done: the optional Nix package for the bundle (EP-18, deferred), and running the mutating
+live spec (EP-19), which needs a mutation-enabled stack with shibuya control.

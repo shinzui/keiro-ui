@@ -17,3 +17,7 @@ okf_version: "0.2"
 - [ADR-7: Read-only first, with owning-repository gates](0007-read-only-first-with-owning-repository-gates.md)
 - [ADR-8: shadcn/ui on the React Aria base is the console component library](0008-shadcn-ui-on-the-react-aria-base-is-the-console-component-library.md)
 - [ADR-9: A static bundle in front of surfaces at their composed prefixes](0009-a-static-bundle-in-front-of-surfaces-at-composed-prefixes.md)
+- [ADR-10: 64-bit integers are bigint end to end](0010-64-bit-integers-are-bigint-end-to-end.md)
+- [ADR-11: One error shape over three envelopes](0011-one-error-shape-over-three-envelopes.md)
+- [ADR-12: Poll-first live queries](0012-poll-first-live-queries.md)
+- [ADR-13: Honest gates](0013-honest-gates.md)

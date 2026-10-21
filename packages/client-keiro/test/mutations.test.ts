@@ -162,3 +162,41 @@ test("dlqRedrive takes the logical queue name and refuses a _dlq name before any
   expect(() => mutations.pgmq.dlqRedrive({ queue: "orders_dlq" })).toThrow(RangeError)
   expect(seen).toHaveLength(1)
 })
+
+// Bodies captured from keiro-ops-http 0.21.0.0 (--enable-mutations, jitsurei database) on
+// 2026-10-21; the last from the default host (mutations disabled).
+describe("contract: responses captured from keiro-ops-http", () => {
+  const unknownTimer = "00000000-0000-4000-8000-000000000000"
+  const captured = {
+    preview: `{"cli_reinvocation":"'keiro-ops' 'timer' 'requeue' '${unknownTimer}' '--json' '--force'","outcome":"preview","result":{"disposition":"not_found","operation":"requeue","preview":true,"timer":null}}`,
+    executed: `{"outcome":"executed","result":{"operation":"requeue","outcome":"not_transitioned","timer":null,"transitioned":false}}`,
+    invalidConfirmation: `{"error":{"code":"invalid_confirmation","message":"expected an empty body or exactly {\\"confirm\\":\\"execute\\"}"}}`,
+    disabled: `{"error":{"code":"mutations_disabled","message":"this surface was mounted without mutations"}}`,
+  }
+  const raw =
+    (body: string, status = 200) =>
+    () =>
+      new HttpResponse(body, { status, headers: { "content-type": "application/json" } })
+
+  test("an unknown timer previews as not_found and executes as not_transitioned", async () => {
+    next = raw(captured.preview)
+    const preview = await mutations.timers.requeue(unknownTimer).preview()
+    expect(preview.result.disposition).toBe("not_found")
+    expect(preview.cli_reinvocation).toContain("--force")
+    next = raw(captured.executed)
+    const executed = await mutations.timers.requeue(unknownTimer).execute()
+    expect(executed.result).toMatchObject({ outcome: "not_transitioned", transitioned: false })
+    expect(executed.exit_code).toBeUndefined()
+  })
+
+  test("the captured refusals become the typed refusals", async () => {
+    next = raw(captured.invalidConfirmation, 400)
+    await expect(mutations.timers.cancel(unknownTimer).execute()).rejects.toBeInstanceOf(
+      InvalidConfirmation,
+    )
+    next = raw(captured.disabled, 403)
+    await expect(mutations.timers.cancel(unknownTimer).preview()).rejects.toBeInstanceOf(
+      MutationsDisabled,
+    )
+  })
+})

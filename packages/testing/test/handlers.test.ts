@@ -22,7 +22,21 @@ function fixture(relative: string): string {
 
 describe("every recorded request is answered with its recorded bytes", () => {
   const entries = Object.entries(fixtureMeta.files).filter(([, m]) => m.variant !== "recorded")
+  const files = Object.values(fixtureMeta.files)
+  const sameQuery = (a: Record<string, string>, b: Record<string, string>) =>
+    JSON.stringify(Object.entries(a).toSorted()) === JSON.stringify(Object.entries(b).toSorted())
   test.each(entries)("%s", async (relative, meta) => {
+    // An error captured with its default's query is served only through the fail scenario.
+    const shadowing =
+      meta.variant === "error" &&
+      files.some(
+        (m) =>
+          m.variant === "default" &&
+          m.surface === meta.surface &&
+          m.slug === meta.slug &&
+          sameQuery(m.query, meta.query),
+      )
+    if (shadowing) useScenario({ fail: { [meta.surface]: [meta.slug] } })
     const url = `http://localhost${prefixes[meta.surface]}${meta.request}`
     const response = await fetch(url, { method: meta.method })
     expect(response.status).toBe(meta.status)

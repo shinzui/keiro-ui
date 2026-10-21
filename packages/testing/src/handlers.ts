@@ -101,8 +101,12 @@ function choose(surface: Surface, candidates: Candidate[], url: URL): HttpRespon
     if (hasFixture(error)) return fixtureResponse(error)
   }
 
+  // An error variant recorded with the same query as a default (a refusal captured from
+  // another host) is served only through the `fail` scenario, never by query match.
+  const shadowsDefault = (c: Candidate) =>
+    c.meta.variant === "error" && defaults.some((d) => sameEntries(d.meta.query, c.meta.query))
   const exact = candidates.find(
-    (c) => c.meta.variant !== "recorded" && sameEntries(c.meta.query, query),
+    (c) => c.meta.variant !== "recorded" && sameEntries(c.meta.query, query) && !shadowsDefault(c),
   )
   if (exact && exact.meta.variant !== "default") return fixtureResponse(exact.relative)
 

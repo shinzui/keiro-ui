@@ -1,0 +1,1 @@
+{"error":{"code":"invalid_request","details":{"arguments":["aggregate","types"]},"message":"Invalid argument `aggregate'\n\nUsage: keiro-ops COMMAND"}}

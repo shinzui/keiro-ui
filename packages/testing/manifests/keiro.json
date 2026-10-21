@@ -6,7 +6,7 @@
   "pins": {
     "workflow_name": "order-fulfillment",
     "workflow_id": "workflow-20261021202320830171000000",
-    "timer_id": "",
+    "timer_id": "7b2f6a0e-5c1d-4e8a-9f3b-2d6c8a1e4f01",
     "subscription": "jitsurei-order-reporting",
     "stream": "order-demo-20261021202320671316000000",
     "aggregate_type": "order",

@@ -13,7 +13,9 @@
 // latency, progress, oldestInFlight); the recorded basic map is metrics.recorded.json.
 //
 // keiro: /aggregate/* and /pm/* fixtures were written by hand from keiro's encoders (see their
-// derived_from); this script only registers them.
+// derived_from); this script only registers them. The jitsurei seed leaves no pending or stuck
+// timer, so /timer/pending/list and /timer/stuck/list are derived from keiro's timer encoders;
+// the recorded (empty) bodies are kept as <slug>.recorded.json.
 import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs"
 import { dirname, join } from "node:path"
 
@@ -312,7 +314,13 @@ function deriveShibuya() {
 // host does, so these bodies were written by hand from keiro's encoders (route grammar: only the
 // command words are path segments; type, id, and correlation are query flags).
 const KEIRO = "mori://shinzui/keiro"
-const keiroPins = {
+const keiroPins: {
+  aggregate_type: string
+  aggregate_id: string
+  process_manager: string
+  correlation_id: string
+  timer_id?: string
+} = {
   aggregate_type: "order",
   aggregate_id: "demo-20261021202320671316000000",
   process_manager: "jitsurei-fulfillment",
@@ -444,14 +452,119 @@ function registerKeiro() {
     meta.files[relative] = { ...entry, derived: true }
     console.log(`registered ${relative}`)
   }
+  // A host without AppHooks refuses the command word; bodies captured from the standalone
+  // jitsurei keiro-ops-http on 2026-10-21 (served for the `fail` scenario).
+  derive(
+    "keiro/aggregate-types.error.json",
+    json({
+      error: {
+        code: "invalid_request",
+        details: { arguments: ["aggregate", "types"] },
+        message: "Invalid argument `aggregate'\n\nUsage: keiro-ops COMMAND",
+      },
+    }),
+    keiroEntry(
+      "aggregate-types",
+      "error",
+      "/aggregate/types",
+      {},
+      400,
+      "keiro-ops-http on a host without AppHooks (live capture)",
+    ),
+  )
+  derive(
+    "keiro/pm-list.error.json",
+    json({
+      error: {
+        code: "invalid_request",
+        details: { arguments: ["pm", "list", `--name=${pm}`] },
+        message:
+          "Invalid argument `pm'\n\nDid you mean one of these?\n    pgmq\n    wf\n\nUsage: keiro-ops COMMAND",
+      },
+    }),
+    keiroEntry(
+      "pm-list",
+      "error",
+      "/pm/list",
+      { name: pm },
+      400,
+      "keiro-ops-http on a host without AppHooks (live capture)",
+    ),
+  )
   const manifestPath = join(packageRoot, "manifests/keiro.json")
   const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as Manifest
   manifest.pins = { ...manifest.pins, ...keiroPins }
   writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
 }
 
+// Timer bodies follow pendingTimerItemJson (keiro/src/Keiro/Timer/Schema.hs) and timerJson
+// (keiro-ops/src/Keiro/Ops/Timer.hs); the pending query admits `scheduled` and `firing` rows.
+function deriveKeiroTimers() {
+  const pendingPath = "keiro/timers-pending.json"
+  const stuckPath = "keiro/timers-stuck.json"
+  const pendingEntry = meta.files[pendingPath] ?? meta.files["keiro/timers-pending.recorded.json"]
+  const stuckEntry = meta.files[stuckPath] ?? meta.files["keiro/timers-stuck.recorded.json"]
+  if (!pendingEntry || !stuckEntry) throw new Error("record keiro timers before deriving them")
+  keepRecorded(pendingPath)
+  keepRecorded(stuckPath)
+  const observed = Date.parse("2026-10-21T21:16:03.515441Z")
+  const at = (seconds: number) => new Date(observed + seconds * 1000).toISOString()
+  const base = {
+    process_manager_name: keiroPins.process_manager,
+    correlation_id: keiroPins.correlation_id,
+    fired_event_id: null,
+  }
+  const timers = [
+    {
+      ...base,
+      timer_id: "7b2f6a0e-5c1d-4e8a-9f3b-2d6c8a1e4f01",
+      fire_at: at(-600),
+      payload: { kind: "escalate", level: 2 },
+      status: "firing",
+      attempts: 3,
+      last_error: null,
+      due_in_seconds: -600,
+    },
+    {
+      ...base,
+      timer_id: "93c1d4b2-6a0e-4f7d-8b21-5e9a0c3f7d02",
+      fire_at: at(-40),
+      payload: { kind: "reminder" },
+      status: "scheduled",
+      attempts: 1,
+      last_error: "transient: store busy (inspection_busy)",
+      due_in_seconds: -40,
+    },
+    {
+      ...base,
+      timer_id: "c4e85f17-2b9d-4a6c-9e03-7f1b8d2a6e03",
+      fire_at: at(300),
+      payload: { kind: "escalate", level: 1 },
+      status: "scheduled",
+      attempts: 0,
+      last_error: null,
+      due_in_seconds: 300,
+    },
+  ]
+  derive(pendingPath, json({ items: timers, observed_at: new Date(observed).toISOString() }), {
+    ...pendingEntry,
+    variant: "default",
+    derived_from: `${KEIRO} keiro/src/Keiro/Timer/Schema.hs pendingTimerPageJson; ledger invented for the jitsurei-fulfillment pin`,
+  })
+  const stuck = timers
+    .filter((timer) => timer.status === "firing")
+    .map(({ last_error: _error, due_in_seconds: _due, ...row }) => row)
+  derive(stuckPath, json(stuck), {
+    ...stuckEntry,
+    variant: "default",
+    derived_from: `${KEIRO} keiro-ops/src/Keiro/Ops/Timer.hs timerJson (a bare array); the firing row of the derived pending ledger`,
+  })
+  keiroPins.timer_id = timers[0]!.timer_id
+}
+
 deriveKiroku()
 deriveShibuya()
+deriveKeiroTimers()
 registerKeiro()
 meta.files = Object.fromEntries(
   Object.entries(meta.files).toSorted(([a], [b]) => a.localeCompare(b)),

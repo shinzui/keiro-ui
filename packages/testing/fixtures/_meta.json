@@ -86,6 +86,20 @@
       "derived_from": "mori://shinzui/keiro keiro/src/Keiro/Inspection/Aggregate.hs snapshotStatusJson; keiro-ops/src/Keiro/Ops/Aggregate.hs",
       "derived": true
     },
+    "keiro/aggregate-types.error.json": {
+      "surface": "keiro",
+      "slug": "aggregate-types",
+      "variant": "error",
+      "method": "GET",
+      "template": "/aggregate/types",
+      "query": {},
+      "params": {},
+      "request": "/aggregate/types",
+      "status": 400,
+      "contentType": "application/json; charset=utf-8",
+      "derived_from": "mori://shinzui/keiro keiro-ops-http on a host without AppHooks (live capture)",
+      "derived": true
+    },
     "keiro/aggregate-types.json": {
       "surface": "keiro",
       "slug": "aggregate-types",
@@ -149,6 +163,22 @@
       "request": "/outbox/list?limit=100",
       "status": 400,
       "contentType": "application/json; charset=utf-8"
+    },
+    "keiro/pm-list.error.json": {
+      "surface": "keiro",
+      "slug": "pm-list",
+      "variant": "error",
+      "method": "GET",
+      "template": "/pm/list",
+      "query": {
+        "name": "jitsurei-fulfillment"
+      },
+      "params": {},
+      "request": "/pm/list?name=jitsurei-fulfillment",
+      "status": 400,
+      "contentType": "application/json; charset=utf-8",
+      "derived_from": "mori://shinzui/keiro keiro-ops-http on a host without AppHooks (live capture)",
+      "derived": true
     },
     "keiro/pm-list.json": {
       "surface": "keiro",
@@ -309,12 +339,42 @@
       "params": {},
       "request": "/timer/pending/list?limit=100",
       "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "derived_from": "mori://shinzui/keiro keiro/src/Keiro/Timer/Schema.hs pendingTimerPageJson; ledger invented for the jitsurei-fulfillment pin",
+      "derived": true
+    },
+    "keiro/timers-pending.recorded.json": {
+      "surface": "keiro",
+      "slug": "timers-pending",
+      "variant": "recorded",
+      "method": "GET",
+      "template": "/timer/pending/list",
+      "query": {
+        "limit": "100"
+      },
+      "params": {},
+      "request": "/timer/pending/list?limit=100",
+      "status": 200,
       "contentType": "application/json; charset=utf-8"
     },
     "keiro/timers-stuck.json": {
       "surface": "keiro",
       "slug": "timers-stuck",
       "variant": "default",
+      "method": "GET",
+      "template": "/timer/stuck/list",
+      "query": {},
+      "params": {},
+      "request": "/timer/stuck/list",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "derived_from": "mori://shinzui/keiro keiro-ops/src/Keiro/Ops/Timer.hs timerJson (a bare array); the firing row of the derived pending ledger",
+      "derived": true
+    },
+    "keiro/timers-stuck.recorded.json": {
+      "surface": "keiro",
+      "slug": "timers-stuck",
+      "variant": "recorded",
       "method": "GET",
       "template": "/timer/stuck/list",
       "query": {},

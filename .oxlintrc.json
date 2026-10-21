@@ -57,6 +57,7 @@
     ".seihou",
     "agents/**",
     "**/routeTree.gen.ts",
-    "nix/tooling-sources.json"
+    "nix/tooling-sources.json",
+    "**/src/generated/**"
   ]
 }

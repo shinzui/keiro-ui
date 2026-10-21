@@ -23,6 +23,8 @@
     "**/routeTree.gen.ts",
     "bun.lock",
     "nix/tooling-sources.json",
-    "packages/testing/fixtures/**"
+    "packages/testing/fixtures/**",
+    "**/src/generated/**",
+    "**/openapi/*.json"
   ]
 }

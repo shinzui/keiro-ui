@@ -1,8 +1,10 @@
-import { createMemoryHistory, RouterProvider } from "@tanstack/react-router"
+import { createMemoryHistory, createRouter, RouterProvider } from "@tanstack/react-router"
 import { render } from "@testing-library/react"
 
+import { bindLinkRouter } from "@/lib/links"
+import { parseSearch, stringifySearch } from "@/lib/search"
 import { createQueryClient } from "@/query-client"
-import { router } from "@/router"
+import { routeTree } from "@/routeTree.gen"
 
 // jsdom lacks the layout APIs the shell reads; inert stand-ins are enough for these tests.
 window.matchMedia ??= (query: string) =>
@@ -23,24 +25,26 @@ globalThis.ResizeObserver ??= class {
 }
 
 /**
- * Renders the application's router at `url` (shell, providers, and clients included) over a
- * fresh memory history and query client; pair it with `startMockServer()` from
- * `@keiro-ui/testing/node`. The app's singleton router is reused because `hrefOf` reads it.
+ * Renders the application's route tree at `url` (shell, providers, and clients included) with a
+ * fresh router, memory history, and query client; pair it with `startMockServer()` from
+ * `@keiro-ui/testing/node`. The router is bound for `hrefOf` like the app's own.
  */
-export function renderRoute(url: string) {
+export async function renderRoute(url: string) {
   const queryClient = createQueryClient()
-  router.update({
-    ...router.options,
-    history: createMemoryHistory({ initialEntries: [url] }),
+  const router = createRouter({
+    routeTree,
     context: { queryClient },
+    history: createMemoryHistory({ initialEntries: [url] }),
+    parseSearch,
+    stringifySearch,
   })
-  // The singleton still holds the previous test's matches; resolve the new location now.
-  void router.load()
-  const view = render(<RouterProvider router={router} />)
+  bindLinkRouter(router)
+  await router.load()
+  const view = render(<RouterProvider router={router as never} />)
   return { ...view, router, queryClient }
 }
 
 /** The current location's search, as parsed by the router. */
-export function currentSearch(r: typeof router) {
+export function currentSearch(r: { state: { location: { search: unknown } } }) {
   return r.state.location.search as Record<string, unknown>
 }

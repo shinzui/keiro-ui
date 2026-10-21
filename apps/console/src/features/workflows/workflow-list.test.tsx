@@ -34,7 +34,7 @@ test("the feed reconciles page one: a changed badge, a removed row, and a re-rea
     removeLast: true,
     overflowAfter: 2,
   })
-  renderRoute("/workflows")
+  await renderRoute("/workflows")
   const table = await screen.findByRole("grid", { name: "Workflow instances" })
   // update #1 marks the child failed and removes the parent from page one.
   await waitFor(() =>
@@ -49,7 +49,7 @@ test("the feed reconciles page one: a changed badge, a removed row, and a re-rea
 })
 
 test("filters come from the URL, reach the request, and a change drops the cursor", async () => {
-  const { router } = renderRoute(
+  const { router } = await renderRoute(
     "/workflows?status_class=retrying&status_class=failed&workflow_name=order-fulfillment&created_since=2026-10-21T00:00:00Z&after=abc",
   )
   await screen.findByRole("grid", { name: "Workflow instances" })
@@ -71,7 +71,7 @@ test("filters come from the URL, reach the request, and a change drops the curso
 })
 
 test("Next requests the server's cursor as `after`; Previous returns to page one", async () => {
-  const { router } = renderRoute("/workflows")
+  const { router } = await renderRoute("/workflows")
   const table = await screen.findByRole("grid", { name: "Workflow instances" })
   await within(table).findByText(pins("keiro").workflow_id!)
   fireEvent.click(screen.getByRole("button", { name: "Next" }))

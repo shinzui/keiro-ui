@@ -21,7 +21,7 @@ test("disabled control renders as text with no button", () => {
 })
 
 test("the processor page's Control card reflects /control", async () => {
-  renderRoute("/processors/detailed")
+  await renderRoute("/processors/detailed")
   const card = await screen.findByRole("region", { name: "Control" })
   expect(await within(card).findByText("Control enabled: no")).toBeInTheDocument()
   expect(within(card).queryByRole("button")).toBeNull()

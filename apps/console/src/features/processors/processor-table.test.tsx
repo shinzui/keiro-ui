@@ -17,7 +17,7 @@ afterAll(() => mock.close())
 test("a failed terminal frame moves the processor under Terminal with its error", async () => {
   const { processor } = pins("shibuya")
   feedScript("shibuya", { append: 1, intervalMs: 10, terminal: "failed" })
-  renderRoute("/processors")
+  await renderRoute("/processors")
   const terminal = await screen.findByRole("region", { name: "Terminal" }, { timeout: 3000 })
   expect(within(terminal).getByText(processor!)).toBeInTheDocument()
   expect(within(terminal).getByText("handler raised an exception")).toBeInTheDocument()

@@ -22,7 +22,7 @@ test("a message archived since it was listed falls back to the archive route", a
       ),
     ),
   )
-  renderRoute(`/queues/${queue}?sheet=queue-message:${queue}/${archived_msg_id}`)
+  await renderRoute(`/queues/${queue}?sheet=queue-message:${queue}/${archived_msg_id}`)
   const dialog = await screen.findByRole("dialog")
   expect(await within(dialog).findByText("archive")).toBeInTheDocument()
   expect(within(dialog).getByTestId("message-id")).toHaveTextContent(archived_msg_id!)
@@ -34,7 +34,7 @@ test("a message archived since it was listed falls back to the archive route", a
 
 test("a dead-letter message opens with the Dead letter panel", async () => {
   const { dlq_queue, dlq_msg_id } = pins("pgmq")
-  renderRoute(`/queues/${dlq_queue}?sheet=queue-message:${dlq_queue}/${dlq_msg_id}`)
+  await renderRoute(`/queues/${dlq_queue}?sheet=queue-message:${dlq_queue}/${dlq_msg_id}`)
   const dialog = await screen.findByRole("dialog")
   const panel = await within(dialog).findByRole("region", { name: "Dead letter" })
   expect(panel).toHaveTextContent("poison_message")

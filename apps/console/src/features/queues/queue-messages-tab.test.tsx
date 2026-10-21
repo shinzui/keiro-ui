@@ -15,7 +15,7 @@ const BIG_ID = "9007199254740994"
 
 test("a message id above 2^53 renders exactly and opens the sheet with that id", async () => {
   const { queue } = pins("pgmq")
-  const { router } = renderRoute(`/queues/${queue}?from=2`)
+  const { router } = await renderRoute(`/queues/${queue}?from=2`)
   const table = await screen.findByRole("grid", { name: "Messages" })
   const cell = await within(table).findByText(BIG_ID)
   fireEvent.click(cell)
@@ -26,7 +26,7 @@ test("a message id above 2^53 renders exactly and opens the sheet with that id",
 
 test("Next page writes the page's next_cursor to `from` as a decimal string", async () => {
   const { queue } = pins("pgmq")
-  const { router } = renderRoute(`/queues/${queue}`)
+  const { router } = await renderRoute(`/queues/${queue}`)
   const table = await screen.findByRole("grid", { name: "Messages" })
   await within(table).findByText("1")
   fireEvent.click(screen.getByRole("button", { name: "Next" }))
@@ -36,7 +36,7 @@ test("Next page writes the page's next_cursor to `from` as a decimal string", as
 
 test("the archive tab is selected by the URL and lists archived rows", async () => {
   const { queue, archived_msg_id } = pins("pgmq")
-  renderRoute(`/queues/${queue}?tab=archive`)
+  await renderRoute(`/queues/${queue}?tab=archive`)
   const table = await screen.findByRole("grid", { name: "Archived messages" })
   expect(await within(table).findByText(archived_msg_id!)).toBeInTheDocument()
 })

@@ -54,7 +54,7 @@ function rowNames(table: HTMLElement) {
 
 test("queues are ordered by oldest age with empty queues last; counts carry their own labels", async () => {
   serveInventory()
-  renderRoute("/queues")
+  await renderRoute("/queues")
   const table = await screen.findByRole("grid", { name: "Queues" })
   await within(table).findByText("old")
   expect(rowNames(table)).toEqual(["old", "young", "events", "empty"])
@@ -69,7 +69,7 @@ test("queues are ordered by oldest age with empty queues last; counts carry thei
 
 test("clicking the Visible header sorts by visible descending through the URL", async () => {
   serveInventory()
-  const { router } = renderRoute("/queues")
+  const { router } = await renderRoute("/queues")
   const table = await screen.findByRole("grid", { name: "Queues" })
   await within(table).findByText("old")
   fireEvent.click(within(table).getByRole("columnheader", { name: /Visible/ }))

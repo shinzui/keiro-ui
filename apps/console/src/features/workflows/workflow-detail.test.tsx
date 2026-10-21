@@ -13,7 +13,7 @@ afterAll(() => mock.close())
 
 test("the journal renders grouped steps with derived spans and opens the entry sheet", async () => {
   const { workflow_name, workflow_id } = pins("keiro")
-  const { router } = renderRoute(`/workflows/${workflow_name}/${workflow_id}`)
+  const { router } = await renderRoute(`/workflows/${workflow_name}/${workflow_id}`)
   const journal = await screen.findByRole("list", { name: "Journal" })
   const steps = [...journal.querySelectorAll(":scope > li")].map((li) =>
     li.getAttribute("data-step"),
@@ -40,14 +40,14 @@ test("the journal renders grouped steps with derived spans and opens the entry s
 
 test("the steps lens hides the terminal entry and the errors lens finds no failure", async () => {
   const { workflow_name, workflow_id } = pins("keiro")
-  renderRoute(`/workflows/${workflow_name}/${workflow_id}?lens=steps`)
+  await renderRoute(`/workflows/${workflow_name}/${workflow_id}?lens=steps`)
   const journal = await screen.findByRole("list", { name: "Journal" })
   expect(journal.querySelector('[data-step="__workflow_completed__"]')).toBeNull()
 })
 
 test("children link to the child's page; an unknown instance says so", async () => {
   const { workflow_name, workflow_id } = pins("keiro")
-  renderRoute(`/workflows/${workflow_name}/${workflow_id}?tab=children`)
+  await renderRoute(`/workflows/${workflow_name}/${workflow_id}?tab=children`)
   const table = await screen.findByRole("grid", { name: "Children" })
   expect(await within(table).findByRole("link", { name: `${workflow_id}-ship` })).toHaveAttribute(
     "href",
@@ -56,6 +56,6 @@ test("children link to the child's page; an unknown instance says so", async () 
 })
 
 test("an unknown instance renders the not-found state", async () => {
-  renderRoute("/workflows/nope/nope")
+  await renderRoute("/workflows/nope/nope")
   expect(await screen.findByText("No such workflow")).toBeInTheDocument()
 })

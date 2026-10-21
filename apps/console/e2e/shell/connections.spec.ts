@@ -18,7 +18,7 @@ test("a separate profile changes the probed health URL", async ({ page }) => {
   await page.goto("/settings/connections")
   await page.getByRole("button", { name: "New profile" }).click()
   const form = page.getByRole("form", { name: "Connection profile" })
-  await form.getByLabel("Name").fill("Local ports")
+  await form.getByLabel("Name", { exact: true }).fill("Local ports")
   await form.getByLabel("kiroku origin").fill("http://127.0.0.1:9091/api")
   await form.getByRole("button", { name: "Save" }).click()
   await expect(form.getByText("Origin must not contain a path")).toBeVisible()

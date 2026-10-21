@@ -17,7 +17,11 @@ const pin = pins("keiro")
 test("timers: pending page and the bare stuck array", async () => {
   const pending = await keiro.timers.pending({ limit: 100 })
   expect(pending.observed_at).toBeTypeOf("string")
-  expect(Array.isArray(await keiro.timers.stuck())).toBe(true)
+  expect(pending.items[0]?.due_in_seconds).toBeTypeOf("number")
+  // Stuck rows carry no last_error or due_in_seconds key.
+  const stuck = await keiro.timers.stuck()
+  expect(stuck[0]?.timer_id).toBe(pin.timer_id)
+  expect(stuck[0]).not.toHaveProperty("last_error")
 })
 
 test("projections keep keiro's position vocabulary as bigint", async () => {

@@ -1,12 +1,14 @@
 import { useSurfaceQuery } from "@keiro-ui/client-core"
 import { feedScript, type MockServer, startMockServer } from "@keiro-ui/testing/node"
 import { renderHook, waitFor } from "@testing-library/react"
+import { ws } from "msw"
 import { afterAll, afterEach, beforeAll, describe, expect, test, vi } from "vitest"
 
 import { keiroKeys, useKeiroClient } from "../src"
 import {
   mergeFeedFrame,
   useProjectionGroupsFeed,
+  useTimersFeed,
   useWorkflowsFeed,
   workflowKey,
 } from "../src/feeds"
@@ -56,6 +58,26 @@ describe("feed hooks", () => {
   })
   afterEach(() => mock.reset())
   afterAll(() => mock.close())
+
+  test("the timers feed filters by `correlation_id` on the wire", async () => {
+    const sent: unknown[] = []
+    mock.use(
+      ws.link("ws://*/keiro/ws").addEventListener("connection", ({ client }) => {
+        client.addEventListener("message", (event) => sent.push(JSON.parse(String(event.data))))
+      }),
+    )
+    const { wrapper } = makeWrapper()
+    renderHook(() => useTimersFeed({ manager: "m", correlation: "c", limit: 5 }), { wrapper })
+    await waitFor(() =>
+      expect(sent).toContainEqual({
+        type: "subscribe",
+        feed: "timers",
+        manager: "m",
+        correlation_id: "c",
+        limit: 5,
+      }),
+    )
+  })
 
   test("the workflows feed writes the list entry and re-reads on queue_overflow", async () => {
     feedScript("keiro", { append: 1, overflowAfter: 1, intervalMs: 10 })

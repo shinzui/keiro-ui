@@ -158,8 +158,12 @@ export const TimerItem = z
 export type TimerItem = z.output<typeof TimerItem>
 
 export const TimerPage = pageSchema(TimerItem, cursor<TimerCursor>(), observedAt)
-/** `/timer/stuck/list` answers a bare array, without the `observed_at` envelope. */
-export const StuckTimers = z.array(TimerItem)
+/**
+ * `/timer/stuck/list` answers a bare array, without the `observed_at` envelope, and its rows
+ * (`timerJson` in keiro-ops/src/Keiro/Ops/Timer.hs) carry no `last_error` key.
+ */
+export const StuckTimers = z.array(TimerItem.extend({ last_error: z.unknown().optional() }))
+export type StuckTimer = z.output<typeof StuckTimers>[number]
 
 // --- projections and shards ------------------------------------------------------------------
 

@@ -136,10 +136,14 @@ export function useTimersFeed(
   options: KeiroFeedOptions = {},
 ) {
   const { manager, correlation, limit } = filters
+  // The feed's filter is `correlation_id` (keiro-ops-http Views.hs timersView), unlike the
+  // read's `--correlation` flag; unknown filter keys are refused.
   const feedFilters = useMemo(
     () =>
       Object.fromEntries(
-        Object.entries({ manager, correlation, limit }).filter(([, v]) => v !== undefined),
+        Object.entries({ manager, correlation_id: correlation, limit }).filter(
+          ([, v]) => v !== undefined,
+        ),
       ),
     [manager, correlation, limit],
   )

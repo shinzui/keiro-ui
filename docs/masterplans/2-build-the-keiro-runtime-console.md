@@ -988,7 +988,7 @@ Streams & Subscriptions, Queues & Processors, Workflows, Aggregates, Process man
 Projections, Shards, and Overview sections; a release `v0.1.0` (read-only, tagged locally, not
 pushed) packaged for any base path and proven behind a single-origin proxy; and three gated
 operator actions after it. Every section was verified against recorded fixtures (vitest 576,
-Playwright 57 across the smoke, shell, and screens projects, production smoke 9) and against the
+Playwright 54 across the smoke, shell, and screens projects, production smoke 9) and against the
 live jitsurei stack (`e2e/live.spec.ts`, the client core's live int64 contract, and a live
 feed reconcile).
 

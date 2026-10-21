@@ -1,3 +1,4 @@
+import { useKirokuCheckpoints } from "@keiro-ui/client-kiroku"
 import { Button } from "@keiro-ui/ui/components/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@keiro-ui/ui/components/card"
 import { Input } from "@keiro-ui/ui/components/input"
@@ -155,6 +156,12 @@ function FeedingSubscription({
   const [draft, setDraft] = useState(subscription ?? "")
   const position = useProjectionPosition(subscription)
   const data = position.data
+  // The durable subscriptions kiroku knows, offered as choices: the operator picks, the console
+  // never assumes which one feeds the group (keiro IR-57 asks keiro to say).
+  const inventory = useKirokuCheckpoints()
+  const known = [
+    ...new Set((inventory.data?.checkpoints ?? []).map((c) => c.subscription)),
+  ].toSorted()
   return (
     <section aria-label="Feeding subscription" className="flex flex-col gap-3">
       <form
@@ -176,9 +183,32 @@ function FeedingSubscription({
           Show checkpoints
         </Button>
       </form>
+      {known.length > 0 && (
+        <div
+          className="flex flex-wrap items-center gap-1.5 text-xs"
+          role="group"
+          aria-label="Known subscriptions"
+        >
+          <span className="text-muted-foreground">Durable subscriptions in kiroku:</span>
+          {known.map((name) => (
+            <Button
+              key={name}
+              size="xs"
+              variant={name === subscription ? "secondary" : "outline"}
+              onPress={() => {
+                setDraft(name)
+                onSubscription(name)
+              }}
+            >
+              {name}
+            </Button>
+          ))}
+        </div>
+      )}
       {subscription === undefined ? (
         <p className="text-sm text-muted-foreground" data-testid="subscription-limitation">
-          keiro does not expose which subscription feeds this group; enter it to see checkpoints.
+          keiro does not expose which subscription feeds this group; choose or enter it to see
+          checkpoints.
         </p>
       ) : position.isError ? (
         <p className="text-sm text-destructive">{position.error.message}</p>

@@ -1,5 +1,5 @@
 import { feedScript, type MockServer, pins, startMockServer } from "@keiro-ui/testing/node"
-import { screen, waitFor, within } from "@testing-library/react"
+import { fireEvent, screen, waitFor, within } from "@testing-library/react"
 import { afterAll, afterEach, beforeAll, expect, test } from "vitest"
 
 import { renderRoute } from "@/test/render-route"
@@ -68,6 +68,10 @@ test("the group page states the subscription limitation until one is given", asy
     "keiro does not expose which subscription feeds this group",
   )
   expect(requests.some((u) => u.pathname.endsWith("/projection/position"))).toBe(false)
+  // kiroku's durable subscriptions are offered as choices; choosing one shows its checkpoints.
+  const choices = await screen.findByRole("group", { name: "Known subscriptions" })
+  fireEvent.click(within(choices).getByRole("button", { name: subscription! }))
+  expect(await screen.findByTestId("max-distance")).toHaveTextContent("21")
   mock.reset()
   await renderRoute(`/projections/jitsurei-order-reporting?subscription=${subscription}`)
   expect(await screen.findByTestId("max-distance")).toHaveTextContent("21")

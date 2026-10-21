@@ -1005,13 +1005,24 @@ What the initiative learned about the stack, beyond its own code:
 - The runnable hosts mount neither keiro's inspection hooks nor shibuya's `/control`, and
   keiro's redrive acts on pgmq in keiro's own database; the console names each of these states.
 
-Candidate improvement requests recorded by the child plans and not filed: kiroku — report the
-global position on single-stream reads (or document the 0); keiro — a `pm types` read, a
-per-category projection mapping, the feeding subscription on `/projection/status` rows, and a
-workflow status-class count read. Filed during the initiative as local commits in their
-repositories (not pushed): keiro IR-55 (a runnable inspection host mounting the jitsurei hooks)
-and shibuya IR-9 (a long-running example serving detailed metrics with control and CORS
-configurable).
+Improvement requests filed at the initiative's close (2026-10-21, local commits in their
+repositories, not pushed). Each is written as an improvement the console does not wait for and
+names the fallback the console ships today:
+
+- `mori://shinzui/kiroku/okf/improvement-requests/concepts/IR-20`: the global position on
+  single-stream reads (the console shows "not reported" and reads events by id).
+- `mori://shinzui/keiro/okf/improvement-requests/concepts/IR-56`: a `pm types` read (the console
+  offers configured, recent, and typed names).
+- `mori://shinzui/keiro/okf/improvement-requests/concepts/IR-57`: the feeding subscription on
+  projection status rows (the console offers kiroku's durable subscriptions as choices).
+- `mori://shinzui/keiro/okf/improvement-requests/concepts/IR-58`: workflow counts by status class
+  (the Overview marks its sampled counts as lower bounds).
+- `mori://shinzui/keiro/okf/improvement-requests/concepts/IR-59`: the categories each projection
+  consumes (the aggregate browser links to the Projections section).
+
+Filed earlier during the initiative, also unpushed: keiro IR-55 (a runnable inspection host
+mounting the jitsurei hooks) and shibuya IR-9 (a long-running example serving detailed metrics
+with control and CORS configurable).
 
 Not done: the optional Nix package for the bundle (EP-18, deferred), and running the mutating
 live spec (EP-19), which needs a mutation-enabled stack with shibuya control.

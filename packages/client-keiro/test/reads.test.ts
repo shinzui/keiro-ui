@@ -31,11 +31,12 @@ test("projections keep keiro's position vocabulary as bigint", async () => {
   const position = await keiro.projections.position({ subscription: pin.subscription! })
   expect(typeof position.store_position).toBe("bigint")
   expect(typeof position.visible_store_head).toBe("bigint")
-  expect(position.maximum_global_position_distance).toBeNull()
+  expect(position.maximum_global_position_distance).toBe(21n)
+  expect(position.members[0]!.global_position_distance).toBe(2n)
 })
 
 test("shards, streams, outbox, inbox", async () => {
-  expect((await keiro.shards.list()).items).toEqual([])
+  expect((await keiro.shards.list()).items[0]!.buckets_total).toBe(4)
   expect((await keiro.shards.status({ subscription: pin.subscription! })).subscription).toBe(
     pin.subscription,
   )

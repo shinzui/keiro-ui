@@ -63,11 +63,23 @@ export interface WorkflowListFilters {
 
 const workflowPath = (kind: string) => ["wf", "inspect", kind]
 
-export function createKeiroClient(options: { baseUrl: string; fetch?: typeof fetch }) {
+/**
+ * keiro-ops-http admits 4 concurrent inspection reads by default and answers 503
+ * `inspection_busy` beyond that (InspectionLimits in keiro-ops-http's Config.hs); the client
+ * keeps 3 in flight so a screen's reads plus the shell's health probe stay within it.
+ */
+export const KEIRO_MAX_CONCURRENT = 3
+
+export function createKeiroClient(options: {
+  baseUrl: string
+  fetch?: typeof fetch
+  maxConcurrent?: number
+}) {
   const http: HttpClient = createHttpClient({
     surface: "keiro",
     baseUrl: options.baseUrl,
     fetch: options.fetch,
+    maxConcurrent: options.maxConcurrent ?? KEIRO_MAX_CONCURRENT,
   })
 
   /** A GET over the command tree, validated, with keiro's typed errors. */

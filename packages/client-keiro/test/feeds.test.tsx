@@ -127,5 +127,9 @@ describe("feed hooks", () => {
       { timeout: 3000 },
     )
     expect(result.current.status).toBe("live")
+    const page = queryClient.getQueryData<{ visible_store_head?: unknown }>(
+      keiroKeys.projections.status(),
+    )
+    expect(typeof page?.visible_store_head).toBe("bigint")
   })
 })

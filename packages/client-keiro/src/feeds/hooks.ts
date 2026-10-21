@@ -1,6 +1,7 @@
 import {
   type FeedStatus,
   type Frame,
+  toInt64,
   useFeedSubscription,
   webSocketUrlFor,
 } from "@keiro-ui/client-core"
@@ -172,9 +173,10 @@ export function useProjectionGroupsFeed(options: KeiroFeedOptions = {}) {
     compare: groupOrder,
     enabled: options.enabled !== false,
     onResync: options.onResync,
+    // The page's head is int64 (bigint) when read over HTTP; keep the feed's the same type.
     pageFields: (frame) =>
-      frame.visible_store_head === undefined
+      frame.visible_store_head === undefined || frame.visible_store_head === null
         ? {}
-        : { visible_store_head: frame.visible_store_head },
+        : { visible_store_head: toInt64(frame.visible_store_head as number | bigint | string) },
   })
 }

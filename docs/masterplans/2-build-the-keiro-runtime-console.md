@@ -667,9 +667,12 @@ Cross-plan gates with their own acceptance:
   shibuya-metrics server) through the Vite proxy with liveness on, and the int64 round-trip
   check of Integration Points passes. (Owner: EP-17, verified with EP-9 running.)
   (2026-10-21: `e2e/live.spec.ts` 1 passed; client-core live contract test 112 passed.)
-- [ ] Read-only release gate: EP-13 through EP-18 are Complete, the production build is
+- [x] Read-only release gate: EP-13 through EP-18 are Complete, the production build is
   served behind a composing reverse proxy, a release tag `v0.1.0` is cut, and no mutation
   control exists anywhere in the UI. EP-19 may not start before this is checked.
+  (2026-10-21: tag `v0.1.0` on `ca2bb22`; `bun run test:e2e:production` 9 passed with tier 2
+  executed through `dev/caddy/Caddyfile`; `release/CHECKLIST.md` executed; no mutation path
+  reachable. EP-19 may start.)
 
 
 ## Surprises & Discoveries

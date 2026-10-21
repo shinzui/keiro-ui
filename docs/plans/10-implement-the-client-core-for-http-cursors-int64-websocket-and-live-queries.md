@@ -124,6 +124,10 @@ page of pgmq messages through the development proxy and checks the ids exactly.
   package's client as `WebSocket`; node-environment feed tests use the global `WebSocket`
   against a `ws` server. Closing a `ws` server waits for its clients, so test cleanups run in
   reverse order (client first).
+- 2026-10-21 (during plan 11): `useFeedSubscription` gained optional `onResync` and
+  `onError` callbacks so a feed hook can react to the overflow frame itself
+  (`useKirokuEventTail`'s `onOverflow`/`onError`); the invalidation still happens first.
+  Additive; the Interfaces section is updated.
 - 2026-10-21: `useInfiniteQuery` refetches every loaded page in sequence; it cannot poll only
   the first page, so `useCursorPages` polls all loaded pages (cursors are still echoed back
   untouched).
@@ -740,6 +744,7 @@ export interface HttpClient {
   post<T = unknown>(path: string, options?: RequestOptions & { body?: unknown }): Promise<T>
 }
 export function createHttpClient(options: { surface: Surface; baseUrl: string; fetch?: typeof fetch; headers?: Record<string, string> }): HttpClient
+export function webSocketUrlFor(baseUrl: string, path: string): string   // added for plans 11 and 12: http→ws, base path kept
 
 // pages.ts
 export interface Page<T, C = string> { items: T[]; nextCursor?: C }
@@ -786,6 +791,9 @@ export function useFeedSubscription<SubscribeArgs = void>(options: {
   enabled?: boolean; url: string; dialect: Dialect<SubscribeArgs>; subscriptions?: SubscribeArgs[]
   applyToCache(queryClient: QueryClient, frame: Frame, kind: "snapshot" | "delta" | "extra"): void
   invalidate: readonly unknown[]
+  onResync?(reason: { code: string; frame?: Frame }): void   // added for plan 11's event tail
+  onError?(frame: Frame): void
+  WebSocket?: typeof WebSocket                                // injectable for tests
 }): { status: FeedStatus }
 ```
 

@@ -128,3 +128,9 @@ export function createHttpClient(options: {
     post: (path, opts) => request("POST", path, opts),
   }
 }
+
+/** The WebSocket URL for a surface path: `http` → `ws`, `https` → `wss`, base path kept. */
+export function webSocketUrlFor(baseUrl: string, path: string): string {
+  const base = resolveBase(baseUrl).replace(/^http/, "ws")
+  return `${base}${path.startsWith("/") ? path : `/${path}`}`
+}

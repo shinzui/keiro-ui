@@ -155,6 +155,10 @@ export function useFeedSubscription<SubscribeArgs = void>(options: {
   subscriptions?: SubscribeArgs[]
   applyToCache(queryClient: QueryClient, frame: Frame, kind: "snapshot" | "delta" | "extra"): void
   invalidate: readonly unknown[]
+  /** Called after the invalidation, with the overflow/resync frame or `reconnected`. */
+  onResync?(reason: { code: string; frame?: Frame }): void
+  /** Coded error frames that are not overflow (feed-level errors). */
+  onError?(frame: Frame): void
   WebSocket?: typeof WebSocket
 }): { status: FeedStatus } {
   const queryClient = useQueryClient()
@@ -184,8 +188,11 @@ export function useFeedSubscription<SubscribeArgs = void>(options: {
       onSnapshot: apply("snapshot"),
       onDelta: apply("delta"),
       onExtra: apply("extra"),
-      onResync: () =>
-        void queryClient.invalidateQueries({ queryKey: [...latest.current.invalidate] }),
+      onResync: (reason) => {
+        void queryClient.invalidateQueries({ queryKey: [...latest.current.invalidate] })
+        latest.current.onResync?.(reason)
+      },
+      onError: (frame) => latest.current.onError?.(frame),
       onStatus: (next) => setStatus(next),
     })
     return () => handle.close()

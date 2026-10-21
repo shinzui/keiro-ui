@@ -6,6 +6,7 @@ import { lazy, Suspense } from "react"
 
 import { registerAllFeatures } from "@/features"
 import { navigateToHref, publicHref } from "@/lib/href"
+import { ClientsProvider } from "@/settings/clients"
 import { ConnectionProfileProvider } from "@/settings/connection-profiles"
 import { LivenessProvider } from "@/shell/liveness"
 import { StatusSlotProvider } from "@/shell/status-slots"
@@ -43,13 +44,15 @@ function RootComponent() {
           useHref={(href) => publicHref(router, href)}
         >
           <ConnectionProfileProvider>
-            <LivenessProvider>
-              <StatusSlotProvider>
-                <HeadContent />
-                <Outlet />
-                <ThemedToaster />
-              </StatusSlotProvider>
-            </LivenessProvider>
+            <ClientsProvider>
+              <LivenessProvider>
+                <StatusSlotProvider>
+                  <HeadContent />
+                  <Outlet />
+                  <ThemedToaster />
+                </StatusSlotProvider>
+              </LivenessProvider>
+            </ClientsProvider>
           </ConnectionProfileProvider>
         </AriaRouterProvider>
       </ThemeProvider>

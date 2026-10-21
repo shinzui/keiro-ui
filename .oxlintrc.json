@@ -22,7 +22,7 @@
     "eslint/no-underscore-dangle": [
       "warn",
       {
-        "allow": ["__APP_VERSION__", "__GIT_COMMIT__"]
+        "allow": ["__APP_VERSION__", "__GIT_COMMIT__", "__keiroUiMock"]
       }
     ]
   },

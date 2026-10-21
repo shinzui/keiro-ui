@@ -5,6 +5,8 @@ import { defineConfig, devices } from "@playwright/test"
 // other project runs against the dev server, whose proxy reaches the local surfaces.
 const devURL = "http://localhost:5173"
 const previewURL = "http://127.0.0.1:4173"
+// Screen suites run against the recorded fixtures: a second dev server in VITE_MOCK=1 mode.
+const mockURL = "http://localhost:5174"
 
 export default defineConfig({
   testDir: "e2e",
@@ -24,6 +26,12 @@ export default defineConfig({
       testDir: "e2e/shell",
       use: { ...devices["Desktop Chrome"], baseURL: devURL },
     },
+    {
+      name: "screens",
+      testMatch:
+        /e2e\/(streams|queues|workflows|aggregates|process-managers|projections|overview)\/.*\.spec\.ts$/,
+      use: { ...devices["Desktop Chrome"], baseURL: mockURL },
+    },
   ],
   webServer: [
     {
@@ -35,6 +43,12 @@ export default defineConfig({
     {
       command: "bunx vite --port 5173 --strictPort",
       url: devURL,
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+    {
+      command: "VITE_MOCK=1 bunx vite --port 5174 --strictPort",
+      url: mockURL,
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
     },

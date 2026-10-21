@@ -328,7 +328,7 @@ repository.
 | 10 | Implement the client core for HTTP, cursors, int64, WebSocket, and live queries | docs/plans/10-implement-the-client-core-for-http-cursors-int64-websocket-and-live-queries.md | EP-7 | EP-9 | Complete |
 | 11 | Implement the kiroku, pgmq, and shibuya typed clients | docs/plans/11-implement-the-kiroku-pgmq-and-shibuya-typed-clients.md | EP-10 | EP-9 | Complete |
 | 12 | Implement the keiro typed client | docs/plans/12-implement-the-keiro-typed-client.md | EP-10 | EP-9 | Complete |
-| 13 | Build the Streams and Subscriptions screens | docs/plans/13-build-the-streams-and-subscriptions-screens.md | EP-8, EP-11 | EP-9 | Not Started |
+| 13 | Build the Streams and Subscriptions screens | docs/plans/13-build-the-streams-and-subscriptions-screens.md | EP-8, EP-11 | EP-9 | Complete |
 | 14 | Build the Queues and Processors screens | docs/plans/14-build-the-queues-and-processors-screens.md | EP-8, EP-11 | EP-9 | Not Started |
 | 15 | Build the Workflows screens | docs/plans/15-build-the-workflows-screens.md | EP-8, EP-12 | EP-9, EP-13 | Not Started |
 | 16 | Build the Aggregates, Process Managers, and Timers screens | docs/plans/16-build-the-aggregates-process-managers-and-timers-screens.md | EP-8, EP-11, EP-12 | EP-9, EP-13 | Not Started |
@@ -651,7 +651,9 @@ they bite: no rebuild/replay UI; no adapter dead-letter redrive until upstream s
 Phase 1 is Complete (EP-7, EP-8, EP-9, EP-10 on 2026-10-21), and early checks 1 (int64
 through the dev proxy) and 2 (shell liveness drives a real poll) pass. Phase 2 is Complete (EP-11 and
 EP-12, 2026-10-21), and early check 3 (the workflows feed reconciles with the list on the
-live stack) passes. Phase 3 is next: EP-13, EP-14, EP-15, and EP-16 are all unblocked. The local stack has two profiles (`just stack-up`
+live stack) passes. Phase 3 is under way: EP-13 is
+Complete; EP-14, EP-15, and EP-16 are unblocked. Screen suites run in the Playwright `screens`
+project against the mock worker. The local stack has two profiles (`just stack-up`
 for jitsurei, `just stack-up mori` for a live mori daemon); fixtures come from jitsurei only.
 The EP-8/EP-10 liveness integration check (Integration Points, early check 2) runs when
 EP-10 lands.
@@ -776,6 +778,10 @@ Cross-plan gates with their own acceptance:
   jitsurei's aggregate and process-manager hooks) and
   `mori://shinzui/shibuya/okf/improvement-requests/concepts/IR-9` (a long-running example
   with detailed metrics and configurable control and CORS); neither is a dependency.
+- EP-13 (2026-10-21): `ClientsProvider` (apps/console/src/settings/clients.tsx) composes the
+  four clients from the active profile; screen e2e suites use `apps/console/e2e/support/mock.ts`
+  and the `screens` Playwright project (VITE_MOCK=1 on :5174), driving scenarios through
+  `window.__keiroUiMock`.
 - EP-12 (2026-10-21): keiro feed updates must be merged in the read's own order
   (`/wf/inspect/list` orders by `(workflow_name, workflow_id)`), so `mergeFeedFrame` takes an
   optional comparator; mutations are bound with `keiroMutations(client)`; screen-plan type

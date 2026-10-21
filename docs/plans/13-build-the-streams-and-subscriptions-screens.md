@@ -26,6 +26,11 @@ provenance:
       at: 2026-10-21T20:30:00Z
       mode: "update"
       note: "Adopt plan 9's kiroku slugs, pins, feedScript options, and stateful kirokuLog; drop entity-named fixtures"
+    - model: "claude-opus-5-5"
+      harness: "claude-code"
+      at: 2026-10-21T21:26:23Z
+      mode: "implement"
+      note: "Implemented M1-M5: streams, categories,  with live tail, event page, subscriptions and dead letters"
   reviews:
     - model: "claude-fable-5-1"
       harness: "claude-code"
@@ -67,23 +72,42 @@ kiroku has not specified an endpoint for it (see Decision Log).
 
 ## Progress
 
-- [ ] M1 — Streams list and stream detail, with the event right sheet and the JSON viewer: `/streams`
+- [x] M1 — Streams list and stream detail, with the event right sheet and the JSON viewer: `/streams`
   filters by category and prefix and pages by cursor; `/streams/$name` pages events forward or
-  backward; any event row opens `?sheet=event:<uuid>`, which survives reload.
-- [ ] M2 — Categories and the `$all` log with the live tail: `/categories` and `/categories/$name`
+  backward; any event row opens `?sheet=event:<uuid>`, which survives reload. (2026-10-21:
+  `e2e/streams/streams.spec.ts`.)
+- [x] M2 — Categories and the `$all` log with the live tail: `/categories` and `/categories/$name`
   page forward; `/events` shows the newest events first, follows the store live while liveness is
-  on, recovers from `event_stream_overflowed` by re-reading, and stops on pause.
-- [ ] M3 — Event page with causation and correlation navigation: `/events/$id` renders payload and
+  on, recovers from `event_stream_overflowed` by re-reading, and stops on pause. (2026-10-21:
+  `e2e/streams/events.spec.ts` — 2 pushed events highlighted; with an overflow, the server's
+  message shows and all 5 appended events are held once.)
+- [x] M3 — Event page with causation and correlation navigation: `/events/$id` renders payload and
   metadata, links to the causing event, and shows the correlation id as copyable text.
-- [ ] M4 — Subscriptions checkpoint dashboard and dead letters: `/subscriptions` shows durable
+  (2026-10-21: causation link and "not an event in this store" for an unresolved causation.)
+- [x] M4 — Subscriptions checkpoint dashboard and dead letters: `/subscriptions` shows durable
   checkpoints with their distance to the store head and live registry annotations;
   `/subscriptions/$name` pages dead letters with a member filter and links each to its event.
-- [ ] M5 — Section navigation, commands, recents, and the Playwright suite: sidebar entries and
+  (2026-10-21: `e2e/streams/subscriptions.spec.ts`, including the recorded empty state.)
+- [x] M5 — Section navigation, commands, recents, and the Playwright suite: sidebar entries and
   recent streams, the `stream`/`event`/`subscription` palette commands, and the end-to-end specs
-  pass against mock handlers.
+  pass against mock handlers. (2026-10-21: 10 specs in the new `screens` Playwright project,
+  which runs a `VITE_MOCK=1` dev server on :5174.)
 
 
 ## Surprises & Discoveries
+
+- 2026-10-21: no plan had composed the four clients into the application; this plan added
+  `apps/console/src/settings/clients.tsx` (`ClientsProvider`, built from the active connection
+  profile and mounted in `__root.tsx`), which every later screen plan uses.
+- 2026-10-21: Playwright cannot call `useScenario`/`feedScript` in the page, so
+  `startMockWorker()` now exposes them as `window.__keiroUiMock`; `apps/console/e2e/support/mock.ts`
+  wraps them (`open`, `pins`, `feedScript`, `scenario`, `jump`). The new `screens` project runs
+  every `e2e/<section>/` suite against a `VITE_MOCK=1` dev server on port 5174.
+- 2026-10-21: the mock matched requests by their exact non-paging query, so an explicit
+  `direction=forward` missed the fixture recorded without it; the handlers now treat kiroku's
+  default direction as absent. In mock mode only the pinned stream has fixtures; other streams
+  answer with the recorded 404.
+- 2026-10-21: the generated `sonner` wrapper now also re-exports `toast` for feed-error toasts.
 
 - Planning review (2026-10-21): this plan's fixture list named seeded entities
   (`stream-order-42.json`, `dead-letters-order-projector.json`) that plan 9's recorder could
@@ -136,6 +160,14 @@ kiroku has not specified an endpoint for it (see Decision Log).
 
 
 ## Outcomes & Retrospective
+
+2026-10-21 — complete. The Streams & Subscriptions section is real: `/streams`, `/streams/$name`,
+`/categories`, `/categories/$name` (with "Follow live" on the last page), `/events` (newest first,
+live tail with overflow recovery, "Load older"), `/events/$id`, `/subscriptions` (checkpoints,
+distance to head, live registry, metrics cards), and `/subscriptions/$name` (dead letters with a
+member filter). Shared components for later plans: `JsonViewer`, `CursorPager`,
+`PositionBadge`, `LiveTailControls`, `EventDetailSheet` (sheet kind `event`), plus
+`useCursorTrail` and `ClientsProvider`.
 
 (To be filled during and after implementation.)
 

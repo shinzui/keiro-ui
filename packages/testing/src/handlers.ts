@@ -76,8 +76,17 @@ function emptyPage(firstPage: string): string {
   return observed ? `{"items":[],"observed_at":${observed}}` : `{"items":[]}`
 }
 
+/** Query values equal to the server's default are dropped (kiroku reads forward by default). */
+function normalizeQuery(surface: Surface, query: Record<string, string>): Record<string, string> {
+  if (surface === "kiroku" && query.direction === "forward") {
+    const { direction: _direction, ...rest } = query
+    return rest
+  }
+  return query
+}
+
 function choose(surface: Surface, candidates: Candidate[], url: URL): HttpResponse<string> {
-  const query = Object.fromEntries(url.searchParams)
+  const query = normalizeQuery(surface, Object.fromEntries(url.searchParams))
   const cursorParam = manifests[surface].cursor_param
   const failing = new Set(scenarioState.fail[surface] ?? [])
   const recorded = new Set(scenarioState.recorded[surface] ?? [])

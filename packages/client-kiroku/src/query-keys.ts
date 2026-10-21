@@ -9,14 +9,14 @@ export const kirokuKeys = {
   health: (kind: "live" | "ready" | "combined") => queryKeys.kiroku("health", kind),
   liveSubscriptions: (name?: string) => queryKeys.kiroku("subscriptions", name ?? null),
   checkpoints: () => queryKeys.kiroku("checkpoints"),
-  deadLetters: (subscription: string, filter: { member?: number; limit?: number }) =>
+  deadLetters: (subscription: string, filter: { member?: number; limit?: number; from?: string }) =>
     queryKeys.kiroku("dead-letters", subscription, filter),
-  streams: (filter: { category?: string; prefix?: string; limit?: number }) =>
+  streams: (filter: { category?: string; prefix?: string; limit?: number; from?: string }) =>
     queryKeys.kiroku("streams", filter),
   stream: (name: string) => queryKeys.kiroku("stream", name),
   streamEvents: (name: string, filter: { direction?: string; limit?: number; from?: string }) =>
     queryKeys.kiroku("stream-events", name, filter),
-  categories: (filter: { limit?: number }) => queryKeys.kiroku("categories", filter),
+  categories: (filter: { limit?: number; from?: string }) => queryKeys.kiroku("categories", filter),
   categoryEvents: (name: string, filter: { limit?: number; from?: string }) =>
     queryKeys.kiroku("category-events", name, filter),
   allEvents: (filter: { direction?: string; limit?: number; from?: string }) =>

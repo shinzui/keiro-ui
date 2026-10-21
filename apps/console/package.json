@@ -13,6 +13,10 @@
   },
   "dependencies": {
     "@keiro-ui/client-core": "workspace:*",
+    "@keiro-ui/client-keiro": "workspace:*",
+    "@keiro-ui/client-kiroku": "workspace:*",
+    "@keiro-ui/client-pgmq": "workspace:*",
+    "@keiro-ui/client-shibuya": "workspace:*",
     "@keiro-ui/testing": "workspace:*",
     "@keiro-ui/ui": "workspace:*",
     "@tanstack/react-query": "5.104.2",

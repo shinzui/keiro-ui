@@ -6,7 +6,7 @@ import {
   Loader2Icon,
 } from "lucide-react"
 import type * as React from "react"
-import { Toaster as Sonner, type ToasterProps } from "sonner"
+import { Toaster as Sonner, toast, type ToasterProps } from "sonner"
 
 // keiro-ui: the registry wrapper reads next-themes; this package cannot depend on the
 // application's theme hook, so the shell passes the resolved theme in (default light).
@@ -40,4 +40,4 @@ const Toaster = ({ theme = "light", ...props }: ToasterProps) => {
   )
 }
 
-export { Toaster }
+export { Toaster, toast }

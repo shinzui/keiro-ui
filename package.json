@@ -8,7 +8,7 @@
   "type": "module",
   "scripts": {
     "dev": "bun run --filter @keiro-ui/console dev",
-    "build": "bun run --filter './packages/*' build && bun run --filter @keiro-ui/console build",
+    "build": "bun run --filter @keiro-ui/console build",
     "typecheck": "bun run --filter './packages/*' --filter './apps/*' typecheck",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",

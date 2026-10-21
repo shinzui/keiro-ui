@@ -1,0 +1,34 @@
+import "./styles.css"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { RouterProvider } from "@tanstack/react-router"
+import { StrictMode } from "react"
+import { createRoot } from "react-dom/client"
+
+import { router } from "./router"
+import { ThemeProvider } from "./shell/theme"
+
+const queryClient = new QueryClient()
+
+async function main() {
+  // VITE_MOCK=1 serves recorded fixtures through MSW instead of the live surfaces. The
+  // condition is replaced at build time, so production bundles never include the worker.
+  if (import.meta.env.VITE_MOCK === "1") {
+    const { startMockWorker } = await import("@keiro-ui/testing/browser")
+    await startMockWorker()
+  }
+
+  const root = document.getElementById("root")
+  if (!root) throw new Error("missing #root element")
+
+  createRoot(root).render(
+    <StrictMode>
+      <ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <RouterProvider router={router} />
+        </QueryClientProvider>
+      </ThemeProvider>
+    </StrictMode>,
+  )
+}
+
+void main()

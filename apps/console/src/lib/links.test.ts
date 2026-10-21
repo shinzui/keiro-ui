@@ -59,6 +59,15 @@ test("int64 search values parse back as exact decimal strings", () => {
     href: "/events?from=9007199254740993&direction=forward",
   } as never)
   expect(location.search).toEqual({ from: "9007199254740993", direction: "forward" })
+  // Small numbers and booleans stay strings too (TanStack's own decoder would convert them).
+  expect(router.options.parseSearch("?from=2&tab=archive&flag=true")).toEqual({
+    from: "2",
+    tab: "archive",
+    flag: "true",
+  })
+  expect(router.options.parseSearch(router.options.stringifySearch({ from: "2" }))).toEqual({
+    from: "2",
+  })
   expect(router.options.parseSearch("?status_class=%5B%22running%22%5D")).toEqual({
     status_class: ["running"],
   })

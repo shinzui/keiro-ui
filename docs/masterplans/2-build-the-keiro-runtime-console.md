@@ -327,7 +327,7 @@ repository.
 | 9 | Provision the local runtime stack and recorded fixtures | docs/plans/9-provision-the-local-runtime-stack-and-recorded-fixtures.md | None | EP-7 | Complete |
 | 10 | Implement the client core for HTTP, cursors, int64, WebSocket, and live queries | docs/plans/10-implement-the-client-core-for-http-cursors-int64-websocket-and-live-queries.md | EP-7 | EP-9 | Complete |
 | 11 | Implement the kiroku, pgmq, and shibuya typed clients | docs/plans/11-implement-the-kiroku-pgmq-and-shibuya-typed-clients.md | EP-10 | EP-9 | Complete |
-| 12 | Implement the keiro typed client | docs/plans/12-implement-the-keiro-typed-client.md | EP-10 | EP-9 | Not Started |
+| 12 | Implement the keiro typed client | docs/plans/12-implement-the-keiro-typed-client.md | EP-10 | EP-9 | Complete |
 | 13 | Build the Streams and Subscriptions screens | docs/plans/13-build-the-streams-and-subscriptions-screens.md | EP-8, EP-11 | EP-9 | Not Started |
 | 14 | Build the Queues and Processors screens | docs/plans/14-build-the-queues-and-processors-screens.md | EP-8, EP-11 | EP-9 | Not Started |
 | 15 | Build the Workflows screens | docs/plans/15-build-the-workflows-screens.md | EP-8, EP-12 | EP-9, EP-13 | Not Started |
@@ -608,8 +608,9 @@ client exposes read families as namespaces (`workflows`, `aggregates`, `processM
 branded per read kind, the feed hooks `useWorkflowsFeed`, `useTimersFeed`, and
 `useProjectionGroupsFeed` (each `(filters, {enabled?, onResync?})`, doing the cache merge
 with `mergeFeedFrame` themselves so screens only decide `enabled`), and a `./mutations`
-entry point whose three typed wrappers — `timers.requeue(id)`, `timers.cancel(id)`, and
-`pgmq.dlqRedrive({queue, limit?})` with `queue` the logical job queue name — encode the
+entry point whose `keiroMutations(client)` returns three typed wrappers — `timers.requeue(id)`,
+`timers.cancel(id)`, and `pgmq.dlqRedrive({queue, limit?})` with `queue` the logical job queue
+name — that encode the
 empty-body and `{"confirm":"execute"}` protocol, decode the timer `disposition`/`outcome`
 and redrive `available`/`affected` results, and surface `mutations_disabled`,
 `schema_drift`, `origin_not_allowed`, and the other codes as typed refusals; EP-19 renders
@@ -648,9 +649,9 @@ they bite: no rebuild/replay UI; no adapter dead-letter redrive until upstream s
 ## Progress
 
 Phase 1 is Complete (EP-7, EP-8, EP-9, EP-10 on 2026-10-21), and early checks 1 (int64
-through the dev proxy) and 2 (shell liveness drives a real poll) pass. EP-11 is Complete
-(2026-10-21); EP-12 is next, after which EP-13 and EP-14 (which need only EP-11 and EP-8)
-can start. The local stack has two profiles (`just stack-up`
+through the dev proxy) and 2 (shell liveness drives a real poll) pass. Phase 2 is Complete (EP-11 and
+EP-12, 2026-10-21), and early check 3 (the workflows feed reconciles with the list on the
+live stack) passes. Phase 3 is next: EP-13, EP-14, EP-15, and EP-16 are all unblocked. The local stack has two profiles (`just stack-up`
 for jitsurei, `just stack-up mori` for a live mori daemon); fixtures come from jitsurei only.
 The EP-8/EP-10 liveness integration check (Integration Points, early check 2) runs when
 EP-10 lands.
@@ -775,6 +776,10 @@ Cross-plan gates with their own acceptance:
   jitsurei's aggregate and process-manager hooks) and
   `mori://shinzui/shibuya/okf/improvement-requests/concepts/IR-9` (a long-running example
   with detailed metrics and configurable control and CORS); neither is a dependency.
+- EP-12 (2026-10-21): keiro feed updates must be merged in the read's own order
+  (`/wf/inspect/list` orders by `(workflow_name, workflow_id)`), so `mergeFeedFrame` takes an
+  optional comparator; mutations are bound with `keiroMutations(client)`; screen-plan type
+  names are exported as aliases.
 - EP-8 (2026-10-21): the router uses a custom search serializer
   (`apps/console/src/lib/search.ts`) — scalar search values stay exact strings and only
   JSON arrays/objects are parsed — because TanStack's default would turn int64 positions in

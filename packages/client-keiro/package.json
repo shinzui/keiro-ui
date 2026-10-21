@@ -1,0 +1,40 @@
+{
+  "name": "@keiro-ui/client-keiro",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./feeds": "./src/feeds/index.ts",
+    "./mutations": "./src/mutations.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "smoke": "bun scripts/smoke.ts"
+  },
+  "dependencies": {
+    "@keiro-ui/client-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@keiro-ui/testing": "workspace:*",
+    "@tanstack/react-query": "5.104.2",
+    "@testing-library/react": "16.3.3",
+    "@types/node": "22.20.5",
+    "@types/react": "19.3.0",
+    "@types/ws": "8.18.2",
+    "jsdom": "30.1.2",
+    "msw": "3.0.3",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "vite": "8.3.4",
+    "vitest": "5.0.4",
+    "ws": "8.22.0",
+    "zod": "4.6.7"
+  },
+  "peerDependencies": {
+    "@tanstack/react-query": "^5.104.0",
+    "react": "^19.3.0",
+    "zod": "^4.6.0"
+  }
+}

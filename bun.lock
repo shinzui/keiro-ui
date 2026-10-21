@@ -65,6 +65,34 @@
         "zod": "4.6.7",
       },
     },
+    "packages/client-keiro": {
+      "name": "@keiro-ui/client-keiro",
+      "version": "0.0.0",
+      "dependencies": {
+        "@keiro-ui/client-core": "workspace:*",
+      },
+      "devDependencies": {
+        "@keiro-ui/testing": "workspace:*",
+        "@tanstack/react-query": "5.104.2",
+        "@testing-library/react": "16.3.3",
+        "@types/node": "22.20.5",
+        "@types/react": "19.3.0",
+        "@types/ws": "8.18.2",
+        "jsdom": "30.1.2",
+        "msw": "3.0.3",
+        "react": "19.3.1",
+        "react-dom": "19.3.1",
+        "vite": "8.3.4",
+        "vitest": "5.0.4",
+        "ws": "8.22.0",
+        "zod": "4.6.7",
+      },
+      "peerDependencies": {
+        "@tanstack/react-query": "^5.104.0",
+        "react": "^19.3.0",
+        "zod": "^4.6.0",
+      },
+    },
     "packages/client-kiroku": {
       "name": "@keiro-ui/client-kiroku",
       "version": "0.0.0",
@@ -305,6 +333,8 @@
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
 
     "@keiro-ui/client-core": ["@keiro-ui/client-core@workspace:packages/client-core"],
+
+    "@keiro-ui/client-keiro": ["@keiro-ui/client-keiro@workspace:packages/client-keiro"],
 
     "@keiro-ui/client-kiroku": ["@keiro-ui/client-kiroku@workspace:packages/client-kiroku"],
 

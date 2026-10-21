@@ -7,7 +7,7 @@
     "workflow_name": "order-fulfillment",
     "workflow_id": "workflow-20261021202320830171000000",
     "timer_id": "",
-    "subscription": "",
+    "subscription": "jitsurei-order-reporting",
     "stream": "order-demo-20261021202320671316000000",
     "aggregate_type": "order",
     "aggregate_id": "demo-20261021202320671316000000",

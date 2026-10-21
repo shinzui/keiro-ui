@@ -563,7 +563,8 @@ Consumed interfaces (full module paths): from `@keiro-ui/client-keiro`:
 `client.workflows.awakeables(...)`, types `WorkflowInstance`, `WorkflowStatusClass`,
 `WorkflowJournalEntry`, `WorkflowStep`, `WorkflowChild`, `WorkflowAwakeable`,
 `WorkflowListQuery`, `useWorkflowsFeed(filters, {enabled, onResync})`,
-`mergeFeedFrame(page, frame)`, and `keiroKeys.workflows`; from
+`mergeFeedFrame(current, frame, keyOf, compare?)` with `workflowKey` and `workflowOrder`
+(from `@keiro-ui/client-keiro/feeds`), and `keiroKeys.workflows`; from
 `@keiro-ui/client-core`: `useSurfaceQuery`, `useCursorPages`, `useLiveness`, `ApiError`,
 `Page`; from `apps/console/src/shell/*`: `registerSheet`, `useRightSheet`,
 `registerFeature`, `useRegisterCommands`, `useRecordVisit` (from `shell/recent.ts`); from

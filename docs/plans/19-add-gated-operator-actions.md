@@ -172,8 +172,9 @@ The repository is a bun workspace. The pieces this plan touches, by path:
 - `packages/client-keiro` — the typed keiro-ops-http client from
   `docs/plans/12-implement-the-keiro-typed-client.md`. Its `./mutations` entry point
   already implements the preview/confirm wire protocol and exposes exactly three typed
-  wrappers — `timers.requeue(timerId)`, `timers.cancel(timerId)`, and
-  `pgmq.dlqRedrive({queue, limit?})`, each returning `{ preview(), execute() }` with the
+  wrappers, bound to a client by `keiroMutations(client)` — `timers.requeue(timerId)`,
+  `timers.cancel(timerId)`, and `pgmq.dlqRedrive({queue, limit?})` — each returning
+  `{ preview(), execute() }` with the
   result types `TimerMutationPreview`, `TimerMutationResult`, `DlqRedrivePreview`,
   `DlqRedriveResult` — plus the refusal classes; its `health` namespace reads `/health`.
   **This plan calls those wrappers; it never re-implements the protocol or builds command
@@ -357,7 +358,8 @@ Create `apps/console/src/features/actions/mutation-flow.tsx`. Its props are the 
 title, a human description, the target label the operator must retype (for example the
 timer id), the two functions to call (`preview: () => Promise<PreviewResult>` and
 `execute: () => Promise<ExecuteResult>`, both taken from one of the keiro client's typed
-wrappers — `timers.requeue(id)`, `timers.cancel(id)`, `pgmq.dlqRedrive({queue, limit})` —
+wrappers from `keiroMutations(client)` — `timers.requeue(id)`, `timers.cancel(id)`,
+`pgmq.dlqRedrive({queue, limit})` —
 never built from command words by hand), a `summarize(result)` function that turns the
 preview result into a one-line headline and says whether executing would change anything,
 the query keys to invalidate afterwards, and an optional `renderResult`. It renders as a
@@ -401,7 +403,7 @@ is shown on hover.
 Wire the timer actions in `apps/console/src/features/timers/timer-actions.tsx`: a row action
 menu on `/timers` (from `@keiro-ui/ui/components/dropdown-menu`) and buttons in the `timer`
 right sheet, each opening `MutationFlow` with `preview`/`execute` bound to
-`timers.requeue(timerId)` or `timers.cancel(timerId)` from
+`keiroMutations(client).timers.requeue(timerId)` or `.timers.cancel(timerId)` from
 `@keiro-ui/client-keiro/mutations`, target label the `timer_id`, invalidating
 `keiroKeys.timers.pending()` and the process-manager detail keys. The sheet's header states
 the timer's `status`, `fire_at`, and `attempts`, so the operator sees the state they are
@@ -424,7 +426,7 @@ suffix in the connection profile; keiro sanitizes and hashes long queue names, s
 derived name can be wrong for such queues — the preview shows the queue keiro will act
 on"), a `limit` field (default 100, the number of messages one execution moves), and a
 **Redrive** button gated by `useKeiroMutationsGate()`. The button opens `MutationFlow`
-bound to `pgmq.dlqRedrive({queue: logicalName, limit})` from
+bound to `keiroMutations(client).pgmq.dlqRedrive({queue: logicalName, limit})` from
 `@keiro-ui/client-keiro/mutations` — the **logical** name, never the `_dlq` name, because
 keiro derives the dead-letter queue itself — with the target label the dead-letter queue
 name the operator is looking at, invalidating the pgmq queue metrics, message page, and
@@ -650,8 +652,9 @@ Interfaces this plan defines, by full path:
 - `apps/console/src/settings/connection-profiles.ts` — the default `"_dlq"` and settings
   input for the optional `deadLetterQueueSuffix` field EP-8 declared.
 
-Interfaces this plan consumes and must not redefine: `packages/client-keiro`'s typed
-wrappers `timers.requeue`, `timers.cancel`, `pgmq.dlqRedrive` with their result types and
+Interfaces this plan consumes and must not redefine: `packages/client-keiro`'s
+`keiroMutations(client)` and its typed wrappers `timers.requeue`, `timers.cancel`,
+`pgmq.dlqRedrive` with their result types and
 refusal classes (from `@keiro-ui/client-keiro/mutations`), and `health.get()`;
 `packages/client-core`'s `ApiError` and
 `createHttpClient`; the shell's `registerSheet`, `useRightSheet`, `useRegisterCommands`,

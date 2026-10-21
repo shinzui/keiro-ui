@@ -1,6 +1,6 @@
 {
-  "recorded_at": "2026-10-21T20:36:08.148Z",
-  "seed": "keiro just jitsurei-all (keiro b63ed846) + dev/seed-queues.sh",
+  "recorded_at": "2026-10-21T21:16:03.588Z",
+  "seed": "keiro just jitsurei-all (keiro 7ee722a7) + dev/seed-queues.sh",
   "sources": {
     "kiroku": {
       "commit": "ea364cf"
@@ -9,13 +9,13 @@
       "commit": "d6750a6"
     },
     "shibuya": {
-      "commit": "0967f45"
+      "commit": "7adbd94"
     },
     "shibuya-pgmq-adapter": {
       "commit": "c443ac3"
     },
     "keiro": {
-      "commit": "b63ed846"
+      "commit": "7ee722a7"
     }
   },
   "files": {
@@ -200,6 +200,20 @@
       "derived_from": "mori://shinzui/keiro keiro/src/Keiro/ProcessManager/Inspect.hs processManagerViewJson; journal event from the recorded $all log",
       "derived": true
     },
+    "keiro/projection-position.json": {
+      "surface": "keiro",
+      "slug": "projection-position",
+      "variant": "default",
+      "method": "GET",
+      "template": "/projection/position",
+      "query": {
+        "subscription": "jitsurei-order-reporting"
+      },
+      "params": {},
+      "request": "/projection/position?subscription=jitsurei-order-reporting",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8"
+    },
     "keiro/projection-status.json": {
       "surface": "keiro",
       "slug": "projection-status",
@@ -211,6 +225,20 @@
       },
       "params": {},
       "request": "/projection/status?limit=100",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8"
+    },
+    "keiro/shard-status.json": {
+      "surface": "keiro",
+      "slug": "shard-status",
+      "variant": "default",
+      "method": "GET",
+      "template": "/shard/status",
+      "query": {
+        "subscription": "jitsurei-order-reporting"
+      },
+      "params": {},
+      "request": "/shard/status?subscription=jitsurei-order-reporting",
       "status": 200,
       "contentType": "application/json; charset=utf-8"
     },

@@ -21,6 +21,11 @@ provenance:
       at: 2026-10-21T18:42:29Z
       mode: "update"
       note: "Round 2: align to owning-plan spellings, correct audited upstream facts, e2e layout, light theme where applicable"
+    - model: "claude-opus-5-5"
+      harness: "claude-code"
+      at: 2026-10-21T21:41:31Z
+      mode: "implement"
+      note: "M1-M5 implemented: queues and processors screens, route test harness, search serializer fix"
   reviews:
     - model: "claude-fable-5-1"
       harness: "claude-code"
@@ -69,27 +74,58 @@ only, and redrive is explicitly reported as unavailable.
 
 ## Progress
 
-- [ ] M1: `/queues` lists every queue joined with its metrics, sorted by oldest message age
-  descending by default, with sort and text filter in the URL; `/queues/$name` shows a
-  metrics header that updates from the pgmq WebSocket feed over the authoritative poll.
-- [ ] M2: `/queues/$name` has URL-selected Messages, Archive, and Bindings tabs with cursor
-  paging, a routing-test tool, and a notify-throttles table; a row opens the
-  `queue-message` right sheet; `/queues/$name/messages/$id` renders the full message with a
-  structured Dead letter panel when the payload carries adapter dead-letter fields; a
-  fixture id above 2^53 renders exactly.
-- [ ] M3: `/processors` lists every processor from shibuya `/metrics` with state badge,
-  counters, in-flight, and a locally extrapolated oldest-in-flight age, live from the
-  shibuya feed; `terminal` frames regroup rows; the header summarizes `/health/ready`.
-- [ ] M4: `/processors/$id` shows the state panel, counters, batch counters, a latency
-  histogram with estimated p50/p90/p99, progress cursors per partition, and a read-only
-  Control card reporting `GET /control`.
-- [ ] M5: Sidebar entries, palette commands (`queue <name>`, `processor <id>`), recent
-  entities, and the Playwright suite for this section pass against MSW fixtures.
+- [x] M1 (2026-10-21): `/queues` joins `/queues` and `/metrics`, oldest-age descending with
+  empty queues last; `q`, `sort`, `dir` live in the URL (header click sorts). `/queues/$name`
+  shows the metrics header over the poll with the pgmq feed writing into the same cache entry.
+  Evidence: `queue-table.test.tsx`, `sort.test.ts`; live, a `pgmq.send` to `console_notify`
+  moved the header's visible count 1 → 2 in 127 ms with the indicator reading "notify".
+- [x] M2 (2026-10-21): URL tabs (`tab`, `from`, `limit`), messages and archive pages with
+  cursor paging, bindings with a routing test, the notify-throttle line, the `queue-message`
+  sheet with the archive fallback, `/queues/$name/messages/$id` and `/archive/$id` pages, and
+  the Dead letter panel. Evidence: `queue-messages-tab.test.tsx` (id 9007199254740994 exact,
+  sheet param, `from` as a decimal string), `queue-message-sheet.test.tsx`,
+  `dead-letter-panel.test.tsx`; live, the seeded `console_demo_dlq` message renders the panel.
+- [x] M3 (2026-10-21): `/processors` with state badges, counters ("processed (includes
+  retries)"), in-flight, extrapolated oldest in-flight age ticking each second, a Terminal
+  group driven by `terminal` frames, and the readiness summary. Evidence:
+  `processor-table.test.tsx`; live, the three example processors and "running · 3 healthy".
+- [x] M4 (2026-10-21): `/processors/$id` with state, counters and batch counters, the SVG
+  latency histogram with mean and estimated p50/p90/p99, progress cursors, oldest in flight,
+  the read-only Control card, the IR-2 note, and a not-found state. Evidence:
+  `histogram.test.ts` (p50 of the hand-computed fixture = 0.4), `control-status.test.tsx`
+  (18 bars, "Control enabled: no", no button).
+- [x] M5 (2026-10-21): `registerQueuesFeature()` registers the sheet; visits are recorded on
+  the queue, message, and processor pages; the shell's `queue`/`message`/`processor` jumps are
+  exercised by the suite. Evidence: `bunx playwright test --project=screens e2e/queues` →
+  9 passed; full screens project 19 passed; `bun run test` 487 passed; `bun run check` clean.
 
 
 ## Surprises & Discoveries
 
-(None yet.)
+- The console's `parseSearch` (EP-8, `apps/console/src/lib/search.ts`) did not keep scalar
+  search values as strings: TanStack's `parseSearchWith` runs its query decoder's `toValue`
+  first, which turns `"2"` into `2` and `"true"` into `true`; only ids above 2^53 survived
+  (their round trip fails). A reload of any URL with a small cursor (`?from=2`) therefore
+  failed `z.string()` validation. Found by `queue-messages-tab.test.tsx`; `parseSearch` is
+  now written over `URLSearchParams` and `lib/links.test.ts` covers small values.
+- The fixtures use the stack's seeded names, not the plan's `orders` and
+  `9007199254740993`: the pinned queue is `console_demo` (from `pins("pgmq")`), the big id is
+  `9007199254740994`, and the dead letter lives in `console_demo_dlq`. No fixture has a
+  partitioned queue, so the "partition est. unknown" case is served by an MSW override in
+  `queue-table.test.tsx`.
+- The scripted pgmq feed re-sends the recorded metrics, so end-to-end scenario 3 asserts the
+  "notify" indicator and the feed-written figure rather than a changed `queue_visible_length`;
+  the changed-number case was verified live instead (see M1 evidence).
+- The live shibuya 404 for an unknown processor is `{"error": "Processor not found",
+  "processor": "…"}` with no `code`, so the client core reads it as `legacy_error`; the page
+  shows only the message.
+- React Aria's `TooltipTrigger` warns unless its child is focusable with an interactive role;
+  the shared `Timestamp` produced about 240 warnings per screens run. It now carries
+  `role="button"` and an optional `hint` (which `VisibleAt` uses). The remaining warnings come
+  from EP-8's rail links and status dots.
+- There was no component-render harness: `apps/console/src/test/render-route.tsx` renders the
+  application's singleton router over a memory history (the singleton because `hrefOf`
+  reads it, and it must `load()` per test), with `matchMedia` and `ResizeObserver` stubs.
 
 
 ## Decision Log
@@ -139,10 +175,35 @@ only, and redrive is explicitly reported as unavailable.
   EP-19 only adds the verbs.
   Date: 2026-10-21
 
+- Decision: A processor that a `terminal` frame removed keeps its last-known metrics in the
+  Terminal group after the 2-second poll stops listing it; the processor page reads the same
+  map and probes `GET /metrics/<id>` only when the map lacks the id, for the not-found text.
+  Rationale: the poll and the feed disagree once a processor leaves the registry; the
+  terminal frame is the only record of why, so it must outlive the next poll.
+  Date: 2026-10-21
+
+- Decision: Console component tests render the real route tree through
+  `apps/console/src/test/render-route.tsx` against `startMockServer()`, with `msw` added as a
+  console dev dependency for per-test overrides.
+  Rationale: the screens depend on the router, the sheet registry, and the clients from
+  `ClientsProvider`; rendering the real tree tests them the way they run.
+  Date: 2026-10-21
+
 
 ## Outcomes & Retrospective
 
-(To be filled during and after implementation.)
+Complete (2026-10-21). The Queues & Processors section reads pgmq and shibuya end to end:
+latency-first queue list, live queue header (poll plus feed, notify-sourced updates seen live
+in about 130 ms), peek-only message and archive paging with exact int64 ids, the
+dead-letter panel with the honest redrive sentence, the processors table with terminal
+regrouping and extrapolated ages, and the processor page with an estimated-quantile
+histogram and read-only control status. Nothing mutates.
+
+Two fixes landed outside the section because its tests exposed them: the search serializer
+now keeps every scalar a string (a latent EP-8 defect that broke reloads of small cursors),
+and the shared `Timestamp` satisfies React Aria's trigger contract. The new route-render
+harness is reusable by EP-15 through EP-17. Not done: a fixture with a partitioned queue
+(the case is covered by an MSW override), and the shell's own tooltip warnings (EP-8).
 
 
 ## Context and Orientation

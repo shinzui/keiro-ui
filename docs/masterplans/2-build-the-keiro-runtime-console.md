@@ -329,7 +329,7 @@ repository.
 | 11 | Implement the kiroku, pgmq, and shibuya typed clients | docs/plans/11-implement-the-kiroku-pgmq-and-shibuya-typed-clients.md | EP-10 | EP-9 | Complete |
 | 12 | Implement the keiro typed client | docs/plans/12-implement-the-keiro-typed-client.md | EP-10 | EP-9 | Complete |
 | 13 | Build the Streams and Subscriptions screens | docs/plans/13-build-the-streams-and-subscriptions-screens.md | EP-8, EP-11 | EP-9 | Complete |
-| 14 | Build the Queues and Processors screens | docs/plans/14-build-the-queues-and-processors-screens.md | EP-8, EP-11 | EP-9 | Not Started |
+| 14 | Build the Queues and Processors screens | docs/plans/14-build-the-queues-and-processors-screens.md | EP-8, EP-11 | EP-9 | Complete |
 | 15 | Build the Workflows screens | docs/plans/15-build-the-workflows-screens.md | EP-8, EP-12 | EP-9, EP-13 | Not Started |
 | 16 | Build the Aggregates, Process Managers, and Timers screens | docs/plans/16-build-the-aggregates-process-managers-and-timers-screens.md | EP-8, EP-11, EP-12 | EP-9, EP-13 | Not Started |
 | 17 | Build the Projections and Overview screens | docs/plans/17-build-the-projections-and-overview-screens.md | EP-8, EP-11, EP-12 | EP-13, EP-14, EP-15, EP-16 | Not Started |
@@ -651,9 +651,10 @@ they bite: no rebuild/replay UI; no adapter dead-letter redrive until upstream s
 Phase 1 is Complete (EP-7, EP-8, EP-9, EP-10 on 2026-10-21), and early checks 1 (int64
 through the dev proxy) and 2 (shell liveness drives a real poll) pass. Phase 2 is Complete (EP-11 and
 EP-12, 2026-10-21), and early check 3 (the workflows feed reconciles with the list on the
-live stack) passes. Phase 3 is under way: EP-13 is
-Complete; EP-14, EP-15, and EP-16 are unblocked. Screen suites run in the Playwright `screens`
-project against the mock worker. The local stack has two profiles (`just stack-up`
+live stack) passes. Phase 3 is under way: EP-13 and EP-14 are
+Complete; EP-15 and EP-16 are unblocked. Screen suites run in the Playwright `screens`
+project against the mock worker; component tests render the real route tree through
+`apps/console/src/test/render-route.tsx` (added by EP-14) against `startMockServer()`. The local stack has two profiles (`just stack-up`
 for jitsurei, `just stack-up mori` for a live mori daemon); fixtures come from jitsurei only.
 The EP-8/EP-10 liveness integration check (Integration Points, early check 2) runs when
 EP-10 lands.
@@ -800,6 +801,12 @@ Cross-plan gates with their own acceptance:
   never sends duplicate keys, so this is a documentation note for EP-11, not a bug to
   work around.
 
+
+- EP-14 (2026-10-21): the console's `parseSearch` let TanStack's query decoder turn small
+  numeric values into numbers (`?from=2` → `2`), so reloading any page with a small cursor
+  failed its `z.string()` search schema; only ids above 2^53 survived. `lib/search.ts` now
+  parses over `URLSearchParams` directly. Screen plans that keep cursors in the URL (EP-15,
+  EP-16, EP-17) inherit the fix; their search schemas should keep cursors as strings.
 
 ## Decision Log
 

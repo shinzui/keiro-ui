@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router"
 
-import { PlaceholderPage } from "@/components/placeholder-page"
+import { QueueMessagePage } from "@/features/queues/queue-message-page"
 import { shellSearchSchema } from "@/shell/search"
 
 export const Route = createFileRoute("/_shell/queues/$name/archive/$id")({
@@ -9,11 +9,6 @@ export const Route = createFileRoute("/_shell/queues/$name/archive/$id")({
 })
 
 function Page() {
-  const params = Route.useParams()
-  return (
-    <PlaceholderPage
-      title={`Archived message ${params.id} in ${params.name}`}
-      plan="docs/plans/14-build-the-queues-and-processors-screens.md"
-    />
-  )
+  const { name, id } = Route.useParams()
+  return <QueueMessagePage queue={name} id={id} archive />
 }

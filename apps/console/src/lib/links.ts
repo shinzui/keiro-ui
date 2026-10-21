@@ -61,7 +61,10 @@ export const links = {
   subscriptions: () => ({ to: "/subscriptions" as const }),
   subscription: (name: string) => ({ to: "/subscriptions/$name" as const, params: { name } }),
   queues: () => ({ to: "/queues" as const }),
-  queue: (name: string, search?: { tab?: "messages" | "archive" | "bindings" }) => ({
+  queue: (
+    name: string,
+    search?: { tab?: "messages" | "archive" | "bindings"; from?: string; limit?: number },
+  ) => ({
     to: "/queues/$name" as const,
     params: { name },
     search,

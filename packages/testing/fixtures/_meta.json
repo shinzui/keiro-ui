@@ -1,5 +1,5 @@
 {
-  "recorded_at": "2026-10-21T20:26:23.927Z",
+  "recorded_at": "2026-10-21T20:36:08.148Z",
   "seed": "keiro just jitsurei-all (keiro b63ed846) + dev/seed-queues.sh",
   "sources": {
     "kiroku": {
@@ -385,6 +385,62 @@
       "status": 200,
       "contentType": "application/json"
     },
+    "kiroku/dead-letters.json": {
+      "surface": "kiroku",
+      "slug": "dead-letters",
+      "method": "GET",
+      "template": "/subscriptions/{subscription}/dead-letters",
+      "params": {
+        "subscription": "jitsurei-order-reporting"
+      },
+      "status": 200,
+      "contentType": "application/json",
+      "derived_from": "mori://shinzui/kiroku docs/user/metrics.md (Dead letters over HTTP); cursor format \"<position>:<dead_letter_id>\" from Kiroku/Metrics/DeadLetters.hs renderDeadLetterCursor",
+      "variant": "default",
+      "query": {
+        "limit": "10"
+      },
+      "request": "/subscriptions/jitsurei-order-reporting/dead-letters?limit=10",
+      "derived": true
+    },
+    "kiroku/dead-letters.page2.json": {
+      "surface": "kiroku",
+      "slug": "dead-letters",
+      "method": "GET",
+      "template": "/subscriptions/{subscription}/dead-letters",
+      "params": {
+        "subscription": "jitsurei-order-reporting"
+      },
+      "status": 200,
+      "contentType": "application/json",
+      "derived_from": "mori://shinzui/kiroku docs/user/metrics.md (Dead letters over HTTP); cursor format \"<position>:<dead_letter_id>\" from Kiroku/Metrics/DeadLetters.hs renderDeadLetterCursor",
+      "variant": "page2",
+      "query": {
+        "limit": "10",
+        "from": "21:91"
+      },
+      "request": "/subscriptions/jitsurei-order-reporting/dead-letters?limit=10&from=21%3A91",
+      "cursor": "21:91",
+      "derived": true
+    },
+    "kiroku/dead-letters.recorded.json": {
+      "surface": "kiroku",
+      "slug": "dead-letters",
+      "method": "GET",
+      "template": "/subscriptions/{subscription}/dead-letters",
+      "params": {
+        "subscription": "jitsurei-order-reporting"
+      },
+      "status": 200,
+      "contentType": "application/json",
+      "derived_from": "kiroku answers 200 {\"items\":[]} for a subscription with nothing parked (the jitsurei seed parks nothing)",
+      "variant": "recorded",
+      "query": {
+        "limit": "10"
+      },
+      "request": "/subscriptions/jitsurei-order-reporting/dead-letters?limit=10",
+      "derived": true
+    },
     "kiroku/event-causation-unresolved.json": {
       "surface": "kiroku",
       "slug": "event-causation-unresolved",
@@ -556,10 +612,40 @@
       "status": 404,
       "contentType": "application/json"
     },
+    "kiroku/metrics-subscription.json": {
+      "surface": "kiroku",
+      "slug": "metrics-subscription",
+      "variant": "default",
+      "method": "GET",
+      "template": "/metrics/{subscription}",
+      "query": {},
+      "params": {
+        "subscription": "jitsurei-order-reporting"
+      },
+      "request": "/metrics/jitsurei-order-reporting",
+      "status": 200,
+      "contentType": "application/json",
+      "derived_from": "mori://shinzui/kiroku docs/user/metrics.md (GET /metrics/<subscription>)",
+      "derived": true
+    },
     "kiroku/metrics.json": {
       "surface": "kiroku",
       "slug": "metrics",
       "variant": "default",
+      "method": "GET",
+      "template": "/metrics",
+      "query": {},
+      "params": {},
+      "request": "/metrics",
+      "status": 200,
+      "contentType": "application/json",
+      "derived_from": "mori://shinzui/kiroku docs/user/metrics.md (GET /metrics): recorded store and counters with two subscriptions added",
+      "derived": true
+    },
+    "kiroku/metrics.recorded.json": {
+      "surface": "kiroku",
+      "slug": "metrics",
+      "variant": "recorded",
       "method": "GET",
       "template": "/metrics",
       "query": {},
@@ -686,12 +772,56 @@
       "params": {},
       "request": "/subscription-checkpoints",
       "status": 200,
+      "contentType": "application/json",
+      "derived_from": "mori://shinzui/kiroku docs/user/metrics.md (Durable subscription checkpoints); names from keiro projection groups",
+      "derived": true
+    },
+    "kiroku/subscription-checkpoints.recorded.json": {
+      "surface": "kiroku",
+      "slug": "subscription-checkpoints",
+      "variant": "recorded",
+      "method": "GET",
+      "template": "/subscription-checkpoints",
+      "query": {},
+      "params": {},
+      "request": "/subscription-checkpoints",
+      "status": 200,
       "contentType": "application/json"
+    },
+    "kiroku/subscriptions-live.error.json": {
+      "surface": "kiroku",
+      "slug": "subscriptions-live",
+      "variant": "error",
+      "method": "GET",
+      "template": "/subscriptions",
+      "query": {
+        "scenario": "unconfigured"
+      },
+      "params": {},
+      "request": "/subscriptions?scenario=unconfigured",
+      "status": 404,
+      "contentType": "application/json",
+      "derived_from": "mori://shinzui/kiroku docs/user/metrics.md: embedded hosts without a provider; select with useScenario({ fail: { kiroku: [\"subscriptions-live\"] } })",
+      "derived": true
     },
     "kiroku/subscriptions-live.json": {
       "surface": "kiroku",
       "slug": "subscriptions-live",
       "variant": "default",
+      "method": "GET",
+      "template": "/subscriptions",
+      "query": {},
+      "params": {},
+      "request": "/subscriptions",
+      "status": 200,
+      "contentType": "application/json",
+      "derived_from": "mori://shinzui/kiroku docs/user/metrics.md (Subscription status over HTTP)",
+      "derived": true
+    },
+    "kiroku/subscriptions-live.recorded.json": {
+      "surface": "kiroku",
+      "slug": "subscriptions-live",
+      "variant": "recorded",
       "method": "GET",
       "template": "/subscriptions",
       "query": {},
@@ -1028,19 +1158,35 @@
       "slug": "control-pause",
       "variant": "error",
       "method": "POST",
-      "template": "/control/processors/{processor}/pause",
+      "template": "/control/processors/{recorded_processor}/pause",
       "query": {},
       "params": {
-        "processor": "notifications"
+        "recorded_processor": "notifications"
       },
       "request": "/control/processors/notifications/pause",
-      "status": 404,
-      "contentType": "application/json"
+      "status": 403,
+      "contentType": "application/json",
+      "derived_from": "mori://shinzui/shibuya shibuya-metrics/src/Shibuya/Metrics/Control.hs (403 control_disabled); the Hackage 0.10.0.x example host answers 404",
+      "derived": true
     },
     "shibuya/control.json": {
       "surface": "shibuya",
       "slug": "control",
       "variant": "default",
+      "method": "GET",
+      "template": "/control",
+      "query": {},
+      "params": {},
+      "request": "/control",
+      "status": 200,
+      "contentType": "application/json",
+      "derived_from": "mori://shinzui/shibuya shibuya-metrics/src/Shibuya/Metrics/Control.hs (enableControl defaults off)",
+      "derived": true
+    },
+    "shibuya/control.recorded.json": {
+      "surface": "shibuya",
+      "slug": "control",
+      "variant": "recorded",
       "method": "GET",
       "template": "/control",
       "query": {},
@@ -1095,17 +1241,47 @@
       "params": {},
       "request": "/metrics",
       "status": 200,
+      "contentType": "application/json",
+      "derived_from": "mori://shinzui/shibuya shibuya-metrics/test/golden/processor-metrics.json.golden (artifact-level URI pending)",
+      "derived": true
+    },
+    "shibuya/metrics.recorded.json": {
+      "surface": "shibuya",
+      "slug": "metrics",
+      "variant": "recorded",
+      "method": "GET",
+      "template": "/metrics",
+      "query": {},
+      "params": {},
+      "request": "/metrics",
+      "status": 200,
       "contentType": "application/json"
+    },
+    "shibuya/processor-metrics-detailed.json": {
+      "surface": "shibuya",
+      "slug": "processor-metrics-detailed",
+      "variant": "default",
+      "method": "GET",
+      "template": "/metrics/{processor}",
+      "query": {},
+      "params": {
+        "processor": "detailed"
+      },
+      "request": "/metrics/detailed",
+      "status": 200,
+      "contentType": "application/json",
+      "derived_from": "mori://shinzui/shibuya shibuya-metrics/test/golden/processor-metrics.json.golden (the \"detailed\" processor)",
+      "derived": true
     },
     "shibuya/processor-metrics.error.json": {
       "surface": "shibuya",
       "slug": "processor-metrics",
       "variant": "error",
       "method": "GET",
-      "template": "/metrics/{processor}",
+      "template": "/metrics/{recorded_processor}",
       "query": {},
       "params": {
-        "processor": "does-not-exist"
+        "recorded_processor": "does-not-exist"
       },
       "request": "/metrics/does-not-exist",
       "status": 404,
@@ -1116,10 +1292,10 @@
       "slug": "processor-metrics",
       "variant": "default",
       "method": "GET",
-      "template": "/metrics/{processor}",
+      "template": "/metrics/{recorded_processor}",
       "query": {},
       "params": {
-        "processor": "notifications"
+        "recorded_processor": "notifications"
       },
       "request": "/metrics/notifications",
       "status": 200,

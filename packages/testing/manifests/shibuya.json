@@ -4,7 +4,8 @@
   "port_env": "STACK_SHIBUYA_PORT",
   "cursor_param": "from",
   "pins": {
-    "processor": "notifications"
+    "processor": "detailed",
+    "recorded_processor": "notifications"
   },
   "entries": [
     {
@@ -13,14 +14,14 @@
     },
     {
       "slug": "processor-metrics",
-      "path": "/metrics/{processor}"
+      "path": "/metrics/{recorded_processor}"
     },
     {
       "slug": "processor-metrics",
-      "path": "/metrics/{processor}",
+      "path": "/metrics/{recorded_processor}",
       "variant": "error",
       "params": {
-        "processor": "does-not-exist"
+        "recorded_processor": "does-not-exist"
       }
     },
     {
@@ -41,7 +42,7 @@
     },
     {
       "slug": "control-pause",
-      "path": "/control/processors/{processor}/pause",
+      "path": "/control/processors/{recorded_processor}/pause",
       "method": "POST",
       "variant": "error"
     }

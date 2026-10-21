@@ -14,7 +14,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "record": "bun scripts/record.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "derive": "bun scripts/derive.ts"
   },
   "dependencies": {
     "msw": "3.0.3"

@@ -256,9 +256,11 @@ async function resolvePgmq(manifest: Manifest, pins: Record<string, string>) {
 }
 
 async function resolveShibuya(manifest: Manifest, pins: Record<string, string>) {
-  if (pins.processor) return
+  // `processor` names the golden-derived default (scripts/derive.ts); live recordings use
+  // whatever processor the running host has.
+  if (pins.recorded_processor) return
   const metrics = await getJson<Record<string, unknown>>(`${baseUrl(manifest)}/metrics`)
-  pins.processor = Object.keys(metrics).toSorted()[0] ?? ""
+  pins.recorded_processor = Object.keys(metrics).toSorted()[0] ?? ""
 }
 
 async function resolveKeiro(manifest: Manifest, pins: Record<string, string>) {

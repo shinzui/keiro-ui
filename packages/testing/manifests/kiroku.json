@@ -6,8 +6,8 @@
   "pins": {
     "stream": "order-demo-20261021202320671316000000",
     "category": "order",
-    "subscription": "",
-    "member": "",
+    "subscription": "jitsurei-order-reporting",
+    "member": "0",
     "event_with_causation": "01a16021-f590-706d-a7d6-5082cdf1ddd6",
     "event_cause": "01a16021-f586-765a-a938-f5c753d2af5a",
     "event_causation_unresolved": "6e8e9bb5-3c00-5f95-8b6c-a7f9dfbcbe92"

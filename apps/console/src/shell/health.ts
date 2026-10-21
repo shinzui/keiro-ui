@@ -56,13 +56,16 @@ export async function probeHealth(
     const checkedAt = new Date().toISOString()
     const base = { surface, httpStatus: response.status, latencyMs, checkedAt, url, body }
     if (response.status === 200) return { ...base, status: "up" }
-    const drift =
-      surface === "keiro" &&
-      response.status === 503 &&
-      typeof body === "object" &&
-      body !== null &&
-      (body as { status?: unknown }).status === "schema_drift"
-    return { ...base, status: drift ? "degraded" : "down" }
+    // keiro answers 503 for schema drift and when its inspection slots are all in use; both
+    // mean the server is up but not fully serving, so neither is "down".
+    const keiroBody =
+      surface === "keiro" && response.status === 503 && typeof body === "object" && body !== null
+        ? (body as { status?: unknown; error?: { code?: unknown } })
+        : undefined
+    const degraded =
+      keiroBody !== undefined &&
+      (keiroBody.status === "schema_drift" || keiroBody.error?.code === "inspection_busy")
+    return { ...base, status: degraded ? "degraded" : "down" }
   } catch {
     return { surface, status: "down", checkedAt: new Date().toISOString(), url }
   }

@@ -1,0 +1,14 @@
+{
+  "items": [
+    {
+      "msg_id": 9007199254740993,
+      "read_ct": 0,
+      "enqueued_at": "2026-10-20T12:00:00Z",
+      "last_read_at": null,
+      "vt": "2026-10-20T12:00:00Z",
+      "message": { "order_id": "ord-7" },
+      "headers": null
+    }
+  ],
+  "next_cursor": 9007199254740993
+}

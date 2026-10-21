@@ -12,6 +12,7 @@
     "generate-routes": "tsr generate"
   },
   "dependencies": {
+    "@keiro-ui/client-core": "workspace:*",
     "@keiro-ui/testing": "workspace:*",
     "@keiro-ui/ui": "workspace:*",
     "@tanstack/react-query": "5.104.2",

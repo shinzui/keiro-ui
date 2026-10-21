@@ -21,6 +21,11 @@ provenance:
       at: 2026-10-21T18:42:29Z
       mode: "update"
       note: "Round 2: align to owning-plan spellings, correct audited upstream facts, e2e layout, light theme where applicable"
+    - model: "claude-opus-5-5"
+      harness: "claude-code"
+      at: 2026-10-21T21:03:35Z
+      mode: "implement"
+      note: "Implemented M1-M4; live early check 1 and the EP-8 liveness integration check pass"
   reviews:
     - model: "claude-fable-5-1"
       harness: "claude-code"
@@ -72,28 +77,56 @@ page of pgmq messages through the development proxy and checks the ids exactly.
 
 ## Progress
 
-- [ ] M1 — HTTP client, error normalization, and lossless int64: `createHttpClient`,
+- [x] M1 — HTTP client, error normalization, and lossless int64: `createHttpClient`,
   `ApiError`/`normalizeError` covering the three wire envelopes, `parseJsonLossless` with
   the `context.source` path and the scanning fallback, `int64()`; unit tests pass and the
-  round trip of `9223372036854775807` and of a `msg_id` above 2^53 is proven.
-- [ ] M2 — Pages, query keys, liveness, and adaptive polling: `pageSchema`,
+  round trip of `9223372036854775807` and of a `msg_id` above 2^53 is proven. (2026-10-21:
+  `test/int64.test.ts`, `errors.test.ts`, `http.test.ts`; Node 22 supports both
+  `context.source` and `JSON.rawJSON`, and the fallback is tested equal on every sample.)
+- [x] M2 — Pages, query keys, liveness, and adaptive polling: `pageSchema`,
   `useCursorPages`, `queryKeys`, `LivenessProvider`/`useLiveness`, `useSurfaceQuery` with
   per-surface defaults and the clamp; hook tests show polling stops while paused, resumes
-  with an immediate refetch, and stretches to the clamp after a slow fetch.
-- [ ] M3 — Feed core: `openFeed` with the `Dialect` descriptor, backoff reconnect,
+  with an immediate refetch, and stretches to the clamp after a slow fetch. (2026-10-21:
+  `test/live.test.tsx` — ≥3 fetches in 55 ms at `poll: 10`, none while paused, exactly one on
+  resume; a 3 s fetch defers the next poll to 30 s.)
+- [x] M3 — Feed core: `openFeed` with the `Dialect` descriptor, backoff reconnect,
   `goodbye` handling, overflow-to-resync, unknown-frame tolerance, and
   `useFeedSubscription`; scripted-socket tests cover snapshot-then-delta, overflow,
   goodbye-then-reconnect, and unknown frames; the five dialect fact sheets are recorded in
-  the package README.
-- [ ] M4 — Contracts documented and the live check recorded: `packages/client-core/README.md`
+  the package README. (2026-10-21: `test/feed.test.ts`, `test/feed-subscription.test.tsx`.)
+- [x] M4 — Contracts documented and the live check recorded: `packages/client-core/README.md`
   explains every export for client authors and screen authors, the contract tests run
   against `packages/testing/fixtures` when present, and the `KEIRO_UI_LIVE=1` run against
   the local stack (MasterPlan early check 1) is recorded here with its output.
+  (2026-10-21: the contract test parses all 103 JSON fixtures. Live run, default profile,
+  through the Vite proxy on :5173:
+
+  ```text
+  stdout | test/contract.test.ts > live stack through the dev proxy > kiroku /capabilities
+  kiroku kiroku-metrics 0.3.0.1
+  stdout | test/contract.test.ts > live stack through the dev proxy > pgmq message ids round-trip exactly
+  pgmq console_demo msg_id 9007199254740994 (bigint, exact)
+  compared 6 msg_id values
+   ✓ |client-core| test/contract.test.ts > live stack through the dev proxy > kiroku /capabilities 17ms
+   ✓ |client-core| test/contract.test.ts > live stack through the dev proxy > pgmq message ids round-trip exactly 27ms
+  ```
+  )
+- [x] MasterPlan early check 2 (with plan 8): `apps/console/src/shell/liveness.tsx` re-exports
+  this package's `LivenessProvider` and `useLiveness`; `src/shell/liveness-integration.test.tsx`
+  shows the bottom bar's toggle stopping a real `useSurfaceQuery` poll and resume refetching
+  once, and the `shell` Playwright project passes unchanged (2026-10-21).
 
 
 ## Surprises & Discoveries
 
-(None yet.)
+- 2026-10-21: undici's `WebSocket` (Node's global) rejects jsdom's `Event` objects ("The
+  event argument must be an instance of Event"), so hook tests under jsdom pass the `ws`
+  package's client as `WebSocket`; node-environment feed tests use the global `WebSocket`
+  against a `ws` server. Closing a `ws` server waits for its clients, so test cleanups run in
+  reverse order (client first).
+- 2026-10-21: `useInfiniteQuery` refetches every loaded page in sequence; it cannot poll only
+  the first page, so `useCursorPages` polls all loaded pages (cursors are still echoed back
+  untouched).
 
 
 ## Decision Log
@@ -131,9 +164,34 @@ page of pgmq messages through the development proxy and checks the ids exactly.
   Date: 2026-10-21
 
 
+- Decision: Feed tests use a real `ws` server on an ephemeral port rather than MSW's
+  WebSocket interception.
+  Rationale: it exercises the real `WebSocket` client, its close and reconnect behaviour,
+  and the frames on the wire; MSW is kept for HTTP.
+  Date: 2026-10-21
+
+- Decision: `surfaceRetry` never retries a 4xx (a definite answer) but does retry network
+  failures (status 0) and 5xx, at most twice; `resume()` invalidates every surface and
+  `useSurfaceQuery`'s resume effect calls `refetch({cancelRefetch: false})`, joining that
+  fetch, so a query refetches exactly once on resume. `normalizeError` uses the standard
+  status text as the message for non-envelope bodies, falling back to the first 200
+  characters of the body for unlisted statuses. `useFeedSubscription` also accepts an
+  injectable `WebSocket` (for tests).
+  Rationale: the plan said "never for an ApiError with status below 500", which would have
+  excluded transient network failures from retry; the rest keeps the spelled contract.
+  Date: 2026-10-21
+
+
 ## Outcomes & Retrospective
 
-(To be filled during and after implementation.)
+2026-10-21 — complete. `@keiro-ui/client-core` provides `createHttpClient`, `ApiError` over
+three envelopes, lossless int64 parsing and serialization, `int64()`, `pageSchema`,
+`useCursorPages`, bigint-safe `queryKeys`, `openFeed` with `Dialect`, `LivenessProvider`,
+`useSurfaceQuery` with the adaptive clamp, and `useFeedSubscription`, with 102 tests (147
+including one per fixture). Both early producer/consumer checks the MasterPlan schedules
+for this plan pass: the int64 round trip through the dev proxy against the live stack, and
+the shell's pause toggle driving a real poll. EP-11 and EP-12 can build their clients and
+dialect descriptors on these exports; the README's fact sheets carry the dialect facts.
 
 
 ## Context and Orientation

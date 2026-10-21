@@ -1,0 +1,7 @@
+{
+  "package": "kiroku-metrics",
+  "version": "0.3.0.1",
+  "routes": { "browse": true, "metrics": true },
+  "cors": { "enabled": false },
+  "process_local": ["metrics"]
+}

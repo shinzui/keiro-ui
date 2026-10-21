@@ -95,10 +95,10 @@ surface and, later, the store head), and nothing here can mutate anything; see
   link map has a typed builder; `format.ts` never emits "lag"; `bun run test` and
   `bun run test:e2e --project shell` pass. (2026-10-21: 115 vitest tests and 16 `shell`
   specs pass; `bun run check` and `bun run build` clean.)
-- [ ] Integration check with plan 10: `liveness.tsx` becomes a re-export of the client core's
+- [x] Integration check with plan 10: `liveness.tsx` becomes a re-export of the client core's
   `LivenessProvider`/`useLiveness` and the pause toggle stops a real `useSurfaceQuery` poll.
-  Performed by docs/plans/10-implement-the-client-core-for-http-cursors-int64-websocket-and-live-queries.md
-  when it lands (the MasterPlan's second early producer/consumer check).
+  (2026-10-21, performed with plan 10: `src/shell/liveness-integration.test.tsx` passes and the
+  `shell` Playwright project passes unchanged; `refetchIntervalFor` stays shell-local.)
 
 
 ## Surprises & Discoveries

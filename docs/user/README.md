@@ -20,6 +20,7 @@ inspection endpoints directly; there is no backend of its own.
 | see the console working on your machine                 | [Getting started](getting-started.md)        |
 | look up a screen, a URL, a shortcut, or a profile field | [Console reference](console-reference.md)    |
 | serve the console in front of real inspection servers   | [Deploying the console](deployment.md)       |
+| mount the surfaces in your own application (e.g. rei)   | [Mounting the inspection surfaces](application-integration.md) |
 
 What the console provides today, one record per capability with the tests that prove it, is
 the capability catalog in `docs/capabilities/`. The decisions behind its shape are the

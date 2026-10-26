@@ -74,7 +74,15 @@ function stateEntries(state: ProcessorMetrics["state"]): [string, ReactNode][] {
 }
 
 /** One processor: state, counters, latency, progress, oldest in flight, and control status. */
-export function ProcessorDetail({ row, now }: { row: ProcessorRow; now: number }) {
+export function ProcessorDetail({
+  row,
+  now,
+  connectionLost,
+}: {
+  row: ProcessorRow
+  now: number
+  connectionLost?: boolean
+}) {
   const { metrics } = row
   const status = row.terminal?.status ?? metrics.state.status
   const oldest = metrics.oldestInFlight
@@ -152,7 +160,7 @@ export function ProcessorDetail({ row, now }: { row: ProcessorRow; now: number }
       <Section title="Progress">
         <ProgressCursors progress={metrics.progress} />
       </Section>
-      <ControlStatus processorId={row.id} status={status} />
+      <ControlStatus connectionLost={connectionLost} processorId={row.id} status={status} />
     </div>
   )
 }

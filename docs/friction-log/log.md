@@ -1,6 +1,9 @@
 # Bundle Update Log
 
 ## 2026-10-26
+* **Addition**: FRIC-6 records detour environment friction with mori://shinzui/keiro-ui: Existing Apple container shadows the production smoke IPv4 port
+* **Addition**: FRIC-5 records detour environment friction with https://github.com/caddyserver/caddy-docker: Official Caddy image retains a privileged executable capability
+* **Addition**: FRIC-4 records detour environment friction with https://github.com/abiosoft/colima: Colima cannot bind the host temporary directory
 * **Update**: FRIC-3 accepted: The normal cached importer and produced static images remain unchanged; upstream helper determinism is outside this plan.
 * **Addition**: FRIC-3 records detour tooling friction with https://github.com/nlewo/nix2container: Patched Skopeo fails Nix rebuild byte comparison
 * **Update**: FRIC-2 resolved: Use the explicit Git flake interface in measurement harnesses.

@@ -25,7 +25,7 @@ export function healthLabel(probe: HealthProbe): string {
 
 function Dot({ surface }: { surface: Surface }) {
   const probe = useSurfaceHealth(surface)
-  const label = healthLabel(probe)
+  const label = probe.url ? healthLabel(probe) : "Not configured for this application"
   return (
     <li
       className="flex items-center gap-1.5 text-xs"

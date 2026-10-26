@@ -1,6 +1,6 @@
 import { RouterProvider as AriaRouterProvider } from "@keiro-ui/ui/components/router-provider"
 import { Toaster } from "@keiro-ui/ui/components/sonner"
-import { type QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { type QueryClient } from "@tanstack/react-query"
 import { createRootRouteWithContext, HeadContent, Outlet, useRouter } from "@tanstack/react-router"
 import { lazy, Suspense } from "react"
 
@@ -9,6 +9,8 @@ import { SessionAuditStatus } from "@/features/actions/session-audit-sheet"
 import { navigateToHref, publicHref } from "@/lib/href"
 import { ClientsProvider } from "@/settings/clients"
 import { ConnectionProfileProvider } from "@/settings/connection-profiles"
+import { ConnectionSession } from "@/settings/connection-session"
+import { TargetSelectionProvider, useTargetSelection } from "@/settings/target-selection"
 import { LivenessProvider } from "@/shell/liveness"
 import { StatusSlotProvider } from "@/shell/status-slots"
 import { ThemeProvider, useTheme } from "@/shell/theme"
@@ -23,7 +25,7 @@ const RouterDevtools = import.meta.env.DEV
     )
   : () => null
 
-export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+export const Route = createRootRouteWithContext<{ onSession?: (client: QueryClient) => void }>()({
   head: () => ({ meta: [{ title: "keiro console" }] }),
   component: RootComponent,
 })
@@ -34,33 +36,52 @@ function ThemedToaster() {
 }
 
 function RootComponent() {
-  const { queryClient } = Route.useRouteContext()
+  const { onSession } = Route.useRouteContext()
   const router = useRouter()
   return (
-    <QueryClientProvider client={queryClient}>
+    <>
       <ThemeProvider>
         {/* React Aria links (sidebar entries) navigate through TanStack Router. */}
         <AriaRouterProvider
           navigate={(href) => void navigateToHref(router, href)}
           useHref={(href) => publicHref(router, href)}
         >
-          <ConnectionProfileProvider>
-            <ClientsProvider>
-              <LivenessProvider>
-                <StatusSlotProvider>
-                  <HeadContent />
-                  <SessionAuditStatus />
-                  <Outlet />
-                  <ThemedToaster />
-                </StatusSlotProvider>
-              </LivenessProvider>
-            </ClientsProvider>
-          </ConnectionProfileProvider>
+          <TargetSelectionProvider>
+            <SessionBoundary onSession={onSession}>
+              <ConnectionProfileProvider>
+                <ClientsProvider>
+                  <LivenessProvider>
+                    <StatusSlotProvider>
+                      <HeadContent />
+                      <SessionAuditStatus />
+                      <Outlet />
+                      <ThemedToaster />
+                    </StatusSlotProvider>
+                  </LivenessProvider>
+                </ClientsProvider>
+              </ConnectionProfileProvider>
+            </SessionBoundary>
+          </TargetSelectionProvider>
         </AriaRouterProvider>
       </ThemeProvider>
       <Suspense>
         <RouterDevtools />
       </Suspense>
-    </QueryClientProvider>
+    </>
+  )
+}
+
+function SessionBoundary({
+  children,
+  onSession,
+}: {
+  children: React.ReactNode
+  onSession?: (client: QueryClient) => void
+}) {
+  const selection = useTargetSelection()!
+  return (
+    <ConnectionSession key={selection.selected!.sessionKey} onSession={onSession}>
+      {children}
+    </ConnectionSession>
   )
 }

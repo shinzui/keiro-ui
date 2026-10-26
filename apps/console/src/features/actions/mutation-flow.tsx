@@ -14,6 +14,7 @@ import { type QueryKey, useMutation, useQueryClient } from "@tanstack/react-quer
 import { type ReactNode, useEffect, useState } from "react"
 
 import { JsonViewer } from "@/components/JsonViewer"
+import { useConnectionSession } from "@/settings/connection-session"
 
 import { apiErrorOf, RefusalView } from "./refusal"
 import { recordAction } from "./session-audit"
@@ -70,18 +71,24 @@ export function MutationFlow<P, R>({
   audit: { action: string }
 }) {
   const queryClient = useQueryClient()
+  const session = useConnectionSession()
   const [typed, setTyped] = useState("")
   const [locked, setLocked] = useState(false)
   const reread = () => {
+    if (session && !session.active) return
     for (const queryKey of invalidate) void queryClient.invalidateQueries({ queryKey })
   }
   const preview = useMutation({ mutationFn: () => handle.preview(), onError: logClientBug })
   const execute = useMutation({
-    mutationFn: () => handle.execute(),
+    mutationFn: () => {
+      if (session && !session.active) throw new Error("Connection session expired")
+      return handle.execute()
+    },
     onSuccess: (executed) => {
       const headline = resultHeadline(executed.result)
-      toast.success(`${title}: ${headline}`)
+      if (!session || session.active) toast.success(`${title}: ${headline}`)
       recordAction({
+        connection: session?.identity,
         surface: "keiro",
         action: audit.action,
         target,
@@ -93,8 +100,14 @@ export function MutationFlow<P, R>({
     onError: (error) => {
       logClientBug(error)
       if (apiErrorOf(error)?.code === "mutation_outcome_unknown") {
-        setLocked(true)
-        recordAction({ surface: "keiro", action: audit.action, target, outcome: "outcome unknown" })
+        if (!session || session.active) setLocked(true)
+        recordAction({
+          connection: session?.identity,
+          surface: "keiro",
+          action: audit.action,
+          target,
+          outcome: "outcome unknown",
+        })
         reread()
       }
     },
@@ -128,7 +141,15 @@ export function MutationFlow<P, R>({
     >
       <DialogHeader>
         <DialogTitle>{title}</DialogTitle>
-        <DialogDescription>{description}</DialogDescription>
+        <DialogDescription>
+          {description}
+          {session && (
+            <span className="block font-semibold">
+              {session.identity.app} · {session.identity.environment}
+              {session.identity.workerId && ` · ${session.identity.workerId}`}
+            </span>
+          )}
+        </DialogDescription>
       </DialogHeader>
       <div
         className="flex max-h-[60vh] flex-col gap-3 overflow-y-auto text-sm"
@@ -204,7 +225,9 @@ export function MutationFlow<P, R>({
           <Button
             variant="destructive"
             isDisabled={typed !== target || locked || execute.isPending}
-            onPress={() => execute.mutate()}
+            onPress={() => {
+              if (!session || session.active) execute.mutate()
+            }}
           >
             {execute.isPending ? "Executing…" : "Execute"}
           </Button>

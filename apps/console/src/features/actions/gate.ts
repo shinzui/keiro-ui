@@ -1,3 +1,5 @@
+import { useSurfaceAvailable } from "@keiro-ui/client-core"
+
 import { useSurfaceHealth } from "@/shell/health"
 
 export const MUTATIONS_DISABLED_REASON =
@@ -9,7 +11,9 @@ export const DRIFT_REASON = "keiro refuses mutations while the live schema drift
  * status bar already polls): `mutations_enabled`, and refused under schema drift.
  */
 export function useKeiroMutationsGate(): { enabled: boolean; reason?: string; drift?: string[] } {
+  const configured = useSurfaceAvailable("keiro")
   const probe = useSurfaceHealth("keiro")
+  if (!configured) return { enabled: false, reason: "Not configured for this application" }
   const body = probe.body as
     | { status?: string; schema_drift?: string[]; mutations_enabled?: boolean }
     | undefined

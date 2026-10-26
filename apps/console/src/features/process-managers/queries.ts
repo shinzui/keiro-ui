@@ -1,9 +1,8 @@
 import { useSurfaceQuery } from "@keiro-ui/client-core"
 import { keiroKeys, type ProcessManagerListCursor, useKeiroClient } from "@keiro-ui/client-keiro"
-import { useSyncExternalStore } from "react"
 
 import { useConnectionProfiles } from "@/settings/connection-profiles"
-import { recentStore } from "@/shell/recent"
+import { useRecent } from "@/shell/recent"
 
 // Every process-manager read of the section goes through this file. The `pm` command word is
 // hook-gated like `aggregate`.
@@ -44,7 +43,7 @@ const PM_PATH = /^\/process-managers\/([^/?#]+)/
  */
 export function useKnownManagerNames(): { configured: string[]; recent: string[] } {
   const { active } = useConnectionProfiles()
-  const visits = useSyncExternalStore(recentStore.subscribe, recentStore.get)
+  const visits = useRecent()
   const configured = [
     ...new Set((active.processManagerNames ?? []).map((n) => n.trim()).filter(Boolean)),
   ]

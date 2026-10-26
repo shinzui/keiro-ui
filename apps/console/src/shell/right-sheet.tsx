@@ -1,3 +1,4 @@
+import { useSurfaceAvailable, type Surface } from "@keiro-ui/client-core"
 import { Button } from "@keiro-ui/ui/components/button"
 import { Sheet, SheetDescription, SheetHeader, SheetTitle } from "@keiro-ui/ui/components/sheet"
 import { getRouteApi, useNavigate } from "@tanstack/react-router"
@@ -138,8 +139,16 @@ function UnregisteredSheet({ kind, close }: { kind: string; close: () => void })
 }
 
 /** Renders the sheet named by the `sheet` search parameter; mounted once by the shell. */
+const sheetSurfaces: Record<string, Surface> = {
+  event: "kiroku",
+  "queue-message": "pgmq",
+  timer: "keiro",
+  "journal-entry": "keiro",
+}
+
 export function RightSheetOutlet() {
   const { current, close } = useRightSheet()
+  const available = useSurfaceAvailable(sheetSurfaces[current?.kind ?? ""]!)
   const storedWidth = useSyncExternalStore(sheetWidthStore.subscribe, sheetWidthStore.get)
   if (!current) return null
   const width = clampWidth(storedWidth)
@@ -157,7 +166,16 @@ export function RightSheetOutlet() {
     >
       <ResizeHandle width={width} />
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto">
-        {Component ? (
+        {!available ? (
+          <>
+            <SheetHeader>
+              <SheetTitle>Not configured for this application</SheetTitle>
+              <SheetDescription>
+                This inspector requires {sheetSurfaces[current.kind]}.
+              </SheetDescription>
+            </SheetHeader>
+          </>
+        ) : Component ? (
           createElement(Component, { entityRef: current.ref, close })
         ) : (
           <UnregisteredSheet kind={current.kind} close={close} />

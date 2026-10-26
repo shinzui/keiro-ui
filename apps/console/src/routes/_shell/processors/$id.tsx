@@ -36,7 +36,13 @@ function ProcessorPage() {
       <div className="flex flex-col gap-3 p-6">
         {processors.error && <p className="text-sm text-destructive">{processors.error.message}</p>}
         {processors.isPending && <Skeleton className="h-48" />}
-        {row && <ProcessorDetail row={row} now={now} />}
+        {row && (
+          <ProcessorDetail
+            row={row}
+            now={now}
+            connectionLost={!!processors.error || processors.feedStatus === "reconnecting"}
+          />
+        )}
         {missing && (
           <EmptyState
             title="Processor not found"

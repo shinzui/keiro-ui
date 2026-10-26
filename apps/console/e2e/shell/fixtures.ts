@@ -12,6 +12,9 @@ export const test = base.extend<{ consoleErrors: string[] }>({
         const text = message.text()
         const probeFailure =
           text.startsWith("Failed to load resource") ||
+          /^WebSocket connection to 'ws:\/\/localhost:5173\/(keiro|kiroku|pgmq|shibuya)\//.test(
+            text,
+          ) ||
           text.includes("has been blocked by CORS policy")
         if (message.type() === "error" && !probeFailure) {
           errors.push(text)

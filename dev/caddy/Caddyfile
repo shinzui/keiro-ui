@@ -6,6 +6,13 @@
 :{$CONSOLE_PORT:8080} {
 	redir /console /console/ 301
 
+	handle /console/console-config.json {
+		root * {$CONSOLE_DIST:apps/console/dist}
+		rewrite * /console-config.json
+		header Cache-Control "no-store"
+		file_server
+	}
+
 	handle_path /console/* {
 		root * {$CONSOLE_DIST:apps/console/dist}
 		try_files {path} /index.html

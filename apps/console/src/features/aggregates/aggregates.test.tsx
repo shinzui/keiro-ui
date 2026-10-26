@@ -34,8 +34,8 @@ test("kinds link to their instances and categories", async () => {
   const table = await screen.findByRole("grid", { name: "Aggregate kinds" })
   const links = await within(table).findAllByRole("link", { name: "order" })
   expect(links.map((link) => link.getAttribute("href"))).toEqual([
-    "/aggregates/order",
-    "/categories/order",
+    "/aggregates/order?target=same-origin",
+    "/categories/order?target=same-origin",
   ])
 })
 

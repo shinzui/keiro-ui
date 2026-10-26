@@ -9,7 +9,7 @@ function SurfaceRow({ surface }: { surface: Surface }) {
   return (
     <div className="contents">
       <dt className="text-muted-foreground">{surface}</dt>
-      <dd className="break-all">{baseUrl}</dd>
+      <dd className="break-all">{baseUrl || "Not configured for this application"}</dd>
     </div>
   )
 }

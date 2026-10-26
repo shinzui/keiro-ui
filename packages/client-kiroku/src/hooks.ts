@@ -1,3 +1,4 @@
+import { useSurfaceAvailable } from "@keiro-ui/client-core"
 import {
   type FeedStatus,
   type Frame,
@@ -247,7 +248,8 @@ export function useKirokuEventTail(options: {
   const queryClient = useQueryClient()
   const { category, fromPosition, onOverflow, onError } = options
   const limit = options.limit ?? 500
-  const enabled = options.enabled !== false
+  const available = useSurfaceAvailable("kiroku")
+  const enabled = available && options.enabled !== false
   const key = useMemo(
     () => kirokuKeys.tail({ category, fromPosition: fromPosition?.toString() }),
     [category, fromPosition],

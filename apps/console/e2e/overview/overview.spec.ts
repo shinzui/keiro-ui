@@ -8,11 +8,11 @@ test("cards show their headlines and open their sections by mouse and keyboard",
   await expect(page.getByTestId("card-processors-headline")).toContainText("running")
   await expect(page.getByTestId("mutations")).toHaveText("mutations: disabled on server")
   await page.getByTestId("card-queues").click()
-  await expect(page).toHaveURL("/queues")
+  await expect(page).toHaveURL("/queues?target=same-origin")
   await page.goBack()
   await page.getByTestId("card-timers").focus()
   await page.keyboard.press("Enter")
-  await expect(page).toHaveURL("/timers")
+  await expect(page).toHaveURL("/timers?target=same-origin")
 })
 
 test("pausing liveness stops the cards' polling; resuming refetches at once", async ({ page }) => {

@@ -1,5 +1,5 @@
 import { feedScript, type MockServer, pins, startMockServer } from "@keiro-ui/testing/node"
-import { fireEvent, screen, waitFor, within } from "@testing-library/react"
+import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react"
 import { afterAll, afterEach, beforeAll, expect, test } from "vitest"
 
 import { renderRoute } from "@/test/render-route"
@@ -73,6 +73,7 @@ test("the group page states the subscription limitation until one is given", asy
   fireEvent.click(within(choices).getByRole("button", { name: subscription! }))
   expect(await screen.findByTestId("max-distance")).toHaveTextContent("21")
   mock.reset()
+  cleanup()
   await renderRoute(`/projections/jitsurei-order-reporting?subscription=${subscription}`)
   expect(await screen.findByTestId("max-distance")).toHaveTextContent("21")
   const members = screen.getByRole("grid", { name: "Members" })
@@ -85,6 +86,7 @@ test("shards list subscriptions and, with one selected, its bucket ownership", a
   await screen.findByRole("grid", { name: "Sharded subscriptions" })
   expect(screen.queryByRole("grid", { name: "Ownership" })).toBeNull()
   mock.reset()
+  cleanup()
   await renderRoute(`/shards?subscription=${subscription}`)
   const ownership = await screen.findByRole("grid", { name: "Ownership" })
   expect(await within(ownership).findByText("worker-b")).toBeInTheDocument()

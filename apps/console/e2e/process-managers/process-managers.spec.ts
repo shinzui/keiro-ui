@@ -9,14 +9,16 @@ test("an instance shows its panels and links; an unknown correlation says so", a
     .getByRole("button", { name: "Open" })
     .click()
   await page.getByRole("link", { name: correlation_id!, exact: true }).click()
-  await expect(page).toHaveURL(`/process-managers/${process_manager}/${correlation_id}`)
+  await expect(page).toHaveURL(
+    `/process-managers/${process_manager}/${correlation_id}?target=same-origin`,
+  )
   await expect(page.getByRole("region", { name: "Waiting for" })).toContainText(
     "ObserveFulfillmentEvent → FulfillmentIdle",
   )
   await expect(page.getByRole("region", { name: "Last reaction" })).toContainText("unavailable")
   await expect(
     page.getByRole("link", { name: `fulfillment-${correlation_id}` }).last(),
-  ).toHaveAttribute("href", `/streams/fulfillment-${correlation_id}`)
+  ).toHaveAttribute("href", `/streams/fulfillment-${correlation_id}?target=same-origin`)
   // Recents now offer the manager on the index.
   await page.getByRole("link", { name: "Process managers" }).first().click()
   await expect(page.getByRole("region", { name: "Recently opened" })).toContainText(

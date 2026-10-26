@@ -1,3 +1,4 @@
+import { useSurfaceAvailable } from "@keiro-ui/client-core"
 import { ToggleGroup, ToggleGroupItem } from "@keiro-ui/ui/components/toggle-group"
 
 import { CursorPager } from "@/components/CursorPager"
@@ -7,7 +8,7 @@ import { useCursorTrail } from "@/features/streams/useCursorTrail"
 import { useStreamEvents } from "./queries"
 
 /** The aggregate's raw events from kiroku; a row opens the `event` sheet. */
-export function StreamEventsPane({
+function ConfiguredStreamEventsPane({
   streamName,
   from,
   direction,
@@ -53,5 +54,13 @@ export function StreamEventsPane({
         itemCount={events.data?.items.length}
       />
     </section>
+  )
+}
+
+export function StreamEventsPane(props: Parameters<typeof ConfiguredStreamEventsPane>[0]) {
+  return useSurfaceAvailable("kiroku") ? (
+    <ConfiguredStreamEventsPane {...props} />
+  ) : (
+    <p className="p-4">Raw events: Not configured for this application</p>
   )
 }

@@ -24,7 +24,7 @@ test("the palette jumps to a processor whose Control card reads disabled", async
   await open(page, "/")
   const { processor } = await pins(page, "shibuya")
   await jump(page, `processor ${processor}`)
-  await expect(page).toHaveURL(`/processors/${processor}`)
+  await expect(page).toHaveURL(`/processors/${processor}?target=same-origin`)
   await expect(page.getByRole("region", { name: "Control" })).toContainText("Control enabled: no")
   await expect(
     page.getByRole("region", { name: "Control" }).getByRole("button", { name: "Pause" }),

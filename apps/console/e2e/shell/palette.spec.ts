@@ -5,7 +5,7 @@ test("⌘K navigates to a page by its title", async ({ page }) => {
   await openPalette(page)
   await page.keyboard.type("subs")
   await page.keyboard.press("Enter")
-  await expect(page).toHaveURL(/\/subscriptions$/)
+  await expect(page).toHaveURL(/\/subscriptions\?target=same-origin$/)
   await expect(page.getByRole("dialog")).toHaveCount(0)
 })
 
@@ -15,7 +15,7 @@ test("a typed entity identifier jumps, and the visit appears under Recent", asyn
   await page.keyboard.type("workflow billing/inv-7")
   await expect(page.getByRole("menuitem", { name: "Open workflow billing / inv-7" })).toBeVisible()
   await page.keyboard.press("Enter")
-  await expect(page).toHaveURL(/\/workflows\/billing\/inv-7$/)
+  await expect(page).toHaveURL(/\/workflows\/billing\/inv-7\?target=same-origin$/)
 
   // The Workflows section sidebar lists the visit under Recent.
   await expect(page.getByRole("link", { name: "billing / inv-7" })).toBeVisible()

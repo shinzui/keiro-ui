@@ -15,6 +15,16 @@ async function stackAnswers(page: Page): Promise<boolean> {
 }
 
 test.describe("tier 1", () => {
+  test("optional catalog absence is a real 404 at the asset base", async ({ request }) => {
+    test.skip(
+      !!process.env.CONSOLE_EXTERNAL_URL,
+      "An external deployment may supply its own catalog",
+    )
+    const response = await request.get("console-config.json")
+    expect(response.status()).toBe(404)
+    expect(response.headers()["cache-control"]).toBe("no-store")
+    expect(await response.text()).not.toContain("<html")
+  })
   test("serves the shell at the deployment base", async ({ page }) => {
     await page.goto("./")
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(

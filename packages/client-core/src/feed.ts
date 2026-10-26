@@ -118,11 +118,12 @@ export function openFeed<SubscribeArgs = void>(
   }
 
   const connect = () => {
+    if (closedByUser) return
     serverGoodbye = false
     const current = new Socket(options.url)
     socket = current
     current.addEventListener("open", () => {
-      if (socket !== current) return
+      if (closedByUser || socket !== current) return
       setStatus("open")
       for (const args of subscriptions) sendRaw(dialect.subscribe(args))
       if (connectedOnce) options.onResync({ code: "reconnected" })
@@ -133,7 +134,7 @@ export function openFeed<SubscribeArgs = void>(
       }, resetAfterMs)
     })
     current.addEventListener("message", (event: MessageEvent) => {
-      if (socket !== current || typeof event.data !== "string") return
+      if (closedByUser || socket !== current || typeof event.data !== "string") return
       let value: unknown
       try {
         value = parseJsonLossless(event.data)
@@ -143,7 +144,7 @@ export function openFeed<SubscribeArgs = void>(
       if (isFrame(value)) dispatch(value)
     })
     current.addEventListener("close", () => {
-      if (socket !== current) return
+      if (closedByUser || socket !== current) return
       clearTimeout(resetTimer)
       socket = null
       if (closedByUser) {
@@ -179,7 +180,8 @@ export function openFeed<SubscribeArgs = void>(
       clearTimeout(reconnectTimer)
       clearTimeout(resetTimer)
       if (socket) socket.close()
-      else setStatus("closed")
+      socket = null
+      setStatus("closed")
     },
   }
 }

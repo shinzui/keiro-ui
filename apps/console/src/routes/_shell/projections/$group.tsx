@@ -1,3 +1,4 @@
+import { useSurfaceAvailable } from "@keiro-ui/client-core"
 import { useKirokuCheckpoints } from "@keiro-ui/client-kiroku"
 import { Button } from "@keiro-ui/ui/components/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@keiro-ui/ui/components/card"
@@ -159,6 +160,7 @@ function FeedingSubscription({
   // The durable subscriptions kiroku knows, offered as choices: the operator picks, the console
   // never assumes which one feeds the group (keiro IR-57 asks keiro to say).
   const inventory = useKirokuCheckpoints()
+  const kirokuConfigured = useSurfaceAvailable("kiroku")
   const known = [
     ...new Set((inventory.data?.checkpoints ?? []).map((c) => c.subscription)),
   ].toSorted()
@@ -183,6 +185,9 @@ function FeedingSubscription({
           Show checkpoints
         </Button>
       </form>
+      {!kirokuConfigured && (
+        <p>Known subscriptions: Not configured for this application (kiroku).</p>
+      )}
       {known.length > 0 && (
         <div
           className="flex flex-wrap items-center gap-1.5 text-xs"

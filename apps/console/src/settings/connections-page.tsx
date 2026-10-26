@@ -16,6 +16,7 @@ import {
   surfaces,
   useConnectionProfiles,
 } from "./connection-profiles"
+import { LocalTargetSettings, useTargetSelection } from "./target-selection"
 
 const blankOrigins: Record<Surface, string> = { kiroku: "", shibuya: "", pgmq: "", keiro: "" }
 
@@ -204,7 +205,7 @@ function ImportExport() {
   )
 }
 
-export function ConnectionsPage() {
+function LegacyConnectionsPage() {
   const { profiles, active, setActive, upsert, remove } = useConnectionProfiles()
   const [editing, setEditing] = useState<ConnectionProfile | null>(null)
 
@@ -281,4 +282,8 @@ export function ConnectionsPage() {
       </div>
     </>
   )
+}
+
+export function ConnectionsPage() {
+  return useTargetSelection() ? <LocalTargetSettings /> : <LegacyConnectionsPage />
 }

@@ -15,12 +15,13 @@ import { useEffect, useState } from "react"
 import { formatRelativeTime } from "@/lib/format"
 import { navigateToHref } from "@/lib/href"
 import { surfaces, type Surface, useConnectionProfiles } from "@/settings/connection-profiles"
+import { TargetSelectors, useTargetSelection } from "@/settings/target-selection"
 
 import { useCommandPalette } from "./command-palette"
 import { type HealthStatus, useSurfaceHealth } from "./health"
 import { useLiveness } from "./liveness"
 
-export function ConnectionSwitcher() {
+function LegacyConnectionSwitcher() {
   const router = useRouter()
   const { profiles, active, setActive } = useConnectionProfiles()
   return (
@@ -56,7 +57,7 @@ function HealthDot({ surface }: { surface: Surface }) {
   const probe = useSurfaceHealth(surface)
   const details = [
     surface,
-    probe.status,
+    probe.url ? probe.status : "Not configured for this application",
     probe.latencyMs !== undefined ? `${probe.latencyMs} ms` : undefined,
     probe.httpStatus !== undefined && probe.status !== "up"
       ? `HTTP ${probe.httpStatus}`
@@ -147,4 +148,8 @@ export function PaletteHint() {
       <Kbd>⌘K</Kbd>
     </Button>
   )
+}
+
+export function ConnectionSwitcher() {
+  return useTargetSelection() ? <TargetSelectors /> : <LegacyConnectionSwitcher />
 }

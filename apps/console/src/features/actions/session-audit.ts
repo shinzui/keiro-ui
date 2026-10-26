@@ -8,6 +8,7 @@ export interface AuditEntry {
   target: string
   outcome: string
   exitCode?: number
+  connection?: import("@/settings/connection-session").SessionToken["identity"]
   at: string
 }
 

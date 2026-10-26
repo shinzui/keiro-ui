@@ -6,6 +6,7 @@ import {
 import { useMemo } from "react"
 import { z } from "zod"
 
+import { useSurfaceAvailable } from "./availability"
 import type { ApiError } from "./errors"
 import { usePollInterval } from "./live"
 import type { Surface } from "./surface"
@@ -56,6 +57,7 @@ export function useCursorPages<T, C>(options: {
   enabled?: boolean
   poll?: number | false
 }): UseInfiniteQueryResult<InfiniteData<Page<T, C>>, ApiError> & { items: T[]; hasMore: boolean } {
+  const available = useSurfaceAvailable(options.surface)
   const { measure, refetchInterval } = usePollInterval(options.surface, options.poll)
   const result = useInfiniteQuery<
     Page<T, C>,
@@ -65,7 +67,7 @@ export function useCursorPages<T, C>(options: {
     C | undefined
   >({
     queryKey: options.queryKey,
-    enabled: options.enabled,
+    enabled: available && options.enabled !== false,
     initialPageParam: undefined,
     getNextPageParam: (last) => last.nextCursor,
     queryFn: ({ pageParam, signal }) =>

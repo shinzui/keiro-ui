@@ -11,7 +11,7 @@ test("the queue list leads with the oldest age and sorts by a header through the
   await expect(first).toContainText("dlq_orders")
   await expect(table.getByRole("row").last()).toContainText("empty")
   await table.getByRole("columnheader", { name: /Visible/ }).click()
-  await expect(page).toHaveURL(/\/queues\?sort=visible&dir=desc$/)
+  await expect(page).toHaveURL(/\/queues\?target=same-origin&sort=visible&dir=desc$/)
   await expect(table.getByRole("row").nth(1)).toContainText("console_demo")
   await page.getByRole("textbox", { name: "Filter queues" }).fill("dlq")
   await expect(page).toHaveURL(/q=dlq/)
@@ -35,7 +35,9 @@ test("a sheet URL reopens the message; Escape closes it; the full page shows the
     `/queues/${pgmq.dlq_queue}?sheet=queue-message:${pgmq.dlq_queue}/${pgmq.dlq_msg_id}`,
   )
   await page.getByRole("dialog").getByRole("link", { name: "Open full page" }).click()
-  await expect(page).toHaveURL(`/queues/${pgmq.dlq_queue}/messages/${pgmq.dlq_msg_id}`)
+  await expect(page).toHaveURL(
+    `/queues/${pgmq.dlq_queue}/messages/${pgmq.dlq_msg_id}?target=same-origin`,
+  )
   const panel = page.getByRole("region", { name: "Dead letter", exact: true })
   await expect(panel).toContainText("poison_message")
   await expect(panel).toContainText("Redrive is not available")
@@ -59,7 +61,7 @@ test("the metrics header follows the queue's feed and shows the newest source", 
   // poll, then notify: the header ends on the notify-sourced update.
   await feedScript(page, "pgmq", { append: 2, intervalMs: 50 })
   await jump(page, `queue ${queue}`)
-  await expect(page).toHaveURL(`/queues/${queue}`)
+  await expect(page).toHaveURL(`/queues/${queue}?target=same-origin`)
   const source = page.getByTestId("metrics-source")
   await expect(source).toContainText("notify")
   await expect(source).toContainText("notify-assisted")

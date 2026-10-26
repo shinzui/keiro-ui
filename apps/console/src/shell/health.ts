@@ -75,6 +75,7 @@ export async function probeHealth(
 export function useSurfaceHealth(surface: Surface): HealthProbe {
   const baseUrl = useSurfaceBaseUrl(surface)
   const query = useQuery({
+    enabled: !!baseUrl,
     queryKey: ["shell", "health", surface, baseUrl],
     queryFn: ({ signal }) => probeHealth(surface, baseUrl, signal),
     refetchInterval: 30_000,
@@ -86,7 +87,7 @@ export function useSurfaceHealth(surface: Surface): HealthProbe {
       surface,
       status: "unknown",
       checkedAt: new Date(0).toISOString(),
-      url: healthProbeUrl(surface, baseUrl),
+      url: baseUrl ? healthProbeUrl(surface, baseUrl) : undefined,
     }
   )
 }

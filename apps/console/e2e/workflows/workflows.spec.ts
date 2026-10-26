@@ -55,7 +55,7 @@ test("detail tabs follow the URL and the journal-entry sheet reopens after reloa
   await open(page, "/")
   const { workflow_name, workflow_id } = await pins(page, "keiro")
   await jump(page, `workflow ${workflow_name}/${workflow_id}`)
-  await expect(page).toHaveURL(`/workflows/${workflow_name}/${workflow_id}`)
+  await expect(page).toHaveURL(`/workflows/${workflow_name}/${workflow_id}?target=same-origin`)
   await page.getByRole("tab", { name: "Steps" }).click()
   await expect(page).toHaveURL(/tab=steps/)
   await expect(page.getByRole("grid", { name: "Steps" })).toContainText("charge")
@@ -69,7 +69,7 @@ test("detail tabs follow the URL and the journal-entry sheet reopens after reloa
   await page.keyboard.press("Escape")
   await page.getByRole("tab", { name: "Children" }).click()
   await page.getByRole("link", { name: `${workflow_id}-ship` }).click()
-  await expect(page).toHaveURL(`/workflows/ship-order/${workflow_id}-ship`)
+  await expect(page).toHaveURL(`/workflows/ship-order/${workflow_id}-ship?target=same-origin`)
 })
 
 test("sidebar presets and recents", async ({ page }) => {

@@ -1,5 +1,14 @@
 import { expect, test } from "./fixtures"
 
+test("absent optional catalog is a real 404 before legacy development boot", async ({
+  page,
+  request,
+}) => {
+  expect((await request.get("/console-config.json")).status()).toBe(404)
+  await page.goto("/")
+  await expect(page.getByRole("combobox", { name: "Application" })).toHaveValue("same-origin")
+})
+
 test("four health dots probe the same-origin URLs", async ({ page }) => {
   await page.goto("/")
   const dots = page.locator("[data-surface]")
@@ -14,34 +23,33 @@ test("four health dots probe the same-origin URLs", async ({ page }) => {
   )
 })
 
-test("a separate profile changes the probed health URL", async ({ page }) => {
+test("a local target changes the probed health URL and accepts base paths", async ({ page }) => {
   await page.goto("/settings/connections")
-  await page.getByRole("button", { name: "New profile" }).click()
-  const form = page.getByRole("form", { name: "Connection profile" })
-  await form.getByLabel("Name", { exact: true }).fill("Local ports")
-  await form.getByLabel("kiroku origin").fill("http://127.0.0.1:9091/api")
-  await form.getByRole("button", { name: "Save" }).click()
-  await expect(form.getByText("Origin must not contain a path")).toBeVisible()
-
-  await form.getByLabel("kiroku origin").fill("http://127.0.0.1:9091")
-  await form.getByLabel("shibuya origin").fill("http://127.0.0.1:9090")
-  await form.getByLabel("pgmq origin").fill("http://127.0.0.1:9095")
-  await form.getByLabel("keiro origin").fill("http://127.0.0.1:9093")
-  await form.getByRole("button", { name: "Save" }).click()
-  await expect(form).toHaveCount(0)
-
+  await page.getByRole("button", { name: "New local target" }).click()
+  const json = page.getByRole("textbox", { name: "Connections JSON" })
+  await json.fill(
+    JSON.stringify({
+      id: "local-ports",
+      label: "Local ports",
+      app: "local",
+      environment: "dev",
+      surfaces: {
+        kiroku: "http://127.0.0.1:9091/api",
+        shibuya: "http://127.0.0.1:9090",
+        pgmq: "http://127.0.0.1:9095",
+        keiro: "http://127.0.0.1:9093",
+      },
+    }),
+  )
+  await page.getByRole("button", { name: "Save target", exact: true }).click()
   const probe = page.waitForRequest("http://127.0.0.1:9095/health/live")
-  await page
-    .getByRole("listitem")
-    .filter({ hasText: "Local ports" })
-    .getByRole("button", { name: "Use this profile" })
-    .click()
+  await page.getByRole("combobox", { name: "Application" }).selectOption("local-ports")
   await probe
   await expect(page.locator('[data-surface="pgmq"]')).toHaveAttribute(
     "data-url",
     "http://127.0.0.1:9095/health/live",
   )
-  await expect(page.getByRole("button", { name: "Connection profile: Local ports" })).toBeVisible()
+  await expect(page.getByRole("combobox", { name: "Application" })).toHaveValue("local-ports")
 })
 
 test("pause and resume flip the bottom bar label", async ({ page }) => {

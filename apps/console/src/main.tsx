@@ -1,9 +1,11 @@
-import "./styles.css"
 import { RouterProvider } from "@tanstack/react-router"
+
+import "./styles.css"
 import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
 
 import { router } from "./router"
+import { RuntimeConfigLoader } from "./settings/runtime-config-provider"
 
 async function main() {
   // VITE_MOCK=1 serves recorded fixtures through MSW instead of the live surfaces. The
@@ -18,7 +20,9 @@ async function main() {
 
   createRoot(root).render(
     <StrictMode>
-      <RouterProvider router={router} />
+      <RuntimeConfigLoader>
+        <RouterProvider router={router} />
+      </RuntimeConfigLoader>
     </StrictMode>,
   )
 }

@@ -43,7 +43,7 @@ test("every placeholder route renders a page header", async ({ page }) => {
 
 test("/settings redirects to /settings/connections", async ({ page }) => {
   await page.goto("/settings")
-  await expect(page).toHaveURL(/\/settings\/connections$/)
+  await expect(page).toHaveURL(/\/settings\/connections\?target=same-origin$/)
 })
 
 test("the rail highlights the section and switches sidebar entries", async ({ page }) => {
@@ -51,13 +51,13 @@ test("the rail highlights the section and switches sidebar entries", async ({ pa
   const rail = page.getByRole("navigation", { name: "Sections" })
   await expect(rail.getByRole("link")).toHaveCount(8)
   await rail.getByRole("link", { name: "Streams & Subscriptions" }).click()
-  await expect(page).toHaveURL(/\/streams$/)
+  await expect(page).toHaveURL(/\/streams\?target=same-origin$/)
   await expect(rail.getByRole("link", { name: "Streams & Subscriptions" })).toHaveAttribute(
     "aria-current",
     "page",
   )
   await page.getByRole("link", { name: "Subscriptions", exact: true }).click()
-  await expect(page).toHaveURL(/\/subscriptions$/)
+  await expect(page).toHaveURL(/\/subscriptions\?target=same-origin$/)
   await expect(page.getByRole("heading", { level: 1, name: "Subscriptions" })).toBeVisible()
 })
 

@@ -10,7 +10,7 @@ test("kind → instance → browser with both panes, and the split survives a re
     .getByRole("link", { name: "order" })
     .first()
     .click()
-  await expect(page).toHaveURL("/aggregates/order")
+  await expect(page).toHaveURL("/aggregates/order?target=same-origin")
   await page.getByRole("link", { name: keiro.aggregate_id!, exact: true }).click()
   await expect(page.getByRole("region", { name: "Stream events" })).toContainText("OrderPlaced")
   await expect(page.getByRole("region", { name: "Folded state" })).toContainText(

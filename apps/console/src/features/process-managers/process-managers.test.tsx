@@ -56,7 +56,7 @@ test("the instance renders state, waiting-for, last reaction, and the journal li
   expect(reaction).toHaveTextContent("not reported")
   expect(screen.getByRole("link", { name: `fulfillment-${correlation_id}` })).toHaveAttribute(
     "href",
-    `/streams/fulfillment-${correlation_id}`,
+    `/streams/fulfillment-${correlation_id}?target=same-origin`,
   )
 })
 
@@ -117,5 +117,5 @@ test("the index never calls keiro and opens a typed name", async () => {
   fireEvent.change(input, { target: { value: "shipping" } })
   fireEvent.submit(screen.getByRole("form", { name: "Open a process manager" }))
   await waitFor(() => expect(router.state.location.pathname).toBe("/process-managers/shipping"))
-  expect(currentSearch(router)).toEqual({})
+  expect(currentSearch(router)).toEqual({ target: "same-origin" })
 })

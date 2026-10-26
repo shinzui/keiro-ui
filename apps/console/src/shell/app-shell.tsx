@@ -2,6 +2,8 @@ import { Sidebar, SidebarInset, SidebarProvider } from "@keiro-ui/ui/components/
 import { Outlet } from "@tanstack/react-router"
 import { useSyncExternalStore } from "react"
 
+import { SurfacePageBoundary } from "@/settings/connection-session"
+
 import { AboutSheet } from "./about-sheet"
 import { CommandPalette } from "./command-palette"
 import { createLocalStore } from "./local-store"
@@ -46,7 +48,9 @@ export function AppShell() {
       </Sidebar>
       <SidebarInset className="h-svh min-w-0">
         <div className="min-h-0 flex-1 overflow-auto">
-          <Outlet />
+          <SurfacePageBoundary>
+            <Outlet />
+          </SurfacePageBoundary>
         </div>
         <StatusBar
           connection={<ConnectionSwitcher />}

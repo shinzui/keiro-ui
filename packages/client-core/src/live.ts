@@ -18,6 +18,7 @@ import {
   useState,
 } from "react"
 
+import { useSurfaceAvailable } from "./availability"
 import { ApiError } from "./errors"
 import { type Dialect, type FeedStatus, type Frame, openFeed } from "./feed"
 import { surfaces, type Surface } from "./surface"
@@ -125,10 +126,12 @@ export function useSurfaceQuery<TData, TError = ApiError>(
   options: UseQueryOptions<TData, TError> & { surface: Surface; poll?: number | false },
 ): UseQueryResult<TData, TError> {
   const { surface, poll, queryFn, ...rest } = options
+  const available = useSurfaceAvailable(surface)
   const { paused, measure, refetchInterval } = usePollInterval(surface, poll)
   const result = useQuery<TData, TError>({
     retry: surfaceRetry,
     ...rest,
+    enabled: available ? rest.enabled : false,
     queryFn:
       typeof queryFn === "function"
         ? (context) =>
@@ -174,7 +177,8 @@ export function useFeedSubscription<SubscribeArgs = void>(options: {
   useEffect(() => {
     latest.current = options
   })
-  const active = options.enabled !== false && !paused
+  const available = useSurfaceAvailable(options.invalidate[0] as Surface)
+  const active = available && options.enabled !== false && !paused
   const subscriptionsKey = JSON.stringify(options.subscriptions ?? [], (_k, v: unknown) =>
     typeof v === "bigint" ? v.toString() : v,
   )
@@ -184,8 +188,9 @@ export function useFeedSubscription<SubscribeArgs = void>(options: {
   // subscriptions/invalidation key by value (callers pass fresh arrays every render).
   useEffect(() => {
     if (!active) return
+    let disposed = false
     const apply = (kind: "snapshot" | "delta" | "extra") => (frame: Frame) =>
-      latest.current.applyToCache(queryClient, frame, kind)
+      !disposed && latest.current.applyToCache(queryClient, frame, kind)
     const handle = openFeed<SubscribeArgs>({
       url: options.url,
       dialect: options.dialect,
@@ -195,13 +200,21 @@ export function useFeedSubscription<SubscribeArgs = void>(options: {
       onDelta: apply("delta"),
       onExtra: apply("extra"),
       onResync: (reason) => {
+        if (disposed) return
         void queryClient.invalidateQueries({ queryKey: [...latest.current.invalidate] })
         latest.current.onResync?.(reason)
       },
-      onError: (frame) => latest.current.onError?.(frame),
-      onStatus: (next) => setStatus(next),
+      onError: (frame) => {
+        if (!disposed) latest.current.onError?.(frame)
+      },
+      onStatus: (next) => {
+        if (!disposed) setStatus(next)
+      },
     })
-    return () => handle.close()
+    return () => {
+      disposed = true
+      handle.close()
+    }
     // oxlint-disable-next-line react/exhaustive-effect-dependencies -- keyed by value on purpose
   }, [active, options.url, options.dialect, subscriptionsKey, invalidateKey, queryClient])
 

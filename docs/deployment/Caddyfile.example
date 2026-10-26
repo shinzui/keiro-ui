@@ -3,6 +3,13 @@
 :8080 {
 	redir /console /console/ 301
 
+	handle /console/console-config.json {
+		root * /srv/console
+		rewrite * /console-config.json
+		header Cache-Control "no-store"
+		file_server
+	}
+
 	handle_path /console/* {
 		root * /srv/console
 		try_files {path} /index.html

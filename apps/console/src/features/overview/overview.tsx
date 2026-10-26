@@ -1,3 +1,4 @@
+import { useSurfaceAvailable, type Surface } from "@keiro-ui/client-core"
 import { isRouteUnavailable } from "@keiro-ui/client-keiro"
 import { Card, CardContent, CardHeader, CardTitle } from "@keiro-ui/ui/components/card"
 import {
@@ -295,15 +296,55 @@ export function Overview() {
     <div className="flex flex-col gap-6 p-6">
       <HealthStrip />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <QueuesCard />
-        <WorkflowsCard />
-        <ProjectionsCard />
-        <ProcessorsCard />
-        <StoreCard />
-        <AggregatesCard />
-        <TimersCard />
-        <KeiroHealthCard />
+        <AvailableSurface surface="pgmq" title="Queues">
+          <QueuesCard />
+        </AvailableSurface>
+        <AvailableSurface surface="keiro" title="Workflows">
+          <WorkflowsCard />
+        </AvailableSurface>
+        <AvailableSurface surface="keiro" title="Projections">
+          <ProjectionsCard />
+        </AvailableSurface>
+        <AvailableSurface surface="shibuya" title="Processors">
+          <ProcessorsCard />
+        </AvailableSurface>
+        <AvailableSurface surface="kiroku" title="Store">
+          <StoreCard />
+        </AvailableSurface>
+        <AvailableSurface surface="keiro" title="Aggregates & process managers">
+          <AggregatesCard />
+        </AvailableSurface>
+        <AvailableSurface surface="keiro" title="Timers">
+          <TimersCard />
+        </AvailableSurface>
+        <AvailableSurface surface="keiro" title="keiro health">
+          <KeiroHealthCard />
+        </AvailableSurface>
       </div>
     </div>
+  )
+}
+
+function AvailableSurface({
+  surface,
+  title,
+  children,
+}: {
+  surface: Surface
+  title: string
+  children: ReactNode
+}) {
+  return useSurfaceAvailable(surface) ? (
+    children
+  ) : (
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        Not configured for this application
+        {surface === "shibuya" && " · Select a worker if one is listed"}
+      </CardContent>
+    </Card>
   )
 }

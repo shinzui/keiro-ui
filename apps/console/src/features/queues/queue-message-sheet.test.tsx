@@ -28,7 +28,7 @@ test("a message archived since it was listed falls back to the archive route", a
   expect(within(dialog).getByTestId("message-id")).toHaveTextContent(archived_msg_id!)
   expect(within(dialog).getByRole("link", { name: "Open full page" })).toHaveAttribute(
     "href",
-    `/queues/${queue}/archive/${archived_msg_id}`,
+    `/queues/${queue}/archive/${archived_msg_id}?target=same-origin`,
   )
 })
 

@@ -9,6 +9,12 @@ server {
 
     location = /console { return 301 /console/; }
 
+    location = /console/console-config.json {
+        alias /srv/console/console-config.json;
+        default_type application/json;
+        add_header Cache-Control "no-store" always;
+    }
+
     location /console/ {
         alias /srv/console/;
         try_files $uri $uri/ /console/index.html;

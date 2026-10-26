@@ -34,7 +34,7 @@ test("the journal renders grouped steps with derived spans and opens the entry s
   expect(within(sheet).getByRole("heading", { name: "reserve-inventory" })).toBeInTheDocument()
   expect(within(sheet).getByRole("link", { name: "Open event" })).toHaveAttribute(
     "href",
-    `/events/${eventId}`,
+    `/events/${eventId}?target=same-origin`,
   )
 })
 
@@ -51,7 +51,7 @@ test("children link to the child's page; an unknown instance says so", async () 
   const table = await screen.findByRole("grid", { name: "Children" })
   expect(await within(table).findByRole("link", { name: `${workflow_id}-ship` })).toHaveAttribute(
     "href",
-    `/workflows/ship-order/${workflow_id}-ship`,
+    `/workflows/ship-order/${workflow_id}-ship?target=same-origin`,
   )
 })
 

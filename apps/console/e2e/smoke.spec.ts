@@ -1,5 +1,11 @@
 import { expect, test } from "@playwright/test"
 
+test("absent optional catalog permits legacy preview boot", async ({ page, request }) => {
+  expect((await request.get("/console-config.json")).status()).toBe(404)
+  await page.goto("/workflows")
+  await expect(page.getByRole("combobox", { name: "Application" })).toHaveValue("same-origin")
+})
+
 test.use({ colorScheme: "dark" })
 
 test("the production build renders the shell in Paper Mono, light by default", async ({ page }) => {

@@ -5,7 +5,7 @@ description: The console ships as a static bundle with a fixed asset base and ex
 docId: ADR-9
 status: Accepted
 date: 2026-10-21
-timestamp: 2026-10-26T16:38:54Z
+timestamp: 2026-10-26T18:44:00Z
 generated:
   by: claude-code/claude-opus-5-5
   at: 2026-10-21T22:40:00Z
@@ -53,9 +53,13 @@ Worker routing must select one logical replica or fail unavailable. Services sel
 workers cannot represent process-local Shibuya state. A stable replica name can survive a
 process restart, so it is not a process-incarnation guarantee for commands.
 
-This amendment records the agreed direction in
-[plan 20](../plans/20-connect-one-console-to-multiple-application-deployments.md); the catalog
-and Kubernetes recipe are not implemented merely by accepting this decision.
+The implementation in [plan 20](../plans/20-connect-one-console-to-multiple-application-deployments.md)
+supplies runtime configuration, explicit proxy fixtures and the hardened Kubernetes recipe.
+[ADR-15](0015-target-identity-and-disposable-connection-sessions.md) defines URL selection,
+cache lifetime and action attribution. The base image removes the official Caddy executable's
+inherited bind-port capability before dropping all container capabilities on port 8080.
+Local rendering and container checks establish repository acceptance; public gateway, policy,
+worker availability and rolling cluster behavior remain separate release prerequisites.
 
 The deployment is whatever sits in front of the surfaces: a reverse proxy serving the bundle with
 an SPA fallback and forwarding the four prefixes (recipe A), the application host's own static

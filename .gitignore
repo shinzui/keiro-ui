@@ -6,6 +6,7 @@ CLAUDE.local.md
 node_modules
 dist
 dist-production
+dist-multi-app
 .vite
 .tanstack/
 test-results/

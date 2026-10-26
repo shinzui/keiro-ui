@@ -1,10 +1,11 @@
 import { execSync } from "node:child_process"
-import { readFileSync } from "node:fs"
+import { readFileSync, existsSync } from "node:fs"
+import { resolve } from "node:path"
 
 import tailwindcss from "@tailwindcss/vite"
 import { tanstackRouter } from "@tanstack/router-plugin/vite"
 import react from "@vitejs/plugin-react"
-import { defineConfig } from "vite"
+import { defineConfig, type Plugin } from "vite"
 
 const appVersion: string = JSON.parse(
   readFileSync(new URL("./package.json", import.meta.url), "utf8"),
@@ -49,6 +50,47 @@ function basePath(): string {
   return leading.endsWith("/") ? leading : `${leading}/`
 }
 
+/** The optional catalog must never be answered by Vite's HTML fallback. */
+function runtimeCatalog(): Plugin {
+  let root = ""
+  let publicDir = ""
+  let outDir = ""
+  const install = (
+    server: { middlewares: { use: (handler: import("node:http").RequestListener) => unknown } },
+    directory: string,
+  ) => {
+    server.middlewares.use((req, res, next?: () => void) => {
+      if (req.url?.split("?")[0] !== `${basePath()}console-config.json`) {
+        next?.()
+        return
+      }
+      res.setHeader("Cache-Control", "no-store")
+      const file = resolve(directory, "console-config.json")
+      if (!existsSync(file)) {
+        res.statusCode = 404
+        res.end()
+        return
+      }
+      res.setHeader("Content-Type", "application/json")
+      res.end(readFileSync(file))
+    })
+  }
+  return {
+    name: "runtime-console-catalog",
+    configResolved(config) {
+      root = config.root
+      publicDir = config.publicDir
+      outDir = config.build.outDir
+    },
+    configureServer(server) {
+      install(server, publicDir)
+    },
+    configurePreviewServer(server) {
+      install(server, resolve(root, outDir))
+    },
+  }
+}
+
 export default defineConfig({
   base: basePath(),
   resolve: { tsconfigPaths: true },
@@ -56,7 +98,12 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(appVersion),
     __GIT_COMMIT__: JSON.stringify(gitCommit()),
   },
-  plugins: [tanstackRouter({ target: "react", autoCodeSplitting: true }), react(), tailwindcss()],
+  plugins: [
+    runtimeCatalog(),
+    tanstackRouter({ target: "react", autoCodeSplitting: true }),
+    react(),
+    tailwindcss(),
+  ],
   // Pre-bundled so the first visit to a route that uses it does not trigger a re-optimization
   // and reload (which left a second React copy in the page until the reload finished).
   optimizeDeps: { include: ["react-resizable-panels"] },

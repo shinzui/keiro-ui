@@ -91,7 +91,7 @@ function PaletteBody({ close }: { close: () => void }) {
   const navigate = useNavigate()
   const router = useRouter()
   const commands = useCommands()
-  const recent = useRecent({ limit: 20 })
+  const recent = useRecent({ limit: 20, allTargets: true })
   const { profiles, active, setActive } = useConnectionProfiles()
   const [input, setInput] = useState("")
   const [mode, setMode] = useState(() => {
@@ -107,7 +107,7 @@ function PaletteBody({ close }: { close: () => void }) {
         id: `recent:${visit.href}`,
         group: "recent",
         label: visit.label,
-        hint: visit.kind,
+        hint: `${visit.kind} · ${visit.app} · ${visit.environment}`,
         run: () => void navigateToHref(router, visit.href),
       })),
     [recent, router],

@@ -21,6 +21,11 @@ provenance:
       at: 2026-10-26T16:35:34Z
       mode: "update"
       note: "Add Kubernetes delivery and rollout acceptance; tighten worker identity, gateway policy, legacy migration and connection-session guarantees."
+    - model: "gpt-6.1-sol"
+      harness: "codex-cli"
+      at: 2026-10-26T18:23:38Z
+      mode: "implement"
+      note: "Implement runtime targets, isolated sessions, deployment fixtures and Kubernetes delivery."
   reviews:
     - model: "gpt-6-astra"
       harness: "codex-cli"
@@ -79,19 +84,31 @@ selected target; listing configured targets does not poll the whole fleet.
 ## Progress
 
 
-- [ ] Milestone 1: Runtime catalog and migrated local profiles resolve explicit, optional surface base URLs without changing legacy deployments.
-- [ ] Milestone 2: URLs, application and worker selectors, history, and shared links select the same target independently in each tab.
-- [ ] Milestone 3: Reads, caches, feeds, and unavailable-surface behavior remain isolated when targets or endpoints change.
-- [ ] Milestone 4: Confirmations, commands, recent items, pins, and audit entries preserve the originating application and worker.
+- [x] Milestone 1: Runtime catalog validation, strict local migration and normalized optional URLs implemented (2026-10-26); schema/loading regressions and exact-path dev/preview boot checks pass.
+- [x] Milestone 2: URL-authoritative app/worker selection, selectors, history and native links implemented (2026-10-26); route and real-proxy tab/reload tests pass.
+- [x] Milestone 3: Disposable connection caches, read cancellation, feed guards and optional-page/pane/sheet gates implemented (2026-10-26); delayed read/frame, endpoint-edit and repeated-switch regressions pass.
+- [x] Milestone 4: Session-bound confirmations, attributed late completion, scoped recents/pins and command lifetimes implemented (2026-10-26); focused settings/action/history checks pass (69 tests).
 - [ ] Milestone 5: One production bundle operates two applications through a real proxy, with packaged examples, documentation, and regression evidence.
 - [ ] Milestone 6: A hardened Kubernetes deployment recipe renders successfully, serves the same bundle and configuration in a local container smoke test, and documents cluster rollout, access-policy verification, and rollback.
 
-Planning is complete; implementation has not started. This is a standalone follow-on to the
+Milestones 1–4 are verified. The real-proxy suite passes seven cases, the full unit suite passed
+613 tests before the last three focused regressions, and the ordinary browser suite passed
+56 tests. Deployment packaging and final-candidate validation for milestones 5–6 are in progress. This is a standalone follow-on to the
 existing console, not a new child of the completed build-out in
 `docs/masterplans/2-build-the-keiro-runtime-console.md`.
 
 
 ## Surprises & Discoveries
+
+Implementation (2026-10-26): The existing Nix static image and container proxy example also
+needed the exact optional-catalog handler; otherwise their SPA fallback would turn the new
+boot request into invalid HTML. Updated those existing hosts alongside the planned Vite and
+single-application proxy paths. No dependency or upstream protocol changes were needed.
+
+Implementation (2026-10-26): The official Caddy image carries a privileged executable file
+capability. Dropping all container capabilities made the binary fail with “Operation not
+permitted”; remove its file capability during the image build for unprivileged port 8080.
+FRIC-5 in docs/friction-log/ records the occurrence; ADR-9 records the durable constraint.
 
 
 Review (2026-10-26): `connectionProfileSchema` in
@@ -107,6 +124,12 @@ Milestone 6 separates repository evidence from cluster release verification.
 
 
 ## Decision Log
+
+Decision (2026-10-26): Keep the shipped Kubernetes base deliberately non-pullable using a
+sentinel registry/image digest. A site overlay must supply the operator's published console
+manifest digest; this repository task builds and tests locally and does not publish to an
+external registry. The upstream Caddy base itself is pinned to the verified 2.11.7-alpine
+registry digest. Local acceptance does not authorize or certify a cluster rollout.
 
 
 Decision (2026-10-25): Keep a static console, a deployment-owned JSON catalog, and explicit

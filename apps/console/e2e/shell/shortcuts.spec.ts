@@ -16,7 +16,7 @@ test("[ collapses the sidebar, ? opens help, g s goes to Streams", async ({ page
 
   await page.keyboard.press("g")
   await page.keyboard.press("s")
-  await expect(page).toHaveURL(/\/streams$/)
+  await expect(page).toHaveURL(/\/streams\?target=same-origin$/)
 })
 
 test("shortcuts do not fire while typing in the palette", async ({ page }) => {
@@ -27,5 +27,5 @@ test("shortcuts do not fire while typing in the palette", async ({ page }) => {
   await page.keyboard.type("[g s?")
   await expect(input).toHaveValue("[g s?")
   await expect(sidebar).toHaveAttribute("data-state", "expanded")
-  await expect(page).toHaveURL(/\/$/)
+  await expect(page).toHaveURL(/\/\?target=same-origin$/)
 })

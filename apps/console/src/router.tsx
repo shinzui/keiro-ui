@@ -2,14 +2,11 @@ import { createRouter } from "@tanstack/react-router"
 
 import { bindLinkRouter } from "./lib/links"
 import { parseSearch, stringifySearch } from "./lib/search"
-import { createQueryClient } from "./query-client"
 import { routeTree } from "./routeTree.gen"
-
-export const queryClient = createQueryClient()
 
 export const router = createRouter({
   routeTree,
-  context: { queryClient },
+  context: {},
   // Set once at build time through VITE_BASE_PATH; the surfaces stay at absolute prefixes.
   basepath: import.meta.env.BASE_URL,
   parseSearch,

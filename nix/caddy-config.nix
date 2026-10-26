@@ -6,6 +6,10 @@ let
   quote = builtins.toJSON;
   static = ''
     root * ${quote root}
+    handle /console-config.json {
+      header Cache-Control "no-store"
+      file_server
+    }
     handle /assets/* {
       header Cache-Control "public, max-age=31536000, immutable"
       file_server

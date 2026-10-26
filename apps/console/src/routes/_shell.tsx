@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, retainSearchParams } from "@tanstack/react-router"
 
 import { AppShell } from "@/shell/app-shell"
 import { shellSearchSchema } from "@/shell/search"
@@ -7,5 +7,6 @@ import { shellSearchSchema } from "@/shell/search"
 // living beside it instead.
 export const Route = createFileRoute("/_shell")({
   validateSearch: shellSearchSchema,
+  search: { middlewares: [retainSearchParams(["target", "worker"])] },
   component: AppShell,
 })

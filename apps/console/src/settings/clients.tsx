@@ -6,6 +6,12 @@ import { type ReactNode, useMemo } from "react"
 
 import { useSurfaceBaseUrl } from "./connection-profiles"
 
+const unavailableFetch: typeof fetch = async () => {
+  throw new Error("Not configured for this application")
+}
+const optionsFor = (baseUrl: string) =>
+  baseUrl ? { baseUrl } : { baseUrl: "http://unconfigured.invalid", fetch: unavailableFetch }
+
 /**
  * Composes the four surface clients from the active connection profile; switching profiles
  * rebuilds them. Screens read them with useKirokuClient(), usePgmqClient(), ...
@@ -15,10 +21,10 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
   const pgmqUrl = useSurfaceBaseUrl("pgmq")
   const shibuyaUrl = useSurfaceBaseUrl("shibuya")
   const keiroUrl = useSurfaceBaseUrl("keiro")
-  const kiroku = useMemo(() => createKirokuClient({ baseUrl: kirokuUrl }), [kirokuUrl])
-  const pgmq = useMemo(() => createPgmqClient({ baseUrl: pgmqUrl }), [pgmqUrl])
-  const shibuya = useMemo(() => createShibuyaClient({ baseUrl: shibuyaUrl }), [shibuyaUrl])
-  const keiro = useMemo(() => createKeiroClient({ baseUrl: keiroUrl }), [keiroUrl])
+  const kiroku = useMemo(() => createKirokuClient(optionsFor(kirokuUrl)), [kirokuUrl])
+  const pgmq = useMemo(() => createPgmqClient(optionsFor(pgmqUrl)), [pgmqUrl])
+  const shibuya = useMemo(() => createShibuyaClient(optionsFor(shibuyaUrl)), [shibuyaUrl])
+  const keiro = useMemo(() => createKeiroClient(optionsFor(keiroUrl)), [keiroUrl])
   return (
     <KirokuClientProvider client={kiroku}>
       <PgmqClientProvider client={pgmq}>

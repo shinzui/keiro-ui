@@ -28,6 +28,12 @@ export function SessionAuditSheet(_props: SheetProps) {
               className="flex flex-col gap-0.5 rounded-md border p-2"
             >
               <span className="flex items-center gap-2">
+                {entry.connection && (
+                  <span>
+                    {entry.connection.app} · {entry.connection.environment}
+                    {entry.connection.workerId && ` · ${entry.connection.workerId}`}
+                  </span>
+                )}
                 <Badge variant="outline">{entry.surface}</Badge>
                 <span className="font-medium">{entry.action}</span>
                 <span className="font-mono text-xs break-all">{entry.target}</span>

@@ -6,13 +6,18 @@ generated:
   by: "codex-cli/gpt-6.1-sol"
   at: "2026-10-26T17:05:40Z"
 frictionId: FRIC-3
-status: logged
+status: "accepted"
 impact: detour
 kind: tooling
 origin: "mori://shinzui/keiro-ui"
 affects: "https://github.com/nlewo/nix2container"
 plan: "docs/plans/21-add-native-nix-builds-and-fast-docker-images-for-the-console.md"
 workaround: "Build the same pinned importer source as a uniquely named probe derivation, retaining the normal cached importer and reporting cached toolchain state explicitly."
+resolution: "Use a uniquely named pinned-helper build probe for compilation timing; do not claim byte reproducibility for the patched importer."
+amended:
+  - by: "codex-cli/gpt-6.1-sol"
+    at: "2026-10-26T17:07:12Z"
+    change: "The normal cached importer and produced static images remain unchanged; upstream helper determinism is outside this plan."
 ---
 # Patched Skopeo fails Nix rebuild byte comparison
 

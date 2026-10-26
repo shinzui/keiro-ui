@@ -1,5 +1,5 @@
 { lib, runCommand, caddy, callPackage, nix2container }:
-{ console, tag ? "dev" }:
+{ console, tag ? "dev", name ? "keiro-ui-console" }:
 let
   caddyConfig = callPackage ./caddy-config.nix { } { inherit (console) basePath; };
   runtimeLayer = nix2container.buildLayer { deps = [ caddy ]; };
@@ -15,13 +15,10 @@ let
     Cmd = [ "run" "--config" "/etc/caddy/Caddyfile" "--adapter" "caddyfile" ];
   };
   image = nix2container.buildImage {
-    name = "keiro-ui-console";
-    inherit tag config;
+    inherit name tag config;
     layers = [ runtimeLayer ];
     copyToRoot = root;
     maxLayers = 1;
   };
-in image // {
-  inherit console caddyConfig runtimeLayer root config;
-  passthru = image.passthru // { inherit console caddyConfig runtimeLayer root config; };
-}
+  extra = { inherit console caddyConfig runtimeLayer root config; };
+in image // extra // { passthru = image.passthru // extra; }

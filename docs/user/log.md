@@ -1,6 +1,7 @@
 # Bundle Update Log
 
 ## 2026-10-26
+* **Update**: Record verified Apple timing medians and first-use importer preparation costs without claiming Docker-daemon timing.
 * **Update**: Document native Nix packages, Linux and Apple container workflows, base-path customization, dependency regeneration and artifact smoke checks.
 
 ## 2026-10-21

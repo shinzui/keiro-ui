@@ -21,7 +21,7 @@
     # serves the composed-origin smoke test of docs/plans/18-package-the-console-for-deployment.md.
     # On NixOS, Playwright's downloaded Chromium does not start; set
     # PLAYWRIGHT_BROWSERS_PATH = "${pkgs.playwright-driver.browsers}" in a devShell override here.
-    bunProject.extraDevPackages = [ pkgs.nodejs_22 pkgs.caddy pkgs.process-compose bun2nix ];
+    bunProject.extraDevPackages = [ pkgs.nodejs_22 pkgs.caddy pkgs.process-compose pkgs.python3 bun2nix ];
     packages = {
       inherit bun2nix console;
       default = console;

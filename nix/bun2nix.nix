@@ -1,3 +1,4 @@
+# mori://nix-community/bun2nix, programs/bun2nix/src/lib.rs (artifact URI pending).
 # Release 2.1.2's decoder handles this lock's registry/workspace tuples, but its
 # top-level version gate predates Bun's v2 lockfiles. Keep the original lock intact.
 # The generation check and frozen sandbox installs exercise this compatibility patch.

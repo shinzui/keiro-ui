@@ -1,6 +1,7 @@
 # Bundle Update Log
 
 ## 2026-10-26
+* **Update**: Record the matched Apple image comparison supporting ADR-14 and retain the archive-free Nix image description as the default.
 * **Addition**: Add ADR-14: static Nix packages, frozen registry caches, identity and staging boundaries, layered Caddy images, and Linux/Apple coordination.
 * **Update**: Amend ADR-9 for planned multi-application base URLs and Kubernetes runtime configuration, routing, worker identity, and gateway boundaries.
 

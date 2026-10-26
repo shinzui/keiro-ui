@@ -5,7 +5,7 @@ description: Nix packages build the static console from a frozen Bun lock and sh
 docId: ADR-14
 status: Accepted
 date: 2026-10-26
-timestamp: 2026-10-26T17:03:00Z
+timestamp: 2026-10-26T17:24:00Z
 generated:
   by: codex-cli/gpt-6.1-sol
   at: 2026-10-26T17:03:00Z
@@ -39,7 +39,9 @@ new docs-only commit can rebuild the bundle even though a docs edit with a fixed
 preserves its derivation. `scripts/stage-console.sh` stages an existing build for both native
 packages and release archives without invoking the bundler.
 
-Linux images use nix2container with one stable Caddy runtime layer and a changing package and
+The matched Apple comparison retains nix2container: source-edit medians were 5.77 seconds
+versus 6.03 seconds for the corrected stream control, with host-specific variation. Linux
+images use nix2container with one stable Caddy runtime layer and a changing package and
 configuration layer. Caddy runs as `65532:65532` on HTTP port 8080, with admin, automatic HTTPS,
 and configuration persistence disabled. It needs no writable runtime directory. The served
 symlink targets `share/keiro-ui` in the exact native package. Inspection prefixes return 404

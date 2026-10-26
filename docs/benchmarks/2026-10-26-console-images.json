@@ -1,0 +1,314 @@
+{
+  "runtime": "apple",
+  "host": "Darwin yujin 27.0.0 Darwin Kernel Version 27.0.0: Tue Aug 11 21:06:40 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6050 arm64",
+  "linux": "Linux keiro-ui-plan21-linux 6.18.15 #1 SMP Tue Mar 17 01:36:53 UTC 2026 aarch64 GNU/Linux",
+  "nix": "nix (Nix) 2.35.2",
+  "runtime_version": "container CLI version 1.5.0 (build: release, commit: d265d66)",
+  "initial_cache_state": "existing shared Nix cache; no cache or image pruning",
+  "source_nonce": "45a13666",
+  "importer_rebuild_cached_dependencies_s": null,
+  "initial_run": {
+    "app_s": 1.0040948749519885,
+    "assembly_s": 0.9933695001527667,
+    "importer_realization_s": 1.0175674171186984,
+    "import_s": 0.3477530831005424,
+    "control_realization_s": 1.0318670410197228
+  },
+  "unchanged_app_s": 1.059868374839425,
+  "samples": [
+    {
+      "sample": 0,
+      "builder": "nix2container",
+      "console": "/nix/store/fjgnqjsnvaixwsx2x0ykisbqmlyfilrk-keiro-ui-console-0.1.0",
+      "identities": {
+        "cache": "/nix/store/7xc9igr5282l32ksiakb40sba5nmry7d-bun-cache.drv",
+        "console": "/nix/store/g50ns29gacls7xszch8v004fxzj3mvdq-keiro-ui-console-0.1.0.drv",
+        "image": "/nix/store/xy4d3vp2kannw6pk6nqscgx2m0vsdh5g-image-keiro-ui-console.json.drv",
+        "nodeModules": "/nix/store/bm3zk6xga2j640s4nwaxc4rfqjh6wjj5-console-node-modules-1.drv",
+        "runtime": "/nix/store/1asczl6f75nh56805fn3bhazz4y6gkwi-layers.json.drv"
+      },
+      "app_s": 2.8759922080207616,
+      "assembly_s": 1.6084812090266496,
+      "import_s": 1.428750874940306,
+      "assembly_import_s": 3.0372320839669555,
+      "total_s": 5.913224291987717
+    },
+    {
+      "sample": 0,
+      "builder": "dockerTools",
+      "console": "/nix/store/fjgnqjsnvaixwsx2x0ykisbqmlyfilrk-keiro-ui-console-0.1.0",
+      "identities": {
+        "cache": "/nix/store/7xc9igr5282l32ksiakb40sba5nmry7d-bun-cache.drv",
+        "console": "/nix/store/g50ns29gacls7xszch8v004fxzj3mvdq-keiro-ui-console-0.1.0.drv",
+        "image": "/nix/store/xy4d3vp2kannw6pk6nqscgx2m0vsdh5g-image-keiro-ui-console.json.drv",
+        "nodeModules": "/nix/store/bm3zk6xga2j640s4nwaxc4rfqjh6wjj5-console-node-modules-1.drv",
+        "runtime": "/nix/store/1asczl6f75nh56805fn3bhazz4y6gkwi-layers.json.drv"
+      },
+      "app_s": 2.8759922080207616,
+      "assembly_s": 1.8170588749926537,
+      "import_s": 1.3321459582075477,
+      "assembly_import_s": 3.1492048332002014,
+      "total_s": 6.025197041220963
+    },
+    {
+      "sample": 1,
+      "builder": "dockerTools",
+      "console": "/nix/store/pi0cz2rsxi1ak3yy9j1dhd1bp8byp6m0-keiro-ui-console-0.1.0",
+      "identities": {
+        "cache": "/nix/store/7xc9igr5282l32ksiakb40sba5nmry7d-bun-cache.drv",
+        "console": "/nix/store/m8v73nscmhzvv0xxzqvc8hc0ncs0k3pm-keiro-ui-console-0.1.0.drv",
+        "image": "/nix/store/3jbsmq0fizv65ka101gdzqqajaqlfnnq-image-keiro-ui-console.json.drv",
+        "nodeModules": "/nix/store/bm3zk6xga2j640s4nwaxc4rfqjh6wjj5-console-node-modules-1.drv",
+        "runtime": "/nix/store/1asczl6f75nh56805fn3bhazz4y6gkwi-layers.json.drv"
+      },
+      "app_s": 2.6783009998034686,
+      "assembly_s": 1.6839912089053541,
+      "import_s": 1.2544225410092622,
+      "assembly_import_s": 2.9384137499146163,
+      "total_s": 5.616714749718085
+    },
+    {
+      "sample": 1,
+      "builder": "nix2container",
+      "console": "/nix/store/pi0cz2rsxi1ak3yy9j1dhd1bp8byp6m0-keiro-ui-console-0.1.0",
+      "identities": {
+        "cache": "/nix/store/7xc9igr5282l32ksiakb40sba5nmry7d-bun-cache.drv",
+        "console": "/nix/store/m8v73nscmhzvv0xxzqvc8hc0ncs0k3pm-keiro-ui-console-0.1.0.drv",
+        "image": "/nix/store/3jbsmq0fizv65ka101gdzqqajaqlfnnq-image-keiro-ui-console.json.drv",
+        "nodeModules": "/nix/store/bm3zk6xga2j640s4nwaxc4rfqjh6wjj5-console-node-modules-1.drv",
+        "runtime": "/nix/store/1asczl6f75nh56805fn3bhazz4y6gkwi-layers.json.drv"
+      },
+      "app_s": 2.6783009998034686,
+      "assembly_s": 1.6363703329116106,
+      "import_s": 1.45036108372733,
+      "assembly_import_s": 3.0867314166389406,
+      "total_s": 5.765032416442409
+    },
+    {
+      "sample": 2,
+      "builder": "nix2container",
+      "console": "/nix/store/y8ab6i231iqva84zibys1kl5lkxiis0y-keiro-ui-console-0.1.0",
+      "identities": {
+        "cache": "/nix/store/7xc9igr5282l32ksiakb40sba5nmry7d-bun-cache.drv",
+        "console": "/nix/store/bsznmir2vjhfygb24klcil6048cvjlaz-keiro-ui-console-0.1.0.drv",
+        "image": "/nix/store/yrixqbrqgmqqz9g8gqiwmdi3lq4wzgbn-image-keiro-ui-console.json.drv",
+        "nodeModules": "/nix/store/bm3zk6xga2j640s4nwaxc4rfqjh6wjj5-console-node-modules-1.drv",
+        "runtime": "/nix/store/1asczl6f75nh56805fn3bhazz4y6gkwi-layers.json.drv"
+      },
+      "app_s": 2.547658000141382,
+      "assembly_s": 1.5670996669214219,
+      "import_s": 1.3601280408911407,
+      "assembly_import_s": 2.9272277078125626,
+      "total_s": 5.474885707953945
+    },
+    {
+      "sample": 2,
+      "builder": "dockerTools",
+      "console": "/nix/store/y8ab6i231iqva84zibys1kl5lkxiis0y-keiro-ui-console-0.1.0",
+      "identities": {
+        "cache": "/nix/store/7xc9igr5282l32ksiakb40sba5nmry7d-bun-cache.drv",
+        "console": "/nix/store/bsznmir2vjhfygb24klcil6048cvjlaz-keiro-ui-console-0.1.0.drv",
+        "image": "/nix/store/yrixqbrqgmqqz9g8gqiwmdi3lq4wzgbn-image-keiro-ui-console.json.drv",
+        "nodeModules": "/nix/store/bm3zk6xga2j640s4nwaxc4rfqjh6wjj5-console-node-modules-1.drv",
+        "runtime": "/nix/store/1asczl6f75nh56805fn3bhazz4y6gkwi-layers.json.drv"
+      },
+      "app_s": 2.547658000141382,
+      "assembly_s": 1.7164239999838173,
+      "import_s": 1.9215370418969542,
+      "assembly_import_s": 3.6379610418807715,
+      "total_s": 6.185619042022154
+    }
+  ],
+  "medians": {
+    "nix2container": {
+      "app_s": 2.6783009998034686,
+      "assembly_s": 1.6084812090266496,
+      "import_s": 1.428750874940306,
+      "assembly_import_s": 3.0372320839669555,
+      "total_s": 5.765032416442409
+    },
+    "dockerTools": {
+      "app_s": 2.6783009998034686,
+      "assembly_s": 1.7164239999838173,
+      "import_s": 1.3321459582075477,
+      "assembly_import_s": 3.1492048332002014,
+      "total_s": 6.025197041220963
+    }
+  },
+  "layer_evidence": {
+    "first-import": {
+      "architecture": "arm64",
+      "layers": [
+        "sha256:37431074d2280afbd6e16d8d84ee514b8d4fad1939d930dd3274ce38b964e1c4",
+        "sha256:5e949c78c6b9b4d8dad0a35517e28064cafc7e2cc6258a1f3cee03ca053ff3e8"
+      ],
+      "media_types": [
+        "application/vnd.oci.image.layer.v1.tar+gzip",
+        "application/vnd.oci.image.layer.v1.tar+gzip"
+      ],
+      "blob_bytes": 32715193
+    },
+    "first-control-import": {
+      "architecture": "arm64",
+      "layers": [
+        "sha256:f4ec87e5f7ecff4b10a9f02c07689102f6550fa20cb0ceda01f1dc3626ab7bac",
+        "sha256:f003e077fcffe7c286bb778c1514ebe6c7388d057e705b8bc43d6be413837a43",
+        "sha256:a82d35393037befcae79a21eeabf0a998a64d87689f85cb4bfe99c5f65f0cebc"
+      ],
+      "media_types": [
+        "application/vnd.oci.image.layer.v1.tar+gzip",
+        "application/vnd.oci.image.layer.v1.tar+gzip",
+        "application/vnd.oci.image.layer.v1.tar+gzip"
+      ],
+      "blob_bytes": 32750408
+    },
+    "edit-0-nix2container": {
+      "architecture": "arm64",
+      "layers": [
+        "sha256:37431074d2280afbd6e16d8d84ee514b8d4fad1939d930dd3274ce38b964e1c4",
+        "sha256:3b754c478ed28008691d20214ee1e4c92069c692a393ac6419f9da22055704f8"
+      ],
+      "media_types": [
+        "application/vnd.oci.image.layer.v1.tar+gzip",
+        "application/vnd.oci.image.layer.v1.tar+gzip"
+      ],
+      "blob_bytes": 32715199
+    },
+    "edit-0-dockerTools": {
+      "architecture": "arm64",
+      "layers": [
+        "sha256:f4ec87e5f7ecff4b10a9f02c07689102f6550fa20cb0ceda01f1dc3626ab7bac",
+        "sha256:f003e077fcffe7c286bb778c1514ebe6c7388d057e705b8bc43d6be413837a43",
+        "sha256:c1f0630277fe4b48c37d90892dfebeef4b575d5a25cb049d3a42a02684a19f90"
+      ],
+      "media_types": [
+        "application/vnd.oci.image.layer.v1.tar+gzip",
+        "application/vnd.oci.image.layer.v1.tar+gzip",
+        "application/vnd.oci.image.layer.v1.tar+gzip"
+      ],
+      "blob_bytes": 32750393
+    },
+    "edit-1-dockerTools": {
+      "architecture": "arm64",
+      "layers": [
+        "sha256:f4ec87e5f7ecff4b10a9f02c07689102f6550fa20cb0ceda01f1dc3626ab7bac",
+        "sha256:f003e077fcffe7c286bb778c1514ebe6c7388d057e705b8bc43d6be413837a43",
+        "sha256:070d3ffedd2cb773945f99e9d76d492f205b1db90ee57a2e45cfdd363a19bad8"
+      ],
+      "media_types": [
+        "application/vnd.oci.image.layer.v1.tar+gzip",
+        "application/vnd.oci.image.layer.v1.tar+gzip",
+        "application/vnd.oci.image.layer.v1.tar+gzip"
+      ],
+      "blob_bytes": 32750353
+    },
+    "edit-1-nix2container": {
+      "architecture": "arm64",
+      "layers": [
+        "sha256:37431074d2280afbd6e16d8d84ee514b8d4fad1939d930dd3274ce38b964e1c4",
+        "sha256:2a645511b17fdc71f270b43e0713c27291067f826475d8ba5c04f085669087a1"
+      ],
+      "media_types": [
+        "application/vnd.oci.image.layer.v1.tar+gzip",
+        "application/vnd.oci.image.layer.v1.tar+gzip"
+      ],
+      "blob_bytes": 32714876
+    },
+    "edit-2-nix2container": {
+      "architecture": "arm64",
+      "layers": [
+        "sha256:37431074d2280afbd6e16d8d84ee514b8d4fad1939d930dd3274ce38b964e1c4",
+        "sha256:239d0fdc87a73c5efd03a9d982f921f0b26d7abfafd74c148da90fdd1bfb96c8"
+      ],
+      "media_types": [
+        "application/vnd.oci.image.layer.v1.tar+gzip",
+        "application/vnd.oci.image.layer.v1.tar+gzip"
+      ],
+      "blob_bytes": 32714611
+    },
+    "edit-2-dockerTools": {
+      "architecture": "arm64",
+      "layers": [
+        "sha256:f4ec87e5f7ecff4b10a9f02c07689102f6550fa20cb0ceda01f1dc3626ab7bac",
+        "sha256:f003e077fcffe7c286bb778c1514ebe6c7388d057e705b8bc43d6be413837a43",
+        "sha256:e2b8afeda22e92332970bbf0c2362f36382c8949c48c3f33fa78ae73114138a6"
+      ],
+      "media_types": [
+        "application/vnd.oci.image.layer.v1.tar+gzip",
+        "application/vnd.oci.image.layer.v1.tar+gzip",
+        "application/vnd.oci.image.layer.v1.tar+gzip"
+      ],
+      "blob_bytes": 32750107
+    }
+  },
+  "final_image": [
+    {
+      "configuration": {
+        "creationDate": "0001-01-01T00:00:00Z",
+        "descriptor": {
+          "digest": "sha256:103ba5a6379c2e5780e046818c9f6e86097b6e0381adcee5aaef54d76474cc74",
+          "mediaType": "application/vnd.oci.image.index.v1+json",
+          "size": 439
+        },
+        "name": "keiro-ui-console:benchmark"
+      },
+      "id": "103ba5a6379c2e5780e046818c9f6e86097b6e0381adcee5aaef54d76474cc74",
+      "variants": [
+        {
+          "config": {
+            "architecture": "arm64",
+            "config": {
+              "Cmd": [
+                "run",
+                "--config",
+                "/etc/caddy/Caddyfile",
+                "--adapter",
+                "caddyfile"
+              ],
+              "Entrypoint": [
+                "/nix/store/qj3d2fcjjcsgvnf3l74sj6vdyzza78zq-caddy-2.11.7/bin/caddy"
+              ],
+              "User": "65532:65532"
+            },
+            "created": "0001-01-01T00:00:00Z",
+            "history": [
+              {
+                "created_by": "nix2container"
+              },
+              {
+                "created_by": "nix2container"
+              }
+            ],
+            "os": "linux",
+            "rootfs": {
+              "diff_ids": [
+                "sha256:37431074d2280afbd6e16d8d84ee514b8d4fad1939d930dd3274ce38b964e1c4",
+                "sha256:239d0fdc87a73c5efd03a9d982f921f0b26d7abfafd74c148da90fdd1bfb96c8"
+              ],
+              "type": "layers"
+            }
+          },
+          "digest": "sha256:cd618efb5ccf41b50a0ed5199a7574df23ab59166d82740313fb201f7ce51e5d",
+          "platform": {
+            "architecture": "arm64",
+            "os": "linux"
+          },
+          "size": 32715725
+        }
+      ]
+    }
+  ],
+  "coordinator": {
+    "cpus": 8,
+    "memory_gib": 16,
+    "architecture": "aarch64-linux",
+    "runtime": "Apple containers"
+  },
+  "supplemental_importer_probe": {
+    "seconds": 26.36776199983433,
+    "dependency_state": "cached toolchain; newly named pinned Skopeo derivation",
+    "scope": "Separate compilation probe during this session, outside warm samples",
+    "command_option": "--rebuild-importer"
+  },
+  "interpretation": "Retain nix2container: matched assembly/import and source-edit medians favor it on this Apple OCI workflow. These measurements do not establish Docker-daemon import performance."
+}

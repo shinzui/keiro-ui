@@ -24,23 +24,10 @@ let
   image = pkgs.callPackage ./container.nix {
     nix2container = flake.inputs.nix2container.packages.${system}.nix2container;
   } { inherit console; tag = "benchmark"; };
-  runtime = pkgs.dockerTools.buildLayeredImage {
-    name = "keiro-ui-benchmark-runtime";
-    tag = "fixed";
-    contents = [ pkgs.caddy ];
-    maxLayers = 2;
-    compressor = "none";
+  control = pkgs.callPackage ./benchmarks/stream-container.nix { } {
+    inherit (image) console caddyConfig config;
   };
-  control = pkgs.dockerTools.streamLayeredImage {
-    name = "keiro-ui-console-control";
-    tag = "benchmark";
-    fromImage = runtime;
-    contents = [ image.root ];
-    inherit (image) config;
-    # Two stable base layers, one payload layer, one customization layer.
-    maxLayers = 4;
-    created = "0001-01-01T00:00:00Z";
-  };
+  runtime = control.runtimeArchive;
 in {
   inherit console image control runtime;
   skopeo = flake.inputs.nix2container.packages.${system}.skopeo-nix2container;

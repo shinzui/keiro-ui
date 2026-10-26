@@ -3,7 +3,7 @@ type: Guide
 title: Deploying the keiro runtime console
 description: Serve the static console bundle at any base path and make the four inspection surfaces reachable from it, on one origin behind a proxy, on a composing host, or on separate origins.
 docId: DOC-3
-timestamp: 2026-10-26T17:00:00Z
+timestamp: 2026-10-26T17:24:00Z
 tags: [deployment, reverse-proxy, cors, base-path, operator-actions]
 generated:
   by: claude-code/claude-opus-5-5
@@ -160,8 +160,8 @@ the generation check validate the generated cache. Update helper pins deliberate
 `flake.nix`; retain the Seihou-managed nixpkgs/Bun pin unless a coordinated upgrade is needed.
 Ordinary builds use only hash-verified registry downloads and their prepared local cache.
 
-The smoke script requires the developer dependencies and Playwright's Chromium installed on
-the host. It tests the imported artifact without rebuilding it. An already running deployment
+The smoke and benchmark scripts require Python 3 (provided by `nix develop`), the developer
+dependencies, and Playwright's Chromium installed on the host. It tests the imported artifact without rebuilding it. An already running deployment
 can also be checked directly:
 
 ```bash
@@ -174,7 +174,12 @@ APPLE_NIX_CONTAINER=keiro-ui-linux APPLE_NIX_EXCHANGE=/tmp/keiro-ui-images \
 ```
 
 Supply the package's exact revision, obtainable with `nix eval --raw .#console.gitCommit` for
-a Git-flake build. Benchmark reports preserve first-use/cached tool state, phase logs, three
+a Git-flake build. The verified ARM64 Apple workflow measured 5.77 seconds median for a fresh UI edit through
+import, versus 6.03 seconds for the matched streamed control. Patched importer compilation
+took 26.37 seconds in a separate probe with cached dependencies; warm timing excludes that
+one-time preparation. These host-specific OCI results do not predict Docker-daemon import
+performance. [Plan 21](../plans/21-add-native-nix-builds-and-fast-docker-images-for-the-console.md)
+records the samples and limits. Benchmark reports preserve first-use/cached tool state, phase logs, three
 fresh source edits, unchanged repeats, stable cache/runtime identities, and both builders'
 assembly/import medians. They never prune caches or edit the working tree. Apple results
 include OCI archive conversion and do not predict Docker-daemon import performance.

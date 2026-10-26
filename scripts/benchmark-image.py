@@ -25,6 +25,7 @@ exchange = Path(os.environ['APPLE_NIX_EXCHANGE']).resolve() if coordinator else 
 prefix = ['container', 'exec', coordinator] if coordinator else []
 linux_repo = '/workspace' if coordinator else str(repo)
 rows = []
+layer_evidence = {}
 nonce = secrets.token_hex(4)
 
 
@@ -92,18 +93,25 @@ with tempfile.TemporaryDirectory(prefix='image-benchmark-', dir=exchange) as tmp
         archive = '/exchange/' + tree.parent.name + '/' + label + '.oci.tar'
         host_archive = tree.parent / (label + '.oci.tar')
         if builder == 'nix2container':
-            export_command = shlex.quote(program) + ' --format oci --dest-compress=false ' + shlex.quote(
+            export_command = shlex.quote(program) + ' --format oci ' + shlex.quote(
                 'oci-archive:' + archive + ':keiro-ui-console:benchmark')
         else:
             # Apple accepts OCI archives, not Docker archives. Include conversion in elapsed time.
             docker_archive = archive + '.docker'
             export_command = (shlex.quote(program) + ' > ' + shlex.quote(docker_archive) + ' && '
                               + shlex.quote(skopeo + '/bin/skopeo') + ' --insecure-policy copy '
-                              + '--format oci --dest-compress=false '
+                              + '--format oci '
                               + shlex.quote('docker-archive:' + docker_archive) + ' '
                               + shlex.quote('oci-archive:' + archive + ':keiro-ui-console-control:benchmark'))
         _, export_s = run(prefix + ['sh', '-c', export_command], label + '-export')
-        run(['python3', str(repo / 'scripts/check-oci-archive.py'), str(host_archive)], label + '-metadata')
+        metadata = json.loads(run(['python3', str(repo / 'scripts/check-oci-archive.py'), str(host_archive)], label + '-metadata')[0])
+        assert all(kind.endswith('.tar+gzip') for kind in metadata['media_types']), 'both Apple exports use the same default OCI compression'
+        layer_evidence[label] = metadata
+        stable_count = 1 if builder == 'nix2container' else 2
+        previous = layer_evidence.get('first-import' if builder == 'nix2container' else 'first-control-import')
+        if label.startswith('edit-'):
+            assert metadata['layers'][:stable_count] == previous['layers'][:stable_count]
+            assert metadata['layers'][stable_count:] != previous['layers'][stable_count:]
         _, load_s = run(['container', 'image', 'load', '--input', str(host_archive)], label + '-load')
         return export_s + load_s
 
@@ -122,14 +130,12 @@ with tempfile.TemporaryDirectory(prefix='image-benchmark-', dir=exchange) as tmp
         for builder in (['nix2container', 'dockerTools'] if sample % 2 == 0 else ['dockerTools', 'nix2container']):
             label = f'edit-{sample}-{builder}'
             # Both builders consume this single realized console derivation.
-            attr = 'image' if builder == 'nix2container' else 'control'
+            # One Nix evaluation per builder: realizing the importer also assembles its image.
+            attr = importer_attr if builder == 'nix2container' else 'control'
             artifact, assembly_s = build(attr, label + '-assembly')
+            program = artifact
             if builder == 'nix2container':
-                program, helper_s = build(importer_attr, label + '-importer')
                 program += '/bin/copy-to' if coordinator else '/bin/copy-to-docker-daemon'
-                assembly_s += helper_s
-            else:
-                program = artifact
             inspect = (['container', 'image', 'inspect', ('keiro-ui-console:benchmark' if builder == 'nix2container' else 'keiro-ui-console-control:benchmark')] if coordinator
                        else ['docker', 'image', 'inspect', ('keiro-ui-console:benchmark' if builder == 'nix2container' else 'keiro-ui-console-control:benchmark')])
             state = run(inspect, label + '-existing-layer-state')[0]
@@ -143,11 +149,12 @@ with tempfile.TemporaryDirectory(prefix='image-benchmark-', dir=exchange) as tmp
     env = os.environ.copy()
     env['CONSOLE_EXPECTED_OVERVIEW'] = f'Overview image {nonce} sample 2'
     env['CONTAINER_RUNTIME'] = 'apple' if coordinator else 'docker'
-    smoke = subprocess.run(['bash', str(repo / 'scripts/check-container.sh'),
-                            'keiro-ui-console:benchmark', '/'], env=env, text=True, capture_output=True)
-    (out / 'changed-content-browser.log').write_text(smoke.stdout + smoke.stderr)
-    if smoke.returncode:
-        raise RuntimeError(smoke.stdout + smoke.stderr)
+    for reference in ['keiro-ui-console:benchmark', 'keiro-ui-console-control:benchmark']:
+        smoke = subprocess.run(['bash', str(repo / 'scripts/check-container.sh'), reference, '/'],
+                               env=env, text=True, capture_output=True)
+        (out / ('changed-content-browser-' + reference.split(':')[0] + '.log')).write_text(smoke.stdout + smoke.stderr)
+        if smoke.returncode:
+            raise RuntimeError(smoke.stdout + smoke.stderr)
     metadata = run((['container', 'image', 'inspect'] if coordinator else ['docker', 'image', 'inspect'])
                    + ['keiro-ui-console:benchmark'], 'final-image-metadata')[0]
     report = dict(runtime='apple' if coordinator else 'docker',
@@ -155,7 +162,8 @@ with tempfile.TemporaryDirectory(prefix='image-benchmark-', dir=exchange) as tmp
                   linux=run(prefix + ['uname', '-a'])[0].strip(),
                   nix=nix('--version')[0].strip(),
                   runtime_version=run(['container' if coordinator else 'docker', '--version'])[0].strip(),
-                  initial_cache_state='existing shared Nix cache; no cache or image pruning',
+                  initial_cache_state='No caches or images pruned; initial realization work is retained in first-*.log',
+                  initial_application_built='keiro-timing vite_ms=' in (out / 'first-application.log').read_text(),
                   source_nonce=nonce, importer_rebuild_cached_dependencies_s=importer_rebuild_s,
                   initial_run=dict(app_s=first_app, assembly_s=first_assembly,
                                  importer_realization_s=first_helper, import_s=first_import,
@@ -164,6 +172,6 @@ with tempfile.TemporaryDirectory(prefix='image-benchmark-', dir=exchange) as tmp
                   medians={builder: {key: statistics.median(r[key] for r in rows if r['builder'] == builder)
                                      for key in ['app_s', 'assembly_s', 'import_s', 'assembly_import_s', 'total_s']}
                            for builder in ['nix2container', 'dockerTools']},
-                  final_image=json.loads(metadata))
+                  layer_evidence=layer_evidence, final_image=json.loads(metadata))
     (out / 'results.json').write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps(report, indent=2))

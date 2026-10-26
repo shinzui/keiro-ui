@@ -1,6 +1,7 @@
 # Bundle Update Log
 
 ## 2026-10-26
+* **Update**: FRIC-3 accepted: The normal cached importer and produced static images remain unchanged; upstream helper determinism is outside this plan.
 * **Addition**: FRIC-3 records detour tooling friction with https://github.com/nlewo/nix2container: Patched Skopeo fails Nix rebuild byte comparison
 * **Update**: FRIC-2 resolved: Use the explicit Git flake interface in measurement harnesses.
 * **Addition**: FRIC-2 records detour tooling friction with https://nixos.org/nix: Path flakes inflate benchmark evaluation with ignored checkout files

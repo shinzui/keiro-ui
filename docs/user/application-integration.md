@@ -58,10 +58,21 @@ In rei this means the surfaces cannot all share one listener:
 | `rei worker`          | The four pgmq job processors via keiro-pgmq's `runJobWorkers` | `/shibuya` (for those processors)     |
 | `rei worker kiroku`   | Subscriptions, process managers, and timers via `Rei.Infrastructure.WorkerHost` | `/shibuya` (for those processors) |
 
-A connection profile has one shibuya origin, so the console shows one worker process's
-processors at a time. Mount `/shibuya` on the worker you most want to operate, usually
-`rei worker`, because its processors consume the pgmq queues the Queues screen shows. If you
-mount it on both workers, use one connection profile per worker in recipe C.
+A target may contain a named inventory of Shibuya worker endpoints, with a Worker selector
+and worker-bearing shareable URLs. Each endpoint must address exactly one logical replica;
+load balancing several worker processes cannot expose their combined in-memory state. Keep
+one direct Shibuya endpoint for deliberately single-process targets or migrated profiles.
+If a worker cannot be addressed individually, omit it rather than imply a fleet view. A
+logical replica may restart; observed connection loss discards pending control confirmation,
+while a stronger incarnation-bound command guarantee requires upstream protocol support.
+
+Serve one console plus its runtime catalog for all application deployments. Each catalog entry
+names one app/environment and optional surface base URLs; explicit gateway routes map those
+public prefixes to the owning application or worker. This requires no change to application
+composition or inspection protocols. See [deployment](deployment.md#one-console-for-multiple-applications)
+and the [Kubernetes recipe](../deployment/kubernetes/README.md), including application-owned
+single-worker Services. Preserve the public HTTPS browser Origin, protect both HTTP and socket
+routes at the gateway, and keep Shibuya's control Origin allow-list even on the public origin.
 
 ## The shape to build
 

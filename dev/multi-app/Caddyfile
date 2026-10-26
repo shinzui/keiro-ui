@@ -1,0 +1,92 @@
+{
+	admin off
+	auto_https off
+	persist_config off
+	log {
+		format filter {
+			wrap json
+			fields {
+				request>headers delete
+				request>uri delete
+			}
+		}
+	}
+	grace_period 5s
+}
+:{$MULTI_APP_PORT:18080} {
+	header Cache-Control "no-store"
+	handle /inspection/forbidden/* {
+		respond "Forbidden" 403
+	}
+	handle /inspection/prod/orders/keiro/* {
+		uri strip_prefix /inspection/prod/orders
+		reverse_proxy 127.0.0.1:{$ORDERS_PORT:19193} {
+			lb_retries 0
+		}
+	}
+	handle /inspection/prod/orders/kiroku/* {
+		uri strip_prefix /inspection/prod/orders
+		reverse_proxy 127.0.0.1:{$ORDERS_PORT:19193} {
+			lb_retries 0
+		}
+	}
+	handle /inspection/prod/orders/pgmq/* {
+		uri strip_prefix /inspection/prod/orders
+		reverse_proxy 127.0.0.1:{$ORDERS_PORT:19193} {
+			lb_retries 0
+		}
+	}
+	handle /inspection/prod/orders/workers/jobs-1/shibuya/* {
+		uri strip_prefix /inspection/prod/orders
+		reverse_proxy 127.0.0.1:{$ORDERS_PORT:19193}
+	}
+	handle /inspection/prod/orders/workers/subscriptions-1/shibuya/* {
+		uri strip_prefix /inspection/prod/orders
+		reverse_proxy 127.0.0.1:{$ORDERS_PORT:19193}
+	}
+	handle /inspection/prod/billing/keiro/* {
+		uri strip_prefix /inspection/prod/billing
+		reverse_proxy 127.0.0.1:{$BILLING_PORT:19293} {
+			lb_retries 0
+		}
+	}
+	handle /inspection/prod/billing/kiroku/* {
+		uri strip_prefix /inspection/prod/billing
+		reverse_proxy 127.0.0.1:{$BILLING_PORT:19293} {
+			lb_retries 0
+		}
+	}
+	# Dormant fixture routes: tests can enable these in the temporary runtime catalog.
+	handle /inspection/prod/billing/pgmq/* {
+		uri strip_prefix /inspection/prod/billing
+		reverse_proxy 127.0.0.1:{$BILLING_PORT:19293}
+	}
+	handle /inspection/prod/billing/shibuya/* {
+		uri strip_prefix /inspection/prod/billing
+		reverse_proxy 127.0.0.1:{$BILLING_PORT:19293}
+	}
+	handle /inspection/* {
+		respond "Unknown inspection route" 404
+	}
+	handle /console/console-config.json {
+		root * {$MULTI_APP_CONFIG_DIR:dev/multi-app}
+		rewrite * /console-config.json
+		header Content-Type application/json
+		file_server
+	}
+	redir /console /console/ 308
+	handle_path /console/assets/* {
+		root * {$CONSOLE_DIST:apps/console/dist}/assets
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+	handle_path /console/* {
+		root * {$CONSOLE_DIST:apps/console/dist}
+		header Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+	handle {
+		respond "Not found" 404
+	}
+}

@@ -1,6 +1,9 @@
 # Bundle Update Log
 
 ## 2026-10-26
+* **Update**: FRIC-6 accepted: Run production acceptance on port 18082; retain configurable ports as the recovery path.
+* **Update**: FRIC-5 resolved: Remove the unneeded bind-port file capability and document the constraint in ADR-9 and the runbook.
+* **Update**: FRIC-4 resolved: Use a checkout-local disposable bind source; the container smoke passes under Colima.
 * **Addition**: FRIC-6 records detour environment friction with mori://shinzui/keiro-ui: Existing Apple container shadows the production smoke IPv4 port
 * **Addition**: FRIC-5 records detour environment friction with https://github.com/caddyserver/caddy-docker: Official Caddy image retains a privileged executable capability
 * **Addition**: FRIC-4 records detour environment friction with https://github.com/abiosoft/colima: Colima cannot bind the host temporary directory

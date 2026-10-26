@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test:e2e": "playwright test",
     "test:e2e:production": "playwright test --config playwright.production.config.ts",
-    "generate-routes": "tsr generate"
+    "generate-routes": "tsr generate",
+    "test:e2e:multi-app": "playwright test --config playwright.multi-app.config.ts"
   },
   "dependencies": {
     "@keiro-ui/client-core": "workspace:*",

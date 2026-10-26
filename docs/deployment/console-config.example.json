@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "defaultTargetId": "prod-orders",
+  "targets": [
+    {
+      "id": "prod-orders",
+      "label": "Orders",
+      "app": "orders",
+      "environment": "prod",
+      "surfaces": {
+        "keiro": "/inspection/prod/orders/keiro",
+        "kiroku": "/inspection/prod/orders/kiroku",
+        "pgmq": "/inspection/prod/orders/pgmq"
+      },
+      "workers": [
+        {
+          "id": "jobs-1",
+          "label": "Job worker 1",
+          "shibuyaBaseUrl": "/inspection/prod/orders/workers/jobs-1/shibuya"
+        },
+        {
+          "id": "subscriptions-1",
+          "label": "Subscription worker 1",
+          "shibuyaBaseUrl": "/inspection/prod/orders/workers/subscriptions-1/shibuya"
+        }
+      ],
+      "defaultWorkerId": "jobs-1"
+    },
+    {
+      "id": "prod-billing",
+      "label": "Billing",
+      "app": "billing",
+      "environment": "prod",
+      "surfaces": {
+        "keiro": "/inspection/prod/billing/keiro",
+        "kiroku": "/inspection/prod/billing/kiroku"
+      }
+    }
+  ]
+}

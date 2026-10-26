@@ -25,7 +25,7 @@ of the surfaces.
 an authenticating reverse proxy (`docs/architecture/inspection-api-conventions.md`, section 8;
 kiroku's `mori://shinzui/kiroku/okf/adrs/concepts/ADR-16` says the same of its surface). The
 console adds no authentication of its own, so whatever protects the surfaces must also protect
-the console's path. The first release is read-only: nothing in it writes to any server.
+the console's path. Operator actions remain gated by each upstream; disabled UI controls and catalog visibility are not authorization.
 
 ## Getting the bundle
 
@@ -184,6 +184,80 @@ fresh source edits, unchanged repeats, stable cache/runtime identities, and both
 assembly/import medians. They never prune caches or edit the working tree. Apple results
 include OCI archive conversion and do not predict Docker-daemon import performance.
 
+## One console for multiple applications
+
+Build the asset base once, for example `VITE_BASE_PATH=/console/ bun run release:pack`. Serve
+[console-config.example.json](../deployment/console-config.example.json) as
+`/console/console-config.json` and adapt the explicit
+[Caddy](../deployment/Caddyfile.multi-app.example) or
+[nginx](../deployment/nginx.multi-app.conf.example) mappings. The release archive includes the
+examples and [Kubernetes recipe](../deployment/kubernetes/README.md); it does not install a fake
+catalog at the asset root. New targets need configuration and proxy routes, never a new build.
+The catalog contains connection data only: no tokens, passwords, arbitrary headers or asserted
+permissions. HTTPS consoles reject HTTP inspection URLs as mixed content.
+
+Boot fetches the exact config path relative to the asset base with JSON Accept, no-store,
+redirect rejection and a five-second timeout, before any inspection consumers mount. Only a
+real 404 enables legacy same-origin/local-profile behavior. HTML fallback, empty/malformed JSON,
+unsupported versions, authorization errors, network failures and timeouts show a configuration
+error with Retry. A valid empty catalog offers configuration/local settings without connecting
+to fixed prefixes. Config changes take effect after reload; a failed catalog never selects a
+different app. **On upgrade, configure the exact JSON path before the SPA fallback**, including
+a real 404 when absent. The supplied Vite dev/preview and proxy examples do so. Kubernetes uses
+a mandatory catalog and responds 503 when its file is missing.
+
+Each target identifies one application/environment with explicit optional base URLs.
+`target` and `worker` in the URL select it per tab. Inferred selections are written with a
+history replace before requests begin; user selection opens Overview with a new history entry.
+An unknown explicit ID sends no inspection requests. Managed connections are read-only;
+browser-local v1 profiles migrate only after complete validation into
+`keiro-ui.connection-targets.v2`, preserving opaque legacy IDs, exact endpoints and settings.
+The v1 document stays untouched. Invalid v2 blocks selection and offers raw export/reset.
+Old unscoped recent/pinned links remain untouched for rollback and must be recreated in context.
+
+For standalone servers, strip the entire external surface prefix:
+`/inspection/prod/orders/keiro/wf/inspect/list` becomes `/wf/inspect/list`. For a composed
+application host, remove only `/inspection/prod/orders`, keeping `/keiro/wf/inspect/list`.
+Use one shape per route; never strip twice. The local fixture demonstration uses composed hosts.
+Keep methods, raw encoded entity identifiers, query strings, bodies, WebSocket upgrades and
+browser Origin unchanged. The nginx multi-app example maps the raw request URI so encoded IDs
+survive prefix removal. No unknown inspection prefix may reach the SPA or a default app.
+
+Route Shibuya worker entries to exactly one logical replica. A Service selecting several
+workers, even a headless Service or sticky session, represents no stable process identity.
+The Kubernetes recipe includes individual StatefulSet-pod Services owned by the application.
+If reliable individual addressing is unavailable, omit Shibuya. Stable replicas may restart;
+refresh after observed connection loss, and do not treat a replica name as an incarnation
+precondition on commands. Database-backed surfaces can load-balance equivalent replicas.
+
+Protect both HTTP routes and WebSocket handshakes at the existing gateway, with per-app
+access decisions. Cookie-authenticated mutations require the gateway's CSRF protection;
+socket handshakes require explicit Origin checks. Reject unauthorized API calls with 401/403,
+not login HTML. Strip untrusted identity/forwarding headers before setting trusted ones.
+Preserve the public browser Origin across TLS termination and allow-list that origin at every
+owner, including Shibuya controls. Origin is scheme/host/port, never an inspection base path.
+The catalog, a hidden UI button and same-origin routing enforce none of these policies.
+
+Disable shared caching for API responses, errors and catalog; revalidate HTML and cache only
+hashed assets immutably. Disable proxy mutation retries. Set finite socket idle limits suitable
+for your gateway (nginx example: 300 seconds), and allow graceful shutdown. Feed reconnects
+re-read HTTP state. A lost mutation response is an unknown result on its original app; do not
+replay it automatically. Use route/status access logs without cookies, tokens, query values or
+request bodies. The nginx example logs only fixed target identity, method and status; its routine raw-URI error logs are suppressed. Caddy runtime logs filter request headers and URI, and its request access logging is disabled.
+
+Stage route additions on every replica before publishing catalog entries. Remove catalog
+entries before retiring routes, and keep explicit errors at retired paths indefinitely because
+open tabs retain old catalogs. Never reuse target IDs or inspection prefixes. Keep old bundle,
+image and immutable configuration revisions for rollback. Restore those revisions together;
+old bundles do not understand target-bearing links, so do not route those links to another
+application as a compatibility shortcut. Navigation or asset rollback cannot roll back a
+submitted action. See the Kubernetes runbook for two-replica rollout and cluster release checks.
+
+A self-contained demonstration and required HTTP/feed/action regression is documented in
+[dev/multi-app](../../dev/multi-app/README.md). Run `bun run test:e2e:multi-app`; it starts real
+fixture hosts and Caddy and contains no external-stack skips. Runtime configuration alone is
+not proof of your gateway's authentication or cluster network enforcement.
+
 ## Recipe A — one origin, a reverse proxy in front of four servers
 
 The four inspection servers run on their own ports; a reverse proxy serves the bundle at
@@ -271,7 +345,7 @@ side is keiro's guide `docs/guides/compose-runtime-inspection-surfaces.md` in
 
 The console is served from any static host at any path, and each surface keeps its own origin.
 In the console, open Settings → Connections (or the palette's "Switch connection profile…"),
-create a profile in "Separate origins" mode with the four absolute origins, and use it. Each
+create a local target whose `surfaces` object contains the required absolute HTTP(S) base URLs, and select it in the Application selector. Paths are allowed; omitted surfaces stay disabled. Each
 server must then allow the console's origin, with its own setting:
 
 | Surface | Setting                                                                                                                                                                                                       |

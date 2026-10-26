@@ -141,3 +141,14 @@ test("editing effective endpoints under one local ID retires its cache", async (
   await waitFor(() => expect(view.queryClient).not.toBe(previous))
   expect(previous.getQueryCache().getAll()).toHaveLength(0)
 })
+
+test("scoped recent links clear the prior app's worker while keeping their own target", async () => {
+  const { publicHref, navigateToHref } = await import("@/lib/href")
+  const { router } = await renderRoute("/workflows?target=orders&worker=two", { catalog })
+  expect(publicHref(router, "/workflows?target=billing")).toBe("/workflows?target=billing")
+  expect(publicHref(router, "https://external.example/path?x=1")).toBe(
+    "https://external.example/path?x=1",
+  )
+  await act(() => navigateToHref(router, "/workflows?target=billing"))
+  expect(currentSearch(router)).toEqual({ target: "billing" })
+})

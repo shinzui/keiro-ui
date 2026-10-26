@@ -6,13 +6,18 @@ generated:
   by: "codex-cli/gpt-6.1-sol"
   at: "2026-10-26T18:45:43Z"
 frictionId: FRIC-6
-status: logged
+status: "accepted"
 impact: detour
 kind: environment
 origin: "mori://shinzui/keiro-ui"
 affects: "mori://shinzui/keiro-ui"
 plan: "docs/plans/20-connect-one-console-to-multiple-application-deployments.md"
 workaround: "Stop only the test runner started by this task and rerun with CONSOLE_PORT=18082, leaving the existing container untouched."
+resolution: "The production suite already supports CONSOLE_PORT; use an available port when an existing workload owns the default and leave that workload intact."
+amended:
+  - by: "codex-cli/gpt-6.1-sol"
+    at: "2026-10-26T18:56:01Z"
+    change: "Run production acceptance on port 18082; retain configurable ports as the recovery path."
 ---
 # Existing Apple container shadows the production smoke IPv4 port
 

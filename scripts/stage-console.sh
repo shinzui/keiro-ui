@@ -17,6 +17,8 @@ rm -f "$out/mockServiceWorker.js"
 printf '%s+%s\n' "$version" "$commit" >"$out/VERSION"
 cp "$root/packages/ui/src/fonts/OFL.txt" "$out/OFL.txt"
 cp "$root/docs/deployment/"*.example "$out/deployment/"
+cp "$root/docs/deployment/console-config.example.json" "$out/deployment/"
+cp -R "$root/docs/deployment/kubernetes" "$out/deployment/"
 cat >"$out/NOTICE.md" <<NOTICE
 # keiro runtime console $version
 

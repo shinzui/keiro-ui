@@ -1,0 +1,177 @@
+# Inside nginx http {}. Place behind the existing authenticated HTTPS gateway.
+# Named upstreams are explicit. Replace addresses with standalone inspection Services.
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    "" close;
+}
+upstream orders_keiro { server orders-keiro.applications.svc:9093; }
+# Strip the prefix from the raw URI, preserving percent-encoded IDs and query spelling.
+map $request_uri $orders_keiro_uri {
+    default "";
+    ~^/inspection/prod/orders/keiro(?<raw_orders_keiro>/.*)$ $raw_orders_keiro;
+}
+upstream orders_kiroku { server orders-kiroku.applications.svc:9091; }
+# Strip the prefix from the raw URI, preserving percent-encoded IDs and query spelling.
+map $request_uri $orders_kiroku_uri {
+    default "";
+    ~^/inspection/prod/orders/kiroku(?<raw_orders_kiroku>/.*)$ $raw_orders_kiroku;
+}
+upstream orders_pgmq { server orders-pgmq.applications.svc:9095; }
+# Strip the prefix from the raw URI, preserving percent-encoded IDs and query spelling.
+map $request_uri $orders_pgmq_uri {
+    default "";
+    ~^/inspection/prod/orders/pgmq(?<raw_orders_pgmq>/.*)$ $raw_orders_pgmq;
+}
+upstream billing_keiro { server billing-keiro.applications.svc:9093; }
+# Strip the prefix from the raw URI, preserving percent-encoded IDs and query spelling.
+map $request_uri $billing_keiro_uri {
+    default "";
+    ~^/inspection/prod/billing/keiro(?<raw_billing_keiro>/.*)$ $raw_billing_keiro;
+}
+upstream billing_kiroku { server billing-kiroku.applications.svc:9091; }
+# Strip the prefix from the raw URI, preserving percent-encoded IDs and query spelling.
+map $request_uri $billing_kiroku_uri {
+    default "";
+    ~^/inspection/prod/billing/kiroku(?<raw_billing_kiroku>/.*)$ $raw_billing_kiroku;
+}
+upstream orders_jobs_1 { server orders-jobs-1.applications.svc:9090; }
+# Strip the prefix from the raw URI, preserving percent-encoded IDs and query spelling.
+map $request_uri $orders_jobs_1_uri {
+    default "";
+    ~^/inspection/prod/orders/workers/jobs-1/shibuya(?<raw_orders_jobs_1>/.*)$ $raw_orders_jobs_1;
+}
+upstream orders_subscriptions_1 { server orders-subscriptions-1.applications.svc:9090; }
+# Strip the prefix from the raw URI, preserving percent-encoded IDs and query spelling.
+map $request_uri $orders_subscriptions_1_uri {
+    default "";
+    ~^/inspection/prod/orders/workers/subscriptions-1/shibuya(?<raw_orders_subscriptions_1>/.*)$ $raw_orders_subscriptions_1;
+}
+# Log only a fixed route identity, method and status. Never $request, $args or headers.
+map $uri $console_target {
+    default console;
+    ~^/inspection/prod/orders/ prod-orders;
+    ~^/inspection/prod/billing/ prod-billing;
+    ~^/inspection/ unknown-inspection;
+}
+log_format console_route '$console_target $request_method $status';
+server {
+    listen 8080;
+    access_log /dev/stdout console_route;
+    # Routine nginx upstream errors can include the raw URI; use route/status logs instead.
+    error_log /dev/stderr crit;
+    add_header Cache-Control "no-store" always;
+    location = /console { return 308 /console/; }
+    location = /console/console-config.json {
+        alias /srv/console-config/console-config.json;
+        default_type application/json;
+    }
+    location /console/assets/ {
+        alias /srv/console/assets/;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+    location /console/ {
+        alias /srv/console/;
+        add_header Cache-Control "no-cache";
+        try_files $uri $uri/ /console/index.html;
+    }
+    location ^~ /inspection/prod/orders/keiro/ {
+        if ($orders_keiro_uri = "") { return 404; }
+        proxy_pass http://orders_keiro$orders_keiro_uri;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header Origin $http_origin;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_next_upstream off;
+        proxy_cache off;
+        proxy_buffering off;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+    }
+    location ^~ /inspection/prod/orders/kiroku/ {
+        if ($orders_kiroku_uri = "") { return 404; }
+        proxy_pass http://orders_kiroku$orders_kiroku_uri;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header Origin $http_origin;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_next_upstream off;
+        proxy_cache off;
+        proxy_buffering off;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+    }
+    location ^~ /inspection/prod/orders/pgmq/ {
+        if ($orders_pgmq_uri = "") { return 404; }
+        proxy_pass http://orders_pgmq$orders_pgmq_uri;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header Origin $http_origin;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_next_upstream off;
+        proxy_cache off;
+        proxy_buffering off;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+    }
+    location ^~ /inspection/prod/billing/keiro/ {
+        if ($billing_keiro_uri = "") { return 404; }
+        proxy_pass http://billing_keiro$billing_keiro_uri;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header Origin $http_origin;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_next_upstream off;
+        proxy_cache off;
+        proxy_buffering off;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+    }
+    location ^~ /inspection/prod/billing/kiroku/ {
+        if ($billing_kiroku_uri = "") { return 404; }
+        proxy_pass http://billing_kiroku$billing_kiroku_uri;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header Origin $http_origin;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_next_upstream off;
+        proxy_cache off;
+        proxy_buffering off;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+    }
+    location ^~ /inspection/prod/orders/workers/jobs-1/shibuya/ {
+        if ($orders_jobs_1_uri = "") { return 404; }
+        proxy_pass http://orders_jobs_1$orders_jobs_1_uri;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header Origin $http_origin;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_next_upstream off;
+        proxy_cache off;
+        proxy_buffering off;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+    }
+    location ^~ /inspection/prod/orders/workers/subscriptions-1/shibuya/ {
+        if ($orders_subscriptions_1_uri = "") { return 404; }
+        proxy_pass http://orders_subscriptions_1$orders_subscriptions_1_uri;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header Origin $http_origin;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_next_upstream off;
+        proxy_cache off;
+        proxy_buffering off;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+    }
+    location /inspection/ { return 404; }
+    location / { return 404; }
+}

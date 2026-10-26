@@ -19,7 +19,8 @@
     "test:e2e": "bun run --filter @keiro-ui/console test:e2e",
     "test:e2e:production": "bun run --filter @keiro-ui/console test:e2e:production",
     "release:pack": "sh scripts/release-pack.sh",
-    "fixtures:record": "bun run --filter @keiro-ui/testing record"
+    "fixtures:record": "bun run --filter @keiro-ui/testing record",
+    "test:e2e:multi-app": "bun run --filter @keiro-ui/console test:e2e:multi-app"
   },
   "devDependencies": {
     "@types/node": "22.20.5",

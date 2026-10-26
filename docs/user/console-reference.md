@@ -71,18 +71,43 @@ Apart from `⌘K`, shortcuts do not fire while you type in the palette or a form
 a dialog is open. The palette also jumps to
 an entity by its identifier, switches connection profile, and cycles the theme.
 
-## Connection profiles
+## Application connections
 
-Settings → Connections holds the profiles, stored in this browser. The default "Same origin"
-profile reaches each surface at its absolute prefix on the page's own origin.
+The bottom bar's Application selector groups deployments by environment. Selecting a different
+application opens Overview and clears old entity filters, cursors and sheets. The Worker
+selector identifies one logical worker replica within that app and opens the processor list.
+Back/Forward restores the previous selection. A processor URL can include both parameters:
+`/console/processors/detailed?target=prod-orders&worker=jobs-1`. Native Open Link in New Tab,
+copied links and reloads preserve selection. Another tab's last-used setting cannot retarget
+an explicit URL. An unknown target or worker never falls back to another app or process.
 
-| Field                   | Meaning                                                                                  |
-| ----------------------- | ---------------------------------------------------------------------------------------- |
-| Name                    | Shown in the bottom bar and the palette.                                                 |
-| Mode                    | "Same origin" (`/kiroku`, `/shibuya`, `/pgmq`, `/keiro` on this origin) or "Separate origins". |
-| `<surface>` origin      | Separate origins only: `http(s)://host:port`, with no path, query, fragment, or credentials. |
-| Dead-letter queue suffix | How dead-letter queues are recognised by name; default `_dlq`.                          |
-| Process manager names   | One per line; the Process managers index offers these.                                   |
+Settings → Connections shows read-only managed entries from the runtime catalog and editable
+browser-local targets. Use New local target, edit the JSON fields, then Save target. Import
+accepts v2 target exports and legacy v1 profiles; Export includes local targets only, without
+credentials. Managed IDs cannot be overwritten. To recover invalid storage, Export its raw
+value before Reset local connections. A managed target is shareable with any browser using
+the same catalog; a local target missing in another browser shows unavailable.
 
-With separate origins, every server must list the console's origin; the settings for each
-server are in [Deploying the console](deployment.md#recipe-c--separate-origins).
+| Field | Meaning |
+| --- | --- |
+| `id` | Stable target selection ID; never reuse for another deployment. |
+| `label`, `app`, `environment` | Display label and application/environment identity. |
+| `surfaces` | Optional `keiro`, `kiroku`, `pgmq`, `shibuya` HTTP(S) base URLs, with paths allowed. Root-relative paths use the page origin. |
+| `workers` | Named entries with `id`, `label`, `shibuyaBaseUrl`; mutually exclusive with a direct Shibuya URL. |
+| `defaultWorkerId` | Worker to choose when a URL does not specify one. Multiple workers without a default require selection. |
+| `processManagerNames` | Configured names offered by the process-manager index. |
+| `deadLetterQueueSuffix` | Dead-letter name suffix, default `_dlq`. |
+
+The built-in Same origin target retains `/kiroku`, `/shibuya`, `/pgmq`, `/keiro` only when no
+managed catalog is installed. Legacy profiles migrate to `keiro-ui.connection-targets.v2`
+without altering their IDs or deleting v1. Legacy unscoped recent/pinned links remain in v1
+storage for rollback; revisit and pin them within a selected app to recreate scoped entries.
+Recent/sidebar links stay with their app; cross-app palette results show app and environment.
+Actions display their originating app/environment and worker. Switching discards unsubmitted
+confirmations; a submitted action remains on its original endpoint and reports to that tab's
+attributed audit, even after switching. The audit is memory only and clears on reload.
+
+Missing surfaces show “Not configured for this application” and send no requests. A configured
+but unreachable surface shows connectivity failure instead. Only the selected app is polled.
+For runtime loading, gateway policy and separate-origin CORS, see
+[Deploying the console](deployment.md).

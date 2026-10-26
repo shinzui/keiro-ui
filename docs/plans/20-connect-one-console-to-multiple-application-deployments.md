@@ -88,12 +88,19 @@ selected target; listing configured targets does not poll the whole fleet.
 - [x] Milestone 2: URL-authoritative app/worker selection, selectors, history and native links implemented (2026-10-26); route and real-proxy tab/reload tests pass.
 - [x] Milestone 3: Disposable connection caches, read cancellation, feed guards and optional-page/pane/sheet gates implemented (2026-10-26); delayed read/frame, endpoint-edit and repeated-switch regressions pass.
 - [x] Milestone 4: Session-bound confirmations, attributed late completion, scoped recents/pins and command lifetimes implemented (2026-10-26); focused settings/action/history checks pass (69 tests).
-- [ ] Milestone 5: One production bundle operates two applications through a real proxy, with packaged examples, documentation, and regression evidence.
-- [ ] Milestone 6: A hardened Kubernetes deployment recipe renders successfully, serves the same bundle and configuration in a local container smoke test, and documents cluster rollout, access-policy verification, and rollback.
+- [x] Milestone 5: One bundle operates fixture apps through Caddy (2026-10-26); nine multi-app cases pass without skips, including HTTP/WebSocket/action routing, worker loss, identical IDs and a catalog-only third target. Examples and operating docs are packaged; the extracted archive builds and renders.
+- [x] Milestone 6: Hardened Kubernetes recipe verified locally (2026-10-26); shared-schema and five-object manifest checks, negative invariant probes, container smoke, archive-context image build and extracted Kustomize render all pass. Cluster release checks remain explicitly separate.
 
-Milestones 1–4 are verified. The real-proxy suite passes seven cases, the full unit suite passed
-613 tests before the last three focused regressions, and the ordinary browser suite passed
-56 tests. Deployment packaging and final-candidate validation for milestones 5–6 are in progress. This is a standalone follow-on to the
+All six repository milestones are complete. Final evidence: `bun run check` passes;
+`bun run test` passes 617 tests (12 existing skips); `bun run test:e2e` passes 56;
+`CONSOLE_PORT=18082 bun run test:e2e:production` passes six with four documented
+external-stack skips; and `bun run test:e2e:multi-app` passes nine with no skips.
+Caddy validation, Kubernetes rendering/invariant checks, the hardened local container smoke,
+release packaging and an image built from the extracted archive all pass. The existing
+IPv4 port 8080 was occupied; FRIC-6 records use of the supported override. No external
+cluster or registry was changed, and no cluster rollout is claimed.
+
+This is a standalone follow-on to the
 existing console, not a new child of the completed build-out in
 `docs/masterplans/2-build-the-keiro-runtime-console.md`.
 
@@ -185,7 +192,38 @@ and is outside this plan.
 ## Outcomes & Retrospective
 
 
-(To be filled during and after implementation.)
+Completed 2026-10-26. One static bundle now selects managed application/environment targets
+and individual logical workers through shareable URLs, migrates validated local profiles,
+retains optional surfaces honestly, and replaces all connection state when identity/settings
+change. Submitted actions retain their original endpoint and tab-wide audit attribution.
+ADR-15 records these boundaries; ADR-9 records the delivered proxy/Kubernetes recipe and
+unprivileged Caddy capability constraint. No upstream protocol or dependency pin changes
+were needed for the console libraries.
+
+The deterministic production suite proves two upstream applications with identical entity
+IDs, real feed exchanges, preview/execute, late responses, worker control/availability and
+explicit route denial. Its temporary catalog adds a third target with all 105 asset hashes
+unchanged. The release archive includes every proxy/catalog/Kubernetes file, renders after
+extraction and builds its image with the documented archive-context arguments. It contains
+neither an enabled root catalog nor the fixture runner. The pinned Caddy runtime is 2.11.7;
+the operator must publish their own console image and supply its manifest digest in a site
+overlay. The checker rejects the example sentinel under `--release`.
+
+Validation commands and totals are recorded in Progress. Negative checks reject a writable
+container root, an invalid catalog version and a release overlay retaining the sentinel image.
+`nginx -t` was not run because nginx is not installed; its variable proxy URI and map semantics
+were checked against official documentation. The existing Nix Caddy generator's optional
+catalog exception was syntax-parsed, while its new handler shape is exercised by the
+Caddy/browser regressions. The Kubernetes runbook separately requires public TLS/gateway
+policy tests, direct-access denial, worker identity checks, two-replica staged rollout,
+rollback and termination behavior on an explicitly selected test cluster. These are release
+prerequisites, not claims established by local rendering or containers.
+
+FRIC-4 in docs/friction-log/ is resolved: smoke mounts use a checkout-local disposable directory
+shared by Colima. FRIC-5 is resolved: remove the Caddy executable's inherited privileged file
+capability before dropping all container capabilities. FRIC-6 is accepted: use the existing
+configurable production-smoke port when another workload occupies 8080. No friction entries
+for this plan remain logged.
 
 
 ## Context and Orientation

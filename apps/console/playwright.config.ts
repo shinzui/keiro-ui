@@ -10,6 +10,7 @@ const mockURL = "http://localhost:5174"
 
 export default defineConfig({
   testDir: "e2e",
+  testIgnore: "**/multi-app/**",
   timeout: 30_000,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,

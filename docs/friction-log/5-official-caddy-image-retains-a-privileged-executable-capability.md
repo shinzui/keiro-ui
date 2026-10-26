@@ -6,13 +6,18 @@ generated:
   by: "codex-cli/gpt-6.1-sol"
   at: "2026-10-26T18:36:28Z"
 frictionId: FRIC-5
-status: logged
+status: "resolved"
 impact: detour
 kind: environment
 origin: "mori://shinzui/keiro-ui"
 affects: "https://github.com/caddyserver/caddy-docker"
 plan: "docs/plans/20-connect-one-console-to-multiple-application-deployments.md"
 workaround: "Remove the inherited executable capability with setcap -r /usr/bin/caddy during the image build; port 8080 needs no capability."
+resolution: "The Dockerfile removes the inherited Caddy file capability before switching to UID 10001; the hardened cap-drop ALL smoke passes."
+amended:
+  - by: "codex-cli/gpt-6.1-sol"
+    at: "2026-10-26T18:56:01Z"
+    change: "Remove the unneeded bind-port file capability and document the constraint in ADR-9 and the runbook."
 ---
 # Official Caddy image retains a privileged executable capability
 

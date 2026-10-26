@@ -6,13 +6,18 @@ generated:
   by: "codex-cli/gpt-6.1-sol"
   at: "2026-10-26T18:35:30Z"
 frictionId: FRIC-4
-status: logged
+status: "resolved"
 impact: detour
 kind: environment
 origin: "mori://shinzui/keiro-ui"
 affects: "https://github.com/abiosoft/colima"
 plan: "docs/plans/20-connect-one-console-to-multiple-application-deployments.md"
 workaround: "Create the disposable configuration directory under the checkout .dev directory, which Colima shares with the home directory."
+resolution: "The smoke script now creates configuration beneath the checkout .dev directory shared by Colima and cleans only its own resources."
+amended:
+  - by: "codex-cli/gpt-6.1-sol"
+    at: "2026-10-26T18:56:00Z"
+    change: "Use a checkout-local disposable bind source; the container smoke passes under Colima."
 ---
 # Colima cannot bind the host temporary directory
 

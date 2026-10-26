@@ -1,7 +1,7 @@
 #!/bin/sh
 # Builds the console (base path VITE_BASE_PATH, default /) and writes
 # release/keiro-ui-console-<version>.tar.gz with the bundle, VERSION, NOTICE.md, the Paper Mono
-# licence, and the two proxy examples. Rerunning overwrites the outputs.
+# licence, deployment examples, and the Kubernetes recipe. Rerunning overwrites the outputs.
 #   bun run release:pack
 set -eu
 

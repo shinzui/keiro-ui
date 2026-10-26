@@ -1,0 +1,86 @@
+# Behind the existing authenticated HTTPS gateway. Keep browser Origin unchanged.
+{
+	admin off
+	auto_https off
+	persist_config off
+	log {
+		format filter {
+			wrap json
+			fields {
+				request>headers delete
+				request>uri delete
+			}
+		}
+	}
+	grace_period 5s
+}
+:8080 {
+	header Cache-Control "no-store"
+
+	handle /inspection/prod/orders/keiro/* {
+		uri strip_prefix /inspection/prod/orders/keiro
+		reverse_proxy orders-keiro.applications.svc:9093 {
+			lb_retries 0
+		}
+	}
+	handle /inspection/prod/orders/kiroku/* {
+		uri strip_prefix /inspection/prod/orders/kiroku
+		reverse_proxy orders-kiroku.applications.svc:9091 {
+			lb_retries 0
+		}
+	}
+	handle /inspection/prod/orders/pgmq/* {
+		uri strip_prefix /inspection/prod/orders/pgmq
+		reverse_proxy orders-pgmq.applications.svc:9095 {
+			lb_retries 0
+		}
+	}
+	handle /inspection/prod/orders/workers/jobs-1/shibuya/* {
+		uri strip_prefix /inspection/prod/orders/workers/jobs-1/shibuya
+		reverse_proxy orders-jobs-1.applications.svc:9090 {
+			lb_retries 0
+		}
+	}
+	handle /inspection/prod/orders/workers/subscriptions-1/shibuya/* {
+		uri strip_prefix /inspection/prod/orders/workers/subscriptions-1/shibuya
+		reverse_proxy orders-subscriptions-1.applications.svc:9090 {
+			lb_retries 0
+		}
+	}
+	handle /inspection/prod/billing/keiro/* {
+		uri strip_prefix /inspection/prod/billing/keiro
+		reverse_proxy billing-keiro.applications.svc:9093 {
+			lb_retries 0
+		}
+	}
+	handle /inspection/prod/billing/kiroku/* {
+		uri strip_prefix /inspection/prod/billing/kiroku
+		reverse_proxy billing-kiroku.applications.svc:9091 {
+			lb_retries 0
+		}
+	}
+	handle /inspection/* {
+		respond "Unknown inspection route" 404
+	}
+	handle /console/console-config.json {
+		root * /srv/console-config
+		rewrite * /console-config.json
+		header Content-Type application/json
+		file_server
+	}
+	redir /console /console/ 308
+	handle_path /console/assets/* {
+		root * /srv/console/assets
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+	handle_path /console/* {
+		root * /srv/console
+		header Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+	handle {
+		respond "Not found" 404
+	}
+}

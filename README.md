@@ -49,6 +49,21 @@ It serves static files as user `65532:65532`. Inspection prefixes return 404 unt
 or mounted Caddyfile supplies upstream routing. See the [deployment guide](docs/user/deployment.md)
 for base paths, Apple containers, proxy configuration, dependency updates, and validation.
 
+## Multiple applications
+
+Build once for `/console/` and serve a deployment-owned `console-config.json` beside the bundle.
+The Application and Worker selectors route reads, live feeds and actions to the selected
+application/environment and logical worker. Selection is carried in shareable URLs; only the
+selected target is polled. Omitted surfaces show an explicit configuration state.
+
+Start a deterministic two-app demonstration with [dev/multi-app](dev/multi-app/README.md), or run
+`bun run test:e2e:multi-app`. Production catalog and Caddy/nginx examples are in
+[docs/deployment](docs/deployment/console-config.example.json). The hardened
+[Kubernetes recipe](docs/deployment/kubernetes/README.md) supplies a pinned Caddy runtime,
+immutable configuration, private Service and rollout/rollback instructions. Catalog and route
+changes require no bundle rebuild. Deployment authentication and per-app access remain at
+your existing gateway.
+
 ## Workspace
 
 | Path                   | Package                 | Role                                                  |

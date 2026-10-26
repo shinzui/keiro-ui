@@ -1,0 +1,26 @@
+# Application-owned Services; NOT part of the console base.
+apiVersion: v1
+kind: Service
+metadata:
+  name: orders-jobs-1
+  namespace: applications
+spec:
+  type: ClusterIP
+  selector:
+    statefulset.kubernetes.io/pod-name: orders-jobs-1
+  ports:
+    - port: 9090
+      targetPort: 9090
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: orders-subscriptions-1
+  namespace: applications
+spec:
+  type: ClusterIP
+  selector:
+    statefulset.kubernetes.io/pod-name: orders-subscriptions-1
+  ports:
+    - port: 9090
+      targetPort: 9090

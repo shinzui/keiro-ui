@@ -4,20 +4,21 @@ okf_version: "0.2"
 
 # Files
 
-- [log.md](log.md) - Bundle update log.
+- [profile.dhall](profile.dhall)
 
 # Architecture Decision Record
 
-- [ADR-1: Inspection endpoints live in the project that owns the concept](0001-inspection-endpoints-live-in-the-owning-project.md)
-- [ADR-2: WebSocket inspection protocol convention](0002-websocket-inspection-protocol-convention.md)
-- [ADR-3: Push is a hint; poll is truth](0003-push-is-a-hint-poll-is-truth.md)
-- [ADR-4: Inspection surfaces live in sister packages](0004-inspection-surfaces-live-in-sister-packages.md)
-- [ADR-5: No backend-for-frontend](0005-no-backend-for-frontend.md)
-- [ADR-6 (superseded by ADR-8): A design-system adapter defers the component-library choice](0006-design-system-adapter-defers-the-component-library-choice.md)
-- [ADR-7: Read-only first, with owning-repository gates](0007-read-only-first-with-owning-repository-gates.md)
-- [ADR-8: shadcn/ui on the React Aria base is the console component library](0008-shadcn-ui-on-the-react-aria-base-is-the-console-component-library.md)
-- [ADR-9: A static bundle in front of surfaces at their composed prefixes](0009-a-static-bundle-in-front-of-surfaces-at-composed-prefixes.md)
-- [ADR-10: 64-bit integers are bigint end to end](0010-64-bit-integers-are-bigint-end-to-end.md)
-- [ADR-11: One error shape over three envelopes](0011-one-error-shape-over-three-envelopes.md)
-- [ADR-12: Poll-first live queries](0012-poll-first-live-queries.md)
-- [ADR-13: Honest gates](0013-honest-gates.md)
+- [Inspection endpoints live in the project that owns the concept](0001-inspection-endpoints-live-in-the-owning-project.md) - Every keiro-runtime inspection endpoint is implemented in the repository that owns the concept it exposes, per a fixed layer-ownership matrix, and keiro composes lower-layer surfaces instead of re-implementing them.
+- [WebSocket inspection protocol convention](0002-websocket-inspection-protocol-convention.md) - All keiro-runtime WebSocket inspection endpoints speak type-tagged JSON frames with explicit subscribe/unsubscribe, snapshot-then-delta, ping/pong, in-band errors with bounded drop-oldest queues, and replay cursors where the domain has them; shipped dialects are frozen and converge only additively.
+- [Push is a hint; poll is truth](0003-push-is-a-hint-poll-is-truth.md) - Every live inspection endpoint in the keiro runtime stack is backed by an authoritative poll/read path, with NOTIFY-driven push used only to shorten latency, never as the source of truth.
+- [Inspection surfaces live in sister packages](0004-inspection-surfaces-live-in-sister-packages.md) - Core keiro-runtime libraries never gain web dependencies; each project ships its HTTP/WebSocket inspection surface as a dedicated sister package exporting an embeddable WAI Application.
+- [No backend-for-frontend](0005-no-backend-for-frontend.md) - The keiro runtime console consumes each project's own endpoints directly through one typed client package per surface; no aggregation server sits between the browser and the owning projects.
+- [A design-system adapter defers the component-library choice](0006-design-system-adapter-defers-the-component-library-choice.md) - Console screens import UI primitives only from a repository-owned adapter package, so the IntentUI-versus-shadcn/ui decision stays open and lands later as exactly one adapter implementation with no screen changes.
+- [Read-only first, with owning-repository gates](0007-read-only-first-with-owning-repository-gates.md) - The console ships without mutations; every mutation it ever offers rides an owning-repository endpoint that is itself gated, the UI renders gates and previews honestly, and payload visibility is an axis independent of action rights.
+- [shadcn/ui on the React Aria base is the console component library](0008-shadcn-ui-on-the-react-aria-base-is-the-console-component-library.md) - The console's UI primitives are shadcn/ui components generated from its official React Aria base into the repository-owned packages/ui, which is the only module screens import primitives from; Paper Mono is the single typeface; the design-system adapter of ADR-6 is retired.
+- [A static bundle in front of surfaces at their composed prefixes](0009-a-static-bundle-in-front-of-surfaces-at-composed-prefixes.md) - The console ships as a static bundle with a fixed asset base and explicit inspection base URLs, with Kubernetes deployment using static routing and runtime configuration behind the existing authenticated gateway.
+- [64-bit integers are bigint end to end](0010-64-bit-integers-are-bigint-end-to-end.md) - Every int64 the surfaces send (positions, versions, message ids, counters) is parsed losslessly into a bigint, shown and compared as one, and carried through URLs, search parameters, and query keys as exact decimal strings; a JavaScript number never holds one.
+- [One error shape over three envelopes](0011-one-error-shape-over-three-envelopes.md) - Every failed request becomes one ApiError carrying the surface, HTTP status, code, message, and details, whichever of the stack's three error envelopes the server used; clients raise typed refusals that keep the ApiError as their cause, and only network failures and 5xx answers are retried.
+- [Poll-first live queries](0012-poll-first-live-queries.md) - Every live screen reads through useSurfaceQuery, which polls at the surface's default interval stretched by an adaptive clamp and stops while the operator pauses; WebSocket feeds only write newer frames into the same cache entries, and any doubt (overflow, sequence gap, reconnect) re-reads from HTTP.
+- [Honest gates](0013-honest-gates.md) - The console renders every server-side gate as the server states it — a closed gate is a disabled control with the server's reason, a missing capability is named, a keiro mutation is previewed before any confirmation exists, and refusals are shown verbatim with an unknown outcome forcing a re-read.
+- [Static Nix packages and layered Linux images](0014-static-nix-packages-and-layered-linux-images.md) - Nix packages build the static console from a frozen Bun lock and shared staging logic, while Linux images reuse that package and an independent Caddy runtime layer.

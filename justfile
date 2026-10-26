@@ -116,3 +116,25 @@ smoke-production port="8080":
 # mutation-enabled stacks only; never production. See apps/console/e2e/actions/actions.live.spec.ts.
 smoke-live-mutations:
     cd apps/console && KEIRO_UI_LIVE_MUTATIONS=1 bunx playwright test --config playwright.live.config.ts actions
+
+# Build the native static package without a local dependency installation.
+nix-console:
+    nix build .#console
+
+# Linux coordinator: build image metadata, then import into Docker.
+nix-image:
+    nix build .#docker-image
+
+nix-image-load:
+    nix run .#docker-image.copyToDockerDaemon
+
+# Regenerate with the exact pinned generator after a deliberate lock update.
+nix-deps:
+    nix run .#bun2nix -- --lock-file bun.lock --output-file bun-deps.nix
+
+# Set CONTAINER_RUNTIME=apple to check an image imported into Apple containers.
+smoke-image image="keiro-ui-console:dev" base="/":
+    bash scripts/check-container.sh {{quote(image)}} {{quote(base)}}
+
+benchmark-image output=".dev/image-benchmark":
+    bash scripts/benchmark-image.sh --output {{quote(output)}}

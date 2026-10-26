@@ -4,6 +4,15 @@
   # Module-owned revisions move with module releases. All inputs stay declared
   # across feature toggles, so every project shares the shipped lock.
   inputs = {
+    bun2nix = {
+      url = "github:nix-community/bun2nix/0f2a1f0b6f42cebe3b149bf62d38754c5e0e9729";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-parts.follows = "flake-parts";
+    };
+    nix2container = {
+      url = "github:nlewo/nix2container/e503eb81630a0c5d7ec244e08e0733650235d8f1";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     nixpkgs.url = "github:NixOS/nixpkgs/39ad350a0602fa0a58a544344e3e9187526ea45c";
     flake-parts = {
       url = "github:hercules-ci/flake-parts/024633cd702b10285db5cb19b40ad48d2399ba60";

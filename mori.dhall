@@ -18,6 +18,13 @@ in  Schema.Project::{
       [ Schema.Repo::{ name = "keiro-ui", github = Some "shinzui/keiro-ui" } ]
     , okfBundles =
       [ Schema.OkfBundle::{
+        , name = "friction-log"
+        , path = "docs/friction-log"
+        , okfVersion = "0.2"
+        , profile = Some "docs/friction-log/profile.dhall"
+        , description = Some "Friction met while implementing plans, before triage into bug reports and requests"
+        }
+      , Schema.OkfBundle::{
         , name = "adrs"
         , path = "docs/adr"
         , okfVersion = "0.2"

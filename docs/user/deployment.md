@@ -3,6 +3,7 @@ type: Guide
 title: Deploying the keiro runtime console
 description: Serve the static console bundle at any base path and make the four inspection surfaces reachable from it, on one origin behind a proxy, on a composing host, or on separate origins.
 docId: DOC-3
+timestamp: 2026-10-26T17:00:00Z
 tags: [deployment, reverse-proxy, cors, base-path, operator-actions]
 generated:
   by: claude-code/claude-opus-5-5
@@ -29,8 +30,7 @@ the console's path. The first release is read-only: nothing in it writes to any 
 ## Getting the bundle
 
 From a release, unpack `keiro-ui-console-<version>.tar.gz`: it contains the bundle, `VERSION`,
-`NOTICE.md`, the Paper Mono licence `OFL.txt`, and `deployment/Caddyfile.example` and
-`deployment/nginx.conf.example`. From a checkout, build it with the base path the console will
+`NOTICE.md`, the Paper Mono licence `OFL.txt`, and proxy examples in `deployment/`. From a checkout, build it with the base path the console will
 be served at:
 
 ```bash
@@ -45,6 +45,139 @@ their absolute prefixes (`/kiroku`, `/shibuya`, `/pgmq`, `/keiro`), whatever the
 Every recipe below serves the bundle with an *SPA fallback*: any path under the console's base
 that is not a file answers `index.html`, so a reload of `/console/workflows/order/42` loads the
 application and its router resolves the path.
+
+## Native Nix packages and container images
+
+From a checkout with Nix flakes enabled, no local `node_modules` is required:
+
+```bash
+nix build --out-link result-console
+nix build .#console-subpath --out-link result-console-subpath
+nix flake check
+```
+
+The served directory is `result-console/share/keiro-ui`, including `VERSION`, `NOTICE.md`,
+the font licence, and proxy examples. The default package builds for `/`; `console-subpath`
+builds for `/console/`. Packages support `aarch64-darwin`, `aarch64-linux`, and `x86_64-linux`.
+Bun 1.4.2 builds the assets; the deployed image runs Caddy, with no JavaScript toolchain.
+
+On a Linux coordinator with Nix and a Docker daemon:
+
+```bash
+nix build .#docker-image
+nix run .#docker-image.copyToDockerDaemon
+docker run --rm --read-only -p 127.0.0.1:18088:8080 keiro-ui-console:dev
+# Or the /console/ build, with a separate tag:
+nix run .#docker-image-subpath.copyToDockerDaemon
+bash scripts/check-container.sh keiro-ui-console:dev-subpath /console/
+```
+
+`docker-image` is a nix2container image description referencing the package and layers;
+`result` is not an image tarball. Importing is a separate step. The image listens on port 8080,
+runs as numeric user/group `65532:65532`, needs no writable directories, and works with a
+read-only root filesystem. Root and sub-path deep links resolve to the app shell. Missing
+assets, exact inspection prefixes and their children, and paths outside `/console/` return
+404. Hashed assets use immutable caching; HTML revalidates. The default configuration includes
+no upstream addresses. Route inspection traffic through your ingress or use a separate-origins
+connection profile. Recipe A below shows the proxy rules; use reachable service addresses
+rather than the development loopback addresses.
+
+For a mounted configuration, start from
+[the container proxy example](../deployment/container.Caddyfile.example), set its upstreams
+and base-path routing for your deployment, then mount it read-only:
+
+```bash
+docker run --rm --read-only -p 127.0.0.1:18088:8080 \
+  -v "$PWD/operator.Caddyfile:/etc/caddy/Caddyfile:ro" keiro-ui-console:dev
+```
+
+Caddy preserves Host and forwards WebSocket upgrades by default. Preserve the browser Origin
+and configure upstream origin policies as described below. A container environment variable
+cannot relocate assets already built for a different base path. To customize the package and
+matching image, change the console binding in `flake.module.nix`, for example:
+
+```nix
+console = pkgs.callPackage ./nix/console.nix {
+  inherit bun2nix gitCommit;
+  basePath = "/operations/";
+};
+```
+
+`nix/console.nix` also accepts an explicit `gitCommit`. Normal Git flakes use `self.rev` or
+`self.dirtyRev`; source archives and `path:` flakes use `unknown`. That same value is embedded
+in the app, `VERSION`, and notices. A new Git revision rebuilds the bundle, including after a
+docs-only commit. With a fixed explicit revision, excluded docs changes preserve the package
+identity. Base paths reject traversal, query/fragment syntax, inspection-prefix collisions,
+and characters unsafe for literal Caddy paths.
+
+### Apple containers on macOS
+
+Native static builds run directly on macOS. Image assembly and the Linux importer run inside
+a Linux coordinator. A generic remote-builder setting alone does not cover the locally
+preferred nix2container metadata steps. With Apple's `container` CLI running, create a
+coordinator from the repository root; keep the exchange directory outside the checkout:
+
+```bash
+mkdir -p /tmp/keiro-ui-images
+container run --detach --name keiro-ui-linux --arch arm64 --cpus 8 --memory 16G \
+  --volume "$PWD:/workspace:ro" --volume /tmp/keiro-ui-images:/exchange \
+  --workdir /workspace --entrypoint /bin/sh ghcr.io/nixos/nix:2.35.2 -c 'sleep infinity'
+container exec keiro-ui-linux nix --extra-experimental-features 'nix-command flakes' \
+  build path:/workspace#docker-image --no-link --option sandbox true
+container exec keiro-ui-linux nix --extra-experimental-features 'nix-command flakes' \
+  run path:/workspace#docker-image.copyTo -- --format oci \
+  oci-archive:/exchange/console.oci.tar:keiro-ui-console:dev
+python3 scripts/check-oci-archive.py /tmp/keiro-ui-images/console.oci.tar
+container image load --input /tmp/keiro-ui-images/console.oci.tar
+CONTAINER_RUNTIME=apple bash scripts/check-container.sh keiro-ui-console:dev /
+container run --detach --name keiro-ui-console --read-only \
+  -p 127.0.0.1:18088:8080 keiro-ui-console:dev
+```
+
+Open `http://127.0.0.1:18088/`. For `/console/`, export `docker-image-subpath.copyTo` using
+tag `keiro-ui-console:dev-subpath`, and pass that image and `/console/` to the smoke script.
+The path-flake example deliberately identifies the build as `unknown`. Apple loads OCI
+archives, so this workflow materializes an archive during export even though Nix image
+assembly itself does not. Stop and delete the two containers you named when finished; no
+shared images or other containers need pruning.
+
+### Dependency updates and validation
+
+Keep the committed Bun lock and generated dependency expression together. Update dependencies
+with the pinned Bun in the shell, then regenerate using the pinned, compatibility-patched
+bun2nix helper:
+
+```bash
+nix develop -c bun install --frozen-lockfile # normal installation without dependency changes
+# After deliberately changing package.json and refreshing bun.lock:
+nix run .#bun2nix -- --lock-file bun.lock --output-file bun-deps.nix
+nix build .#console-deps
+nix flake check
+```
+
+The bun2nix 2.1.2 patch accepts lockfile v2 without rewriting it. Frozen sandbox installs and
+the generation check validate the generated cache. Update helper pins deliberately in
+`flake.nix`; retain the Seihou-managed nixpkgs/Bun pin unless a coordinated upgrade is needed.
+Ordinary builds use only hash-verified registry downloads and their prepared local cache.
+
+The smoke script requires the developer dependencies and Playwright's Chromium installed on
+the host. It tests the imported artifact without rebuilding it. An already running deployment
+can also be checked directly:
+
+```bash
+CONSOLE_EXTERNAL_URL=http://127.0.0.1:18088/ \
+  CONSOLE_EXPECTED_REVISION=unknown bun run test:e2e:production
+bash scripts/benchmark-image.sh --output /tmp/keiro-ui-image-benchmark
+# Apple coordinator variant (measures OCI export/load, rather than Docker import):
+APPLE_NIX_CONTAINER=keiro-ui-linux APPLE_NIX_EXCHANGE=/tmp/keiro-ui-images \
+  bash scripts/benchmark-image.sh --output /tmp/keiro-ui-apple-benchmark
+```
+
+Supply the package's exact revision, obtainable with `nix eval --raw .#console.gitCommit` for
+a Git-flake build. Benchmark reports preserve first-use/cached tool state, phase logs, three
+fresh source edits, unchanged repeats, stable cache/runtime identities, and both builders'
+assembly/import medians. They never prune caches or edit the working tree. Apple results
+include OCI archive conversion and do not predict Docker-daemon import performance.
 
 ## Recipe A — one origin, a reverse proxy in front of four servers
 

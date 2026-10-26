@@ -30,6 +30,25 @@ bun run test:e2e   # Playwright against `vite preview`
 
 `just --list` shows the same commands as recipes.
 
+## Production packages
+
+`nix build` builds the static console without a local dependency installation. The bundle is
+at `result/share/keiro-ui`; `nix build .#console-subpath` builds for `/console/`.
+Native packages target Apple Silicon macOS and ARM64/x86-64 Linux.
+
+On Linux with Docker:
+
+```bash
+nix build .#docker-image
+nix run .#docker-image.copyToDockerDaemon
+docker run --rm --read-only -p 127.0.0.1:18088:8080 keiro-ui-console:dev
+```
+
+The image build produces metadata; the import command makes the image available to Docker.
+It serves static files as user `65532:65532`. Inspection prefixes return 404 until an ingress
+or mounted Caddyfile supplies upstream routing. See the [deployment guide](docs/user/deployment.md)
+for base paths, Apple containers, proxy configuration, dependency updates, and validation.
+
 ## Workspace
 
 | Path                   | Package                 | Role                                                  |

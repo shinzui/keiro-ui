@@ -16,6 +16,11 @@ provenance:
       at: 2026-10-26T16:35:48Z
       mode: "update"
       note: "Correct runtime/browser integration and platform guidance; require phase timings, fair cache comparisons, and measured dependency-install reuse."
+    - model: "gpt-6.1-sol"
+      harness: "codex-cli"
+      at: 2026-10-26T16:40:43Z
+      mode: "implement"
+      note: "Implement native console packaging, container runtime, and artifact validation."
   reviews:
     - model: "gpt-6-astra"
       harness: "codex-cli"
@@ -44,14 +49,25 @@ The optimization target is elapsed time to create and use an image, especially a
 
 
 - [ ] M1: A sandboxed native console package builds from the committed lockfile on the three supported systems; root and `/console/` variants contain production assets and release notices.
-- [ ] M2: Linux images consume those exact packages, import into Docker, and serve root and sub-path deployments with working deep links and correct handling of inspection prefixes.
+- [x] M2 (2026-10-26): Linux images consume the exact native packages and run read-only in Apple containers (the user-selected runtime). Both paths pass HTTP checks and all five tier-1 browser tests; four backend tests skip. Docker import remains an available, unmeasured interface.
 - [ ] M3: Automated artifact/container checks and recorded timing comparisons demonstrate dependency reuse, stable runtime layers, and the chosen image workflow's speed tradeoffs.
 - [ ] M4: Operator documentation and architecture records describe the verified commands, customization, dependency updates, and platform limits; required checks pass.
 
-Review/update handoff (2026-10-26): this document remains the deliverable; packaging implementation has not started. The original plan was authored by `gpt-6.1-sol` and had no recorded reviews. This review checked repository build/release/browser code, ADR-5/ADR-9, the Seihou extension contract, and pinned helper source. npm and upstream release tags still agree with the helper versions below. Build success and speed remain implementation acceptance obligations, not review results. The linked intention was created with `mina ci --json`; no existing MasterPlan is made this plan's parent.
+Implementation status (2026-10-26): root and sub-path packages build with `--option sandbox true` on aarch64-darwin and aarch64-linux. Darwin artifact checks, generator consistency, flake checks, workspace check, 576 tests, and the shared-staging release archive pass. Linux image assembly and read-only Apple container HTTP/browser smoke pass for both paths (five tier-1 tests pass, four backend-dependent tests skip). x86_64-linux native realization is still running through the configured Nix builder. Dependency-tree comparisons and source/revision identity checks pass. Operator documentation and ADR-14 pass strict bundle checks. Final image timing evidence and final-candidate validation remain in progress.
+
+The user selected Apple containers for Linux execution. A dedicated `keiro-ui-plan21-linux` ARM64 Nix coordinator mounts the checkout read-only at `/workspace` and a temporary exchange directory at `/exchange`. Image metadata assembly and patched-Skopeo export run there; Apple imports the resulting OCI archive on macOS. This validates Linux image behavior but does not constitute a Docker-daemon import benchmark. Path-flake checkouts intentionally use revision `unknown`; browser expectations supply that exact value. Git-flake revision behavior is checked separately.
 
 
 ## Surprises & Discoveries
+
+
+Discovery (2026-10-26, implementation): released bun2nix 2.1.2 rejects `lockfileVersion: 2` before generation. Bun 1.4.2's upstream `src/install/lockfile/bun.lock.rs` defines v2 as stricter parsing of the existing tuple format. `nix/bun2nix.nix` extends only the generator's version gate to accept 1 or 2; the original lock remains unchanged. Generation and frozen sandbox installs now pass on Darwin and ARM64 Linux. FRIC-1 in `docs/friction-log/` records this compatibility detour.
+
+Discovery (2026-10-26, implementation): a configured static host returns HTTP 404 for absent inspection surfaces, and the console honestly renders `down (404)` rather than `unreachable`. The external production smoke now accepts the existing HTTP-down state as well as transport failure. Apple image inspection omits `ExposedPorts` from its decoded display; the exported OCI config itself includes `8080/tcp`, verified directly from the archive outside the Nix store.
+
+Discovery (2026-10-26, measurement): registry installation is already cheap on ARM64 Linux (180–207 ms); restoring an installed tree takes 525–683 ms. Darwin install/restore totals overlap within observed variation. Retain the normal registry-cache hook and keep the rejected installed-tree prototype only in `nix/benchmarks/console-node-modules.nix`, consumed by the internal harness. Ordinary console/image outputs do not depend on it.
+
+Discovery (2026-10-26, measurement): path-flake evaluation included ignored checkout files and made an unchanged Linux command take 7.20 seconds. Git-flake benchmark inputs avoid that snapshot cost (FRIC-2, resolved). A pinned patched-Skopeo `--rebuild` probe compiled but failed Nix's byte-determinism comparison; the timing harness instead realizes a uniquely named helper probe with cached dependencies, without changing the normal importer or deleting cache state (FRIC-3).
 
 
 Discovery (2026-10-26): `apps/console/e2e/production/production.spec.ts` hard-codes `/console/workflows`, `/console/assets/`, and a release version. Changing only Playwright's server URL cannot validate the root image. External-target configuration and path-aware assertions must land before M2's first browser acceptance.
@@ -77,6 +93,9 @@ Decision (2026-10-26, clarified during review): Native static packages support `
 Review decision (2026-10-26): Preserve honest Git revision metadata, including its intentional rebuild cost. Source filtering must preserve the application derivation for excluded-file changes with the same explicit revision; a new commit changes the embedded revision and therefore may rebuild the bundle even when only documentation changed. Do not promise otherwise or hide the revision to improve benchmark results.
 
 Review decision (2026-10-26): Choose the fastest measured complete path for a source edit, including dependency preparation, bundling, assembly, and import. Keep the registry cache as the initial implementation; if repeated installation materially contributes to elapsed time, compare a reusable installed-dependency tree before finalizing. Adopt it only with demonstrated savings and correct workspace links on every supported platform. The supported macOS-to-image workflow runs Nix assembly/import on Linux; direct Darwin orchestration is deferred until tested.
+
+
+Implementation decision (2026-10-26): the user's instruction to use Apple containers selects the acceptance runtime for this session. Linux Nix assembly/export runs in a dedicated ARM64 Apple container, and macOS imports an OCI archive. Preserve Docker interfaces and the Linux/Docker benchmark mode, but measure and label Apple OCI export/load rather than claiming Docker-daemon results. The streamed Docker-archive control requires OCI conversion for Apple; include that conversion in its elapsed time. Benchmark samples use a new visible nonce for every run and reject already-realized source samples.
 
 
 ## Outcomes & Retrospective
@@ -226,6 +245,27 @@ bash scripts/check-container.sh keiro-ui-console:dev-subpath /console/
 bash scripts/benchmark-image.sh
 ```
 
+The user-selected Apple workflow uses the commands below. Create only the dedicated coordinator and exchange directory; the checkout mount is read-only. The original Docker commands remain an alternative interface, not evidence of a Docker-daemon run in this session.
+
+```bash
+mkdir -p /tmp/keiro-ui-images
+container run --detach --name keiro-ui-linux --arch arm64 --cpus 8 --memory 16G \
+  --volume "$PWD:/workspace:ro" --volume /tmp/keiro-ui-images:/exchange \
+  --workdir /workspace --entrypoint /bin/sh ghcr.io/nixos/nix:2.35.2 -c 'sleep infinity'
+container exec keiro-ui-linux nix --extra-experimental-features 'nix-command flakes' \
+  run path:/workspace#docker-image.copyTo -- --format oci \
+  oci-archive:/exchange/console.oci.tar:keiro-ui-console:dev
+python3 scripts/check-oci-archive.py /tmp/keiro-ui-images/console.oci.tar
+container image load --input /tmp/keiro-ui-images/console.oci.tar
+CONTAINER_RUNTIME=apple bash scripts/check-container.sh keiro-ui-console:dev /
+# Repeat export/import/smoke using docker-image-subpath, dev-subpath and /console/.
+container exec keiro-ui-linux git config --global --add safe.directory /workspace
+APPLE_NIX_CONTAINER=keiro-ui-linux APPLE_NIX_EXCHANGE=/tmp/keiro-ui-images \
+  bash scripts/benchmark-image.sh --rebuild-importer --output /tmp/keiro-ui-image-benchmark
+```
+
+The benchmark uses a Git flake and fixed explicit revision internally; normal path-flake smoke packages honestly identify as `unknown`. The helper build probe uses the pinned source with a unique derivation name and cached toolchain, and never purges shared caches. Reports distinguish that cost from initial realization of already-cached tools. Apple accepts OCI archives rather than the control's Docker archive, so the control includes explicit Skopeo conversion. Both exporters use uncompressed layers for the timed comparison.
+
 For an interactive smoke on that Linux host, the port below is only an example; choose a free local port. The browser should show Overview and retain Workflows after a reload. Cleanup uses the name created here only.
 
 ```bash
@@ -266,7 +306,7 @@ M3 requires passing automated artifact and container checks, the external-target
 
 Report end-to-end source-edit medians as well as assembly/import medians, the first-use importer/toolchain cost, and the dependency-install optimization decision. Each changed-source sample must actually build new application content, and the browser must show the edited content at least once. Default revision behavior, shared-workspace invalidation, image-only changes, missing-asset handling, and both base paths must be covered. A timing table with cache-hit-only builds or unaccounted stream-generation work does not satisfy acceptance.
 
-M4 requires runnable documented commands, the correct base-path customization explanation, a validated ADR, the existing release archive still working, and passing relevant workspace/docs/flake checks. This request authorizes planning; do not claim these implementation criteria were run while creating the plan.
+M4 requires runnable documented commands, the correct base-path customization explanation, a validated ADR, the existing release archive still working, and passing relevant workspace/docs/flake checks. Implementation is authorized by the user; record actual acceptance evidence and leave unmet criteria explicit.
 
 
 ## Idempotence and Recovery

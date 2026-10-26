@@ -1,6 +1,12 @@
+import { execSync } from "node:child_process"
+import { readFileSync } from "node:fs"
+
 import { expect, type Page, test } from "@playwright/test"
 
-const version = "0.1.0"
+const { version } = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8"))
+
+const revision =
+  process.env.CONSOLE_EXPECTED_REVISION ?? execSync("git rev-parse --short HEAD").toString().trim()
 
 /** Whether the stack answers through the proxy; tier 2 runs only then. */
 async function stackAnswers(page: Page): Promise<boolean> {
@@ -9,19 +15,21 @@ async function stackAnswers(page: Page): Promise<boolean> {
 }
 
 test.describe("tier 1", () => {
-  test("serves the shell at /console/", async ({ page }) => {
+  test("serves the shell at the deployment base", async ({ page }) => {
     await page.goto("./")
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Overview")
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      process.env.CONSOLE_EXPECTED_OVERVIEW ?? "Overview",
+    )
   })
 
-  test("a deep link reload resolves /console/workflows", async ({ page }) => {
+  test("a deep link reload resolves workflows", async ({ page, baseURL }) => {
     await page.goto("workflows")
     await page.reload()
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Workflows")
-    expect(new URL(page.url()).pathname).toBe("/console/workflows")
+    expect(new URL(page.url()).pathname).toBe(new URL("workflows", baseURL).pathname)
   })
 
-  test("assets are hashed and under the base path", async ({ page }) => {
+  test("assets are hashed and under the base path", async ({ page, baseURL }) => {
     await page.goto("./")
     const urls = await page.evaluate(() => [
       ...[...document.querySelectorAll("script[src]")].map((s) => s.getAttribute("src")!),
@@ -30,13 +38,21 @@ test.describe("tier 1", () => {
       ),
     ])
     expect(urls.length).toBeGreaterThan(0)
-    for (const url of urls)
-      expect(url).toMatch(/^\/console\/assets\/.+-[A-Za-z0-9_-]{8,}\.(js|css)$/)
+    for (const url of urls) {
+      expect(url.startsWith(`${new URL(baseURL!).pathname}assets/`)).toBe(true)
+      expect(url).toMatch(/\/.+-[A-Za-z0-9_-]{8,}\.(js|css)$/)
+      const response = await page.request.get(url)
+      expect(response.ok()).toBe(true)
+      expect(response.headers()["content-type"]).toMatch(/javascript|text\/css/)
+    }
   })
 
   test("the version slot shows the release", async ({ page }) => {
     await page.goto("./")
-    await expect(page.locator("footer")).toContainText(new RegExp(`v${version} · [0-9a-f]{7}`))
+    await expect(page.locator("footer")).toContainText(`v${version} · ${revision}`)
+    await expect(
+      page.locator("footer").getByTitle(`commit ${revision}`, { exact: true }),
+    ).toBeVisible()
   })
 
   test("health renders honestly whether or not the surfaces answer", async ({ page }) => {
@@ -45,7 +61,7 @@ test.describe("tier 1", () => {
     const strip = page.getByRole("list", { name: "Surfaces" })
     for (const surface of ["kiroku", "pgmq", "shibuya", "keiro"]) {
       await expect(strip.locator(`[data-strip-surface="${surface}"]`)).toContainText(
-        up ? /healthy|busy/ : "unreachable",
+        up ? /healthy|busy/ : /unreachable|down \(\d{3}\)/,
         { timeout: 15_000 },
       )
     }

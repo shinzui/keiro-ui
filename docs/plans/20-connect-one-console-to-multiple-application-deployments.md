@@ -16,6 +16,22 @@ provenance:
       at: 2026-10-26T02:36:24Z
       mode: "other"
       note: "Create the five-milestone implementation plan and link the requested Mina intention."
+    - model: "gpt-6-astra"
+      harness: "codex-cli"
+      at: 2026-10-26T16:35:34Z
+      mode: "update"
+      note: "Add Kubernetes delivery and rollout acceptance; tighten worker identity, gateway policy, legacy migration and connection-session guarantees."
+  reviews:
+    - model: "gpt-6-astra"
+      harness: "codex-cli"
+      at: 2026-10-26T16:33:35Z
+      verdict: "changes-requested"
+      note: "Review found missing Kubernetes topology, rollout and cluster validation; worker incarnation guarantees and legacy ID validation also need correction."
+    - model: "gpt-6-astra"
+      harness: "codex-cli"
+      at: 2026-10-26T16:40:06Z
+      verdict: "approved"
+      note: "Post-update review: initial findings addressed; six verifiable milestones, Kubernetes rollout and release prerequisites, compatible IDs, and ADR-9 aligned. Cluster execution remains future work."
 ---
 
 # Connect one console to multiple application deployments
@@ -38,8 +54,15 @@ The primary deployment has one public origin, such as `https://ops.example`. A r
 (a server that forwards a request to a configured upstream server) serves the console at
 `/console/`, its application catalog at `/console/console-config.json`, and inspection endpoints
 under `/inspection/<environment>/<app>/<surface>/`. Each application keeps its existing APIs
-and owns its runtime resources. The proxy handles authentication and authorization and
-forwards HTTP and WebSocket traffic without combining or rewriting response bodies.
+and owns its runtime resources. The deployment gateway enforces authentication and
+authorization; the proxy chain forwards HTTP and WebSocket traffic without combining or
+rewriting response bodies.
+
+The production destination is a Kubernetes cluster. Deploy the static bundle and explicit
+Caddy routes behind the cluster's existing authenticated HTTPS entry point. Browser URLs
+stay on the public origin; only Caddy uses Kubernetes Service DNS names. This plan delivers
+a container recipe, Kubernetes manifests, and a cluster verification runbook. It does not
+install a cluster, select an identity provider, or migrate application workloads.
 
 Demonstrate completion with one production console bundle, two inspection fixture servers
 containing the same entity IDs but different data, and a proxy. Switching applications must
@@ -61,6 +84,7 @@ selected target; listing configured targets does not poll the whole fleet.
 - [ ] Milestone 3: Reads, caches, feeds, and unavailable-surface behavior remain isolated when targets or endpoints change.
 - [ ] Milestone 4: Confirmations, commands, recent items, pins, and audit entries preserve the originating application and worker.
 - [ ] Milestone 5: One production bundle operates two applications through a real proxy, with packaged examples, documentation, and regression evidence.
+- [ ] Milestone 6: A hardened Kubernetes deployment recipe renders successfully, serves the same bundle and configuration in a local container smoke test, and documents cluster rollout, access-policy verification, and rollback.
 
 Planning is complete; implementation has not started. This is a standalone follow-on to the
 existing console, not a new child of the completed build-out in
@@ -70,7 +94,16 @@ existing console, not a new child of the completed build-out in
 ## Surprises & Discoveries
 
 
-(None yet.)
+Review (2026-10-26): `connectionProfileSchema` in
+`apps/console/src/settings/connection-profiles.tsx` accepts any nonempty profile ID. Applying
+the new managed-ID restriction to migration would reject previously valid imported profiles.
+Preserve opaque local IDs and encode them as URL search values; restrict managed and newly
+generated IDs without retroactively narrowing legacy storage.
+
+Review (2026-10-26): The repository currently packages static assets and standalone proxy
+examples, with no Kubernetes manifests or container recipe. The local production test cannot
+prove a cluster's gateway, network policy, service selection, or configuration rollover.
+Milestone 6 separates repository evidence from cluster release verification.
 
 
 ## Decision Log
@@ -105,6 +138,25 @@ target identity. The catalog is connection configuration, not an authorization d
 Decision (2026-10-25): Reset pending previews and confirmations on a selection change, and
 capture the originating session for actions already submitted. Changing the selected app
 does not cancel a mutation already accepted by its server or move that action to another app.
+
+Decision (2026-10-26): Use a Kubernetes Deployment for the stateless console/Caddy workload,
+a ClusterIP Service for its internal address, and the existing cluster gateway for public TLS
+and access policy. Keep explicit upstream routes and no Kubernetes API access in the console.
+Gateway API integration is an optional overlay requiring an installed controller; do not
+assume a particular controller, authentication extension, or cluster DNS suffix.
+
+Decision (2026-10-26): Deliver catalog and Caddy configuration in an immutable, content-named
+ConfigMap, a Kubernetes object holding non-secret files. Roll out configuration changes as
+new pods using the same console image. Stage route additions before catalog publication,
+because requests during a rolling update can reach different pod generations. Never reuse a
+target ID or public inspection prefix for a different application/environment.
+
+Decision (2026-10-26): A worker entry identifies one logical worker replica, not all workers
+and not an immortal process. Route it to exactly that replica or report unavailable. An
+existing StatefulSet can supply a stable replica name; ordinary load balancing, including a
+headless Service selecting several workers, cannot. A restart may replace the process behind
+the same identity; guaranteeing process-incarnation-bound commands requires upstream support
+and is outside this plan.
 
 
 ## Outcomes & Retrospective
@@ -178,10 +230,10 @@ Relevant accepted decisions were read during planning.
 semantics to the owning projects. [ADR-5](../adr/0005-no-backend-for-frontend.md) permits routing
 but rejects a backend that reshapes or combines their APIs.
 [ADR-9](../adr/0009-a-static-bundle-in-front-of-surfaces-at-composed-prefixes.md) fixes the
-console's asset base at build time and currently assumes fixed browser-visible surface
-prefixes; implementation must amend that assumption for explicitly configured target URLs
-while preserving the legacy default. [ADR-12](../adr/0012-poll-first-live-queries.md) keeps
-polling authoritative and feed frames as an accelerator within the same cache.
+console's asset base at build time; its plan-20 amendment permits configured browser-visible
+surface prefixes and a Kubernetes routing deployment while preserving the legacy default.
+These extensions are planned behavior until this plan is implemented.
+[ADR-12](../adr/0012-poll-first-live-queries.md) keeps polling authoritative and feed frames as an accelerator within the same cache.
 [ADR-13](../adr/0013-honest-gates.md) requires truthful capability and mutation gating, previews,
 and server refusal messages. These rules remain in effect for every target.
 
@@ -190,6 +242,22 @@ Keiro composition is routing within an application, described by
 of separate applications. The source at `mori://shinzui/keiro`, project-relative path
 `keiro-ops-http/src/Keiro/Ops/Http/Compose.hs` (artifact-level URI pending), accepts already
 allocated applications under stable surface prefixes. No change to that composer is needed.
+
+Kubernetes terminology used below: a Pod runs containers; a Deployment replaces interchangeable
+Pods during updates; a Service gives selected Pods a stable internal address. A StatefulSet
+assigns stable replica names. A NetworkPolicy restricts network traffic, not user permissions.
+Kustomize renders a base set of manifests with deployment-specific overlays. No relevant
+Kubernetes-specific ADR existed before this review; ADR-9 now records the selected boundary.
+
+Official guidance checked for this revision includes
+[ConfigMap update semantics](https://kubernetes.io/docs/concepts/configuration/configmap/),
+[Kustomize generated configuration names](https://kubernetes.io/docs/tasks/manage-kubernetes-objects/kustomization/),
+[individual StatefulSet pod Services](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#pod-name-label),
+[Gateway API prerequisites](https://kubernetes.io/docs/concepts/services-networking/gateway/),
+[NetworkPolicy enforcement](https://kubernetes.io/docs/concepts/services-networking/network-policies/),
+and [probe behavior](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/).
+These establish infrastructure semantics; the architecture and staged rollout below are this
+plan's choices. Verify the actual cluster's supported APIs and controller before deployment.
 
 
 ## Plan of Work
@@ -206,6 +274,12 @@ inventory. Endpoint strings are either absolute HTTP(S) base URLs or root-relati
 reject protocol-relative URLs, embedded credentials, query strings, fragments, backslashes,
 and encoded or literal traversal segments. Keep proxy routing tied to explicit configured
 targets. Catalog data is never interpreted as a generic server-side URL to proxy.
+
+Validate raw path spelling before URL parsing can normalize traversal away. On an HTTPS
+console, reject absolute HTTP inspection endpoints with a visible mixed-content explanation;
+HTTP remains usable on the HTTP development console. Keep runtime configuration requests on
+the console origin and reject redirects, so an authentication redirect or unrelated JSON
+document cannot become a connection catalog.
 
 Fetch `console-config.json` relative to `import.meta.env.BASE_URL`, not the current entity URL,
 before mounting any inspection consumers in `apps/console/src/main.tsx`. Send `Accept:
@@ -235,8 +309,13 @@ Do not persist managed targets into browser storage. Catalog and local IDs must 
 unique in the effective target set; collisions produce a visible configuration error, never
 silent overrides. Managed targets are visibly read-only in Settings → Connections.
 
-Use the old profile name as the migrated label, its ID as the app identifier, and `local` as
-the environment when the old record has no such metadata. The built-in target keeps ID
+Preserve all previously valid nonempty local IDs, including spaces and Unicode, through the
+v1 adapter and v2 roundtrip. Never derive proxy paths from them. Cover these cases in migration
+tests, along with managed/local collisions and explicit links containing encoded local IDs.
+
+Use the old profile name as the migrated label and `local` as the environment when the old
+record has no such metadata. Use its trimmed ID as the app display identifier, falling back
+to the profile name for a whitespace-only legacy ID; preserve the actual selection ID exactly. The built-in target keeps ID
 `same-origin`, label `Same origin`, and its exact four existing endpoints. Validate the whole
 stored v2 document before choosing a last-used target; never discard an invalid stored record
 and silently select a different application.
@@ -273,7 +352,7 @@ navigates to Overview with the new target, clears the old worker, sheet, entity 
 cursors, and pushes a history entry. This avoids reopening an identically named entity in a
 different app by accident. Back and Forward restore the prior URL's complete selection.
 
-When a target declares workers, a worker selector displays their labels and process identity.
+When a target declares workers, a worker selector displays their labels and logical replica identity.
 An explicit invalid worker makes processor inspection unavailable without falling back to a
 different process; database surfaces can continue. Without an explicit worker, use the
 declared default, or the sole worker when there is only one. Multiple workers without a
@@ -295,9 +374,10 @@ the unavailable-target state.
 Introduce `apps/console/src/settings/connection-session.tsx`. Once target selection is valid,
 mount one keyed session containing a fresh QueryClient, available surface clients, liveness,
 feature command registrations, status slots, sheets, and page content. Its identity includes
-target ID, selected worker ID, and normalized effective endpoint configuration. Changing a
-local profile's endpoint under the same ID creates a new session. Cosmetic label changes
-need not recreate connections. Keep the catalog, selectors, theme, and tab-wide audit outside
+target ID, selected worker ID, normalized effective endpoints, process-manager names, and
+dead-letter suffix. Changing connection-affecting settings under the same ID creates a new
+session; previews and derived suggestions must not retain the old configuration. Cosmetic
+label changes need not recreate connections. Keep the catalog, selectors, theme, and tab-wide audit outside
 the disposable session.
 
 Move ownership of the query provider out of the singleton setup in
@@ -341,7 +421,9 @@ Update `apps/console/src/features/actions/mutation-flow.tsx` and
 environment, and worker where applicable. Capture the session identity and original client
 when starting an operation. Verify the session is still active before submitting execution;
 retiring a session closes all pending dialogs and prevents delayed previews from reopening
-them. Reset typed confirmations and preview handles on target, worker, or endpoint change.
+them. Reset typed confirmations and preview handles on target, worker, or connection-setting change.
+Discard pending worker confirmations on observed connection loss; this does not guarantee
+detection of an unobserved process restart behind a stable worker address.
 Keep existing server gates, preview semantics, and refusal rendering intact.
 
 An operation submitted before a switch remains bound to its original endpoint and audit
@@ -395,11 +477,23 @@ are not access enforcement; direct unauthorised calls must be denied by the depl
 gateway. Production credentials stay outside the catalog and browser storage. Do not add a
 generic URL-forwarding endpoint, a new login flow, or a new access-control implementation.
 
+For cookie-authenticated deployments, require the existing gateway's cross-site request
+forgery protection for mutation requests and explicit Origin validation for WebSocket
+handshakes. Browser same-origin routing does not supply either protection by itself. Reject
+unauthorized API traffic with 401/403 rather than redirecting it to a login document; the
+console's page entry may use the existing login flow. Strip untrusted identity/forwarding
+headers and trust only the configured gateway. Disable shared caching for inspection
+responses, errors, and the catalog; revalidate HTML and cache only hashed assets immutably.
+Do not replay mutation POSTs in proxy retry policies. Document socket idle limits and graceful
+shutdown; reconnect must re-read via HTTP under ADR-12. Access logs identify target routes and
+status without logging credentials, mutation bodies, or sensitive query values.
+
 Add `dev/multi-app/inspection-fixtures.ts` using Bun's built-in HTTP/WebSocket server for
 deterministic, distinct upstream fixtures; reuse recorded payloads from `packages/testing`
 and change only identifiers and labels needed to prove separation. Give the two applications
 separate ports and request journals, delayed-response controls, different feed frames, and
-mutation preview/execute recordings. Fixture mutation handlers must not operate real
+mutation preview/execute recordings. Expose two independently controllable worker fixtures
+with distinct identities, journals, and availability so worker-selection checks prove routing. Fixture mutation handlers must not operate real
 databases. Add `dev/multi-app/Caddyfile` and a catalog fixture. Create
 `apps/console/playwright.multi-app.config.ts`, a `test:e2e:multi-app` script in both relevant
 package manifests, and `apps/console/e2e/multi-app/multi-app.spec.ts`. This suite must start
@@ -423,12 +517,119 @@ shareable URLs, optional endpoints, worker limits, access policy, and rollback. 
 take effect on page reload; live catalog watching is outside scope. Demonstrate that editing
 the served catalog adds a target without changing any hashed console assets.
 
-Amend ADR-9's browser-prefix assumption and create a durable ADR for target identity and
-session isolation, using the repository's profiled ADR workflow. Preserve ADR-5's boundary.
+Confirm ADR-9's plan-20 amendment against the delivered deployment and create a durable ADR
+for target identity and session isolation, using the repository's profiled ADR workflow.
+Preserve ADR-5's boundary.
 Inspect `mori.dhall` with `mori show --full`, read `docs/adr/profile.dhall`, obtain a stable
 handle with `okf id next`, and maintain the bundle log when timestamps change. Run strict
 profile enforcement. Finish by recording acceptance evidence and promoting any additional
 durable discoveries into the relevant ADRs.
+
+
+### Milestone 6 — Kubernetes delivery and release verification
+
+
+Create `docs/deployment/kubernetes/README.md` and
+`docs/deployment/kubernetes/Dockerfile`. Create the base manifests at
+`docs/deployment/kubernetes/base/kustomization.yaml`,
+`docs/deployment/kubernetes/base/deployment.yaml`,
+`docs/deployment/kubernetes/base/service.yaml`,
+`docs/deployment/kubernetes/base/service-account.yaml`, and
+`docs/deployment/kubernetes/base/network-policy.yaml`, with runtime files at
+`docs/deployment/kubernetes/base/Caddyfile` and
+`docs/deployment/kubernetes/base/console-config.json`. These are new deliverables.
+Use the Milestone 5 route shapes and catalog schema. The Dockerfile copies an already built
+`apps/console/dist/` bundle into a Caddy runtime image; configuration is mounted at runtime,
+so adding applications changes neither JavaScript nor the image. Supply build/run commands,
+choose a released upstream image verified against its registry and release tags, and pin the
+production base and deployment images by digest. No version is prescribed by this review.
+Package the recipe and manifests in the release archive with relative references that also
+work from the extracted archive; document both checkout and archive build contexts.
+
+The request path is browser → existing authenticated TLS gateway → console ClusterIP Service
+→ Caddy → application ClusterIP Service. Route `/console/` and `/inspection/` to the console
+Service without rewriting them at the gateway; Caddy alone removes inspection prefixes.
+A browser never uses a cluster-internal hostname. Caddy upstreams use explicit
+`<service>.<namespace>.svc` names and ports, not Pod IPs or a client-supplied host. Database
+surfaces may use a Service selecting equivalent application replicas with the same database,
+capabilities, origin policy, and mutation gates. The catalog uses public root-relative URLs.
+
+Add `docs/deployment/kubernetes/worker-services.example.yaml` showing Services in the workers'
+namespace selecting one existing StatefulSet pod each through
+`statefulset.kubernetes.io/pod-name`. Keep this example outside the console base, because it
+belongs to the application's deployment. Select zero or one ready replica; no ready replica
+means unavailable, never failover to another worker. Do not use client-IP affinity or a shared
+headless-Service hostname as an identity guarantee. Do not convert application Deployments
+to StatefulSets for the console. Where individual workers cannot be addressed reliably,
+omit their Shibuya endpoints and explain that limitation. A stable logical replica can restart:
+refresh after observed feed loss or control failure, discard pending worker confirmation on
+observed connection loss, and never claim to detect every process replacement. A server-side
+incarnation precondition is required for a stronger guarantee.
+
+Use Kustomize `configMapGenerator` with its content hash suffix enabled and immutable generated
+objects. Put catalog and Caddyfile in one generated ConfigMap and mount its directory read-only
+at `/etc/keiro-console`, separate from the assets. Changing the content changes the Pod template
+reference and triggers a rollout. Do not rely on in-place environment variable or `subPath`
+refresh, nor on a mounted file change automatically reloading Caddy. Preserve previous
+ConfigMaps for rollback. The mandatory catalog mount must block startup when absent; the
+Kubernetes config handler returns 503 on a missing file, never the legacy optional-catalog
+404. Validate JSON against the shared schema and run `caddy validate` before deployment.
+A malformed served catalog still yields the browser's explicit configuration error.
+
+Run Caddy as a non-root user on port 8080 with a read-only root filesystem, dropped Linux
+capabilities, no privilege escalation, and `RuntimeDefault` seccomp (the runtime's system-call
+filter). Mount only its required writable directories as temporary volumes, disable its admin
+listener and automatic TLS on this internal listener, and log to stdout/stderr. Give the Pod
+explicit CPU/memory requests and limits, a dedicated ServiceAccount with
+`automountServiceAccountToken: false`, and no Kubernetes API roles. Use two interchangeable
+console replicas with a rolling strategy of zero unavailable and one extra Pod; provide
+resource values as tunable starting points rather than universal sizing guarantees.
+
+Add local liveness and readiness endpoints outside the SPA fallback. Liveness checks the
+server only; readiness checks local assets and required configuration, not all upstreams.
+An unavailable application must not remove the whole console from service. Implement the
+local checks in the container startup/probe scripts if the static server cannot express them;
+no application backend is needed. Verify termination handling and allow a finite grace period
+for active requests; sockets can reconnect and mutations with lost responses remain unknown.
+Do not have the public gateway expose probe or admin paths.
+
+The base exposes only a ClusterIP Service. Add
+`docs/deployment/kubernetes/gateway/httproute.example.yaml` as an optional attachment to an
+existing HTTPS Gateway, with placeholders for hostname, parent namespace/name, and listener.
+It routes only the two public prefixes. Explain the required installed Gateway API resources,
+controller support for WebSockets, and listener permission for cross-namespace attachment.
+An existing Ingress can supply the same contract without assuming controller-specific rewrite
+annotations. Neither HTTPRoute nor Ingress alone establishes user authorization: before public
+exposure, bind the deployment's existing authentication, per-target authorization, mutation
+protection, and WebSocket Origin policy, then verify denial through the actual public origin.
+Keep example routes unattached by default. TLS/auth secrets stay in infrastructure Secret
+management, never ConfigMaps, image layers, or browser profiles.
+
+NetworkPolicy examples restrict console ingress to the actual gateway pods and egress to
+cluster DNS and configured application inspection ports, using namespace and pod selectors
+together. Document adaptation for the cluster's DNS/networking implementation. Add a separate
+application-side example allowing inspection traffic only from console pods; it must preserve
+other application traffic and must not be included blindly in the console base. Policies need
+a network plugin that enforces them; they cannot distinguish users or HTTP paths. Verify that
+direct application access cannot bypass the intended gateway boundary, accounting for any
+other ingress routes and broadly permissive existing policies.
+
+Add `scripts/check-kubernetes-deployment.ts` to render the base with `kubectl kustomize`,
+validate the catalog using the shared schema, and assert the critical manifest invariants:
+mandatory hashed configuration reference, private Service, no API token, probes, resource
+bounds, and container security settings. Add `scripts/smoke-kubernetes-container.sh` to build
+and start the image locally using Docker or a documented compatible runtime, mount the
+example configuration, and check `/console/`, a deep link, catalog content type/no-store,
+missing-config failure, probes, and clean shutdown. The scripts must fail on violations and
+clean up only their own resources. Reuse Milestone 5 for upstream HTTP/WebSocket/action proof;
+do not build a second unrelated fixture protocol.
+
+Repository acceptance requires both scripts to pass and the release archive to contain the
+complete recipe. Record unavailable tooling as outstanding acceptance, not a silent skip.
+The README must also provide the cluster release procedure described below, including
+configuration-only rollout and rollback. Running it requires an explicitly selected test
+cluster, deployed application Services, and the existing gateway policy. This plan update
+neither assumes cluster credentials nor authorizes changing a production cluster.
 
 
 ## Concrete Steps
@@ -513,6 +714,43 @@ surface from the served catalog, reload, and observe its configured-unavailable 
 the remaining screens continue to operate. Add a target by editing configuration and proxy
 routes and reloading; do not invoke another console build.
 
+After Milestone 6, from the repository root with `kubectl` and a container runtime installed,
+run the repository checks below. Rendering is local and does not apply resources. The checker
+must pass the rendered files to catalog and invariant validation, not merely print YAML.
+
+```bash
+kubectl kustomize docs/deployment/kubernetes/base > /tmp/keiro-ui-kubernetes.yaml
+bun scripts/check-kubernetes-deployment.ts
+VITE_BASE_PATH=/console/ bun run build
+sh scripts/smoke-kubernetes-container.sh
+```
+
+For an actual deployment, first make a site overlay outside the shipped example base and set
+its image digest, namespace, service names, network selectors, catalog, and gateway policy.
+The runbook must show these commands with the selected context and overlay; the following
+variables are deliberate required inputs, not credentials or assumed production defaults.
+A server dry-run checks API/admission acceptance; it does not prove traffic or policy behavior.
+
+```bash
+: "${KEIRO_KUBE_CONTEXT:?Set the intended test-cluster context}"
+: "${KEIRO_KUBE_NAMESPACE:?Set the console namespace}"
+: "${KEIRO_KUBE_OVERLAY:?Set the configured site overlay directory}"
+kubectl --context "$KEIRO_KUBE_CONTEXT" apply --dry-run=server -k "$KEIRO_KUBE_OVERLAY"
+kubectl --context "$KEIRO_KUBE_CONTEXT" diff -k "$KEIRO_KUBE_OVERLAY"
+```
+
+Only in an authorized deployment session, apply that reviewed overlay and wait for readiness:
+
+```bash
+kubectl --context "$KEIRO_KUBE_CONTEXT" apply -k "$KEIRO_KUBE_OVERLAY"
+kubectl --context "$KEIRO_KUBE_CONTEXT" -n "$KEIRO_KUBE_NAMESPACE" rollout status deployment/keiro-console --timeout=180s
+```
+
+Expect all intended replicas ready, then exercise the public HTTPS URL using the cluster
+acceptance scenarios below. An empty `kubectl diff` exits 0; expected changes exit 1 and need
+inspection, while errors must be resolved. Record cluster/controller versions and the image
+and configuration revisions with the evidence. Do not infer cluster readiness from rendering.
+
 For ADR updates, inspect and type-check the local descriptor, allocate new IDs without guessing,
 update the bundle log using `okf log add` according to its CLI help, and validate:
 
@@ -563,8 +801,24 @@ covered by the existing suites.
 
 Record concise commands, passing test totals, and material limitations in Progress and
 Outcomes after implementation. A written example alone, a skipped live-stack test, or a
-mocked browser response alone does not satisfy production acceptance. No rollout to external
-infrastructure is required to complete this repository change.
+mocked browser response alone does not satisfy production acceptance. Repository completion
+requires the local proxy suite plus Milestone 6 rendering and container checks. It does not
+require changing an external cluster and must not be reported as a verified cluster rollout.
+
+Before the real Kubernetes release, repeat HTTP reads, WebSocket exchange/reconnect, and safe
+fixture preview/execute through the public TLS gateway. Unauthorized identities must fail on
+both HTTP and WebSocket routes; control/handshake requests from disallowed origins must fail; direct
+inspection-service access from an untrusted test pod must fail. No cookies, tokens, or body
+payloads may appear in collected logs. Validate both the configured public paths and unknown
+paths, with no SPA fallback for APIs.
+
+Use two console replicas to verify a configuration-only rollout and its rollback without
+changing the console image or asset hashes. An unavailable app must leave the console and
+other apps usable. Test a selected worker becoming unavailable, then returning under its
+logical identity: no request may be routed to another worker. Test rolling console termination
+with an open feed and an outstanding fixture mutation; reconnection re-reads, and no layer
+replays the POST. Check HTTP and socket idle behavior against the actual gateway's limits.
+These cluster checks are release prerequisites, recorded separately from repository acceptance.
 
 
 ## Idempotence and Recovery
@@ -592,14 +846,28 @@ do not understand those links. Do not route old target-bearing links to a differ
 a compatibility shortcut. An in-flight mutation is never rolled back by reverting UI assets
 or changing selection; consult its original target's state if the outcome is unknown.
 
+For Kubernetes configuration changes, retain the old image and generated ConfigMaps until the
+rollback window ends. Use staged rollouts: first add routes to every console replica while
+serving the old catalog; wait for rollout completion; then publish a catalog referring to the
+new routes. For removal, remove catalog entries first, then retire routes after the documented
+compatibility window. Open tabs can retain old catalogs indefinitely, so retired paths must
+return an explicit error forever rather than route to another application. Reversing an
+addition removes the catalog entry before removing its route. Restore a prior site overlay
+and configuration references to roll back; `kubectl rollout undo` alone does not restore
+separate gateway, Service, or NetworkPolicy edits. Never prune configuration still referenced
+by a retained ReplicaSet. Existing sockets may close during rollout; polling restores reads,
+but an uncertain mutation needs inspection of its original target, never automatic retry.
+
 
 ## Interfaces and Dependencies
 
 
 Define and validate the following wire configuration in
 `apps/console/src/settings/connection-targets.ts`. Use existing `Surface` names; endpoints
-are base URLs, not origins. IDs are nonempty stable strings matching
-`[A-Za-z0-9][A-Za-z0-9._-]*`; preserve legacy IDs through migration and reject duplicates.
+are base URLs, not origins. Managed target IDs, worker IDs, and newly generated local IDs
+match `[A-Za-z0-9][A-Za-z0-9._-]*`. Previously valid local target IDs remain opaque nonempty
+strings through import, migration, and v2 storage; do not trim or rename them. Reject duplicate
+IDs. Encode IDs as search values with the router, never by concatenating raw URL text.
 `defaultTargetId` and `defaultWorkerId`, when provided, must reference existing entries.
 Labels, app, and environment must be nonempty trimmed strings. At least one surface or
 worker endpoint must exist. A nonempty `workers` list and `surfaces.shibuya` are mutually
@@ -635,7 +903,7 @@ interface SelectedConnection {
   worker?: WorkerTarget
   source: "managed" | "local" | "builtin"
   endpoints: Partial<Record<Surface, string>> // normalized effective absolute URLs
-  sessionKey: string // target ID + worker ID + normalized endpoint configuration
+  sessionKey: string // IDs + normalized endpoints + connection-affecting settings
 }
 ```
 
@@ -702,3 +970,11 @@ use Conventional Commits, and include both trailers:
 ExecPlan: docs/plans/20-connect-one-console-to-multiple-application-deployments.md
 Intention: intention_01m5v0syjvemm980170eeqdykq
 ```
+
+
+Revision (2026-10-26): Reviewed the original plan against the working tree and official
+Kubernetes guidance. Added a sixth milestone for Kubernetes delivery, staged configuration
+rollouts and cluster release verification; clarified worker replica versus process identity,
+gateway access controls, and migration/session invariants. ADR-9 records the deployment
+decision. This revision changes the plan and architecture documentation only; no implementation
+or cluster deployment has been performed.

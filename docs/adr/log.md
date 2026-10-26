@@ -1,5 +1,8 @@
 # Bundle Update Log
 
+## 2026-10-26
+* **Update**: Amend ADR-9 for planned multi-application base URLs and Kubernetes runtime configuration, routing, worker identity, and gateway boundaries.
+
 ## 2026-10-21
 * **Addition**: Add ADR-13: honest gates
 * **Addition**: Add ADR-12: poll-first live queries

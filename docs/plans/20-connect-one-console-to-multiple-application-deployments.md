@@ -26,6 +26,11 @@ provenance:
       at: 2026-10-26T18:23:38Z
       mode: "implement"
       note: "Implement runtime targets, isolated sessions, deployment fixtures and Kubernetes delivery."
+    - model: "gpt-6.1-sol"
+      harness: "codex-cli"
+      at: 2026-10-27T22:46:23Z
+      mode: "update"
+      note: "Replace the Colima workaround with verified Apple Container-only Kubernetes smoke execution and FRIC-4 resolution."
   reviews:
     - model: "gpt-6-astra"
       harness: "codex-cli"
@@ -219,8 +224,10 @@ policy tests, direct-access denial, worker identity checks, two-replica staged r
 rollback and termination behavior on an explicitly selected test cluster. These are release
 prerequisites, not claims established by local rendering or containers.
 
-FRIC-4 in docs/friction-log/ is resolved: smoke mounts use a checkout-local disposable directory
-shared by Colima. FRIC-5 is resolved: remove the Caddy executable's inherited privileged file
+FRIC-4 in docs/friction-log/ is resolved: local Kubernetes smoke builds and runs exclusively
+with Apple Container. On 2026-10-27, `sh scripts/smoke-kubernetes-container.sh` passed using
+native bind mounts, UID 10001, a read-only root, dropped capabilities, an available loopback
+port, missing-catalog refusal, and graceful shutdown; other runtimes are rejected. FRIC-5 is resolved: remove the Caddy executable's inherited privileged file
 capability before dropping all container capabilities. FRIC-6 is accepted: use the existing
 configurable production-smoke port when another workload occupies 8080. No friction entries
 for this plan remain logged.

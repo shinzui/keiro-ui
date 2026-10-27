@@ -21,6 +21,8 @@ repo = Path(__file__).resolve().parent.parent
 out = args.output.resolve()
 out.mkdir(parents=True, exist_ok=True)
 coordinator = os.environ.get('APPLE_NIX_CONTAINER')
+if os.uname().sysname == 'Darwin' and not coordinator:
+    parser.error('macOS benchmarks require Apple Container: set APPLE_NIX_CONTAINER and APPLE_NIX_EXCHANGE')
 exchange = Path(os.environ['APPLE_NIX_EXCHANGE']).resolve() if coordinator else None
 prefix = ['container', 'exec', coordinator] if coordinator else []
 linux_repo = '/workspace' if coordinator else str(repo)

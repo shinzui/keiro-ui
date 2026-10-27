@@ -27,14 +27,15 @@ Build from the checkout root:
 VITE_BASE_PATH=/console/ bun run build
 bun scripts/check-kubernetes-deployment.ts
 sh scripts/smoke-kubernetes-container.sh
-docker build -f docs/deployment/kubernetes/Dockerfile -t keiro-console:review .
+container build -f docs/deployment/kubernetes/Dockerfile -t keiro-console:review .
 ```
 
-Bun, Caddy, kubectl (including Kustomize), Docker and curl must be available. A Docker-compatible
-runtime can be selected with `CONTAINER_RUNTIME`; it must support the Docker CLI flags used
-by the smoke script. Start your local runtime first, for example `colima start`. The smoke
-script creates temporary files under the checkout's ignored `.dev/` directory, which is also
-shared by Colima, and deletes only its own containers, image tag and temporary directory.
+Bun, Caddy, kubectl (including Kustomize), Apple Container, Python 3 and curl must be available.
+Use Apple Container for local builds and smoke checks; start it with `container system start`.
+The smoke script accepts `CONTAINER_RUNTIME=apple` (the default) or `container` and rejects
+other runtimes. It creates temporary files under the checkout's ignored `.dev/` directory,
+chooses an available loopback port, and deletes only its own containers, image tag and
+temporary directory.
 It fails on unavailable tooling. It verifies non-root operation with a read-only root,
 capability drop, asset and deep-link serving, catalog headers, local probes, refusal to start
 without the catalog, and graceful SIGTERM shutdown. It does not prove gateway or cluster policy.
@@ -43,7 +44,7 @@ From an extracted `keiro-ui-console-<version>` release archive, the same Dockerf
 these build-context overrides (no Bun installation or rebuild is needed):
 
 ```sh
-docker build -f deployment/kubernetes/Dockerfile \
+container build -f deployment/kubernetes/Dockerfile \
   --build-arg CONSOLE_ASSETS=. --build-arg CONSOLE_RECIPE=deployment/kubernetes \
   -t keiro-console:review .
 kubectl kustomize deployment/kubernetes/base > rendered.yaml
@@ -52,9 +53,9 @@ kubectl kustomize deployment/kubernetes/base > rendered.yaml
 For a local manual container, mount the configuration separately from assets:
 
 ```sh
-docker run --rm --read-only --cap-drop ALL --security-opt no-new-privileges \
+container run --rm --read-only --cap-drop ALL \
   --user 10001:10001 --tmpfs /data:uid=10001 --tmpfs /config:uid=10001 --tmpfs /tmp:uid=10001 \
-  --mount "type=bind,src=$PWD/docs/deployment/kubernetes/base,dst=/etc/keiro-console,readonly" \
+  --mount "type=bind,source=$PWD/docs/deployment/kubernetes/base,target=/etc/keiro-console,readonly" \
   -p 127.0.0.1:18081:8080 keiro-console:review
 ```
 

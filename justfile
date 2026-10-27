@@ -126,13 +126,14 @@ nix-image:
     nix build .#docker-image
 
 nix-image-load:
+    @if [ "$(uname -s)" = Darwin ]; then echo 'On macOS use Apple Container OCI export/load; see docs/user/deployment.md.' >&2; exit 2; fi
     nix run .#docker-image.copyToDockerDaemon
 
 # Regenerate with the exact pinned generator after a deliberate lock update.
 nix-deps:
     nix run .#bun2nix -- --lock-file bun.lock --output-file bun-deps.nix
 
-# Set CONTAINER_RUNTIME=apple to check an image imported into Apple containers.
+# macOS uses Apple Container; Linux defaults to Docker.
 smoke-image image="keiro-ui-console:dev" base="/":
     bash scripts/check-container.sh {{quote(image)}} {{quote(base)}}
 

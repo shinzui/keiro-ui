@@ -1,10 +1,18 @@
 #!/usr/bin/env bash
 # Start and remove only our own read-only container, including on failure.
-# CONTAINER_RUNTIME=apple uses Apple's container CLI; default: docker.
+# macOS uses Apple Container exclusively; Linux defaults to Docker.
 set -euo pipefail
 image=${1:?usage: check-container.sh <image> <base-path>}
 base=$(sh scripts/normalize-base-path.sh "${2:?base path required}")
-runtime=${CONTAINER_RUNTIME:-docker}
+if [[ $(uname -s) == Darwin ]]; then
+  runtime=${CONTAINER_RUNTIME:-apple}
+  [[ "$runtime" == apple || "$runtime" == container ]] || {
+    echo 'macOS smoke checks require Apple Container (CONTAINER_RUNTIME=apple).' >&2; exit 2;
+  }
+  runtime=apple
+else
+  runtime=${CONTAINER_RUNTIME:-docker}
+fi
 id=''
 cleanup() {
   if [[ -n "$id" ]]; then

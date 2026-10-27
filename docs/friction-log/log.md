@@ -1,5 +1,8 @@
 # Bundle Update Log
 
+## 2026-10-27
+* **Update**: FRIC-4 resolved: Verified sh scripts/smoke-kubernetes-container.sh on Apple Container; replace the previous Colima workaround with Apple-only local execution and reject other runtimes.
+
 ## 2026-10-26
 * **Update**: FRIC-6 accepted: Run production acceptance on port 18082; retain configurable ports as the recovery path.
 * **Update**: FRIC-5 resolved: Remove the unneeded bind-port file capability and document the constraint in ADR-9 and the runbook.

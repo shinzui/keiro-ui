@@ -112,6 +112,10 @@ and characters unsafe for literal Caddy paths.
 
 ### Apple containers on macOS
 
+Use Apple Container exclusively on macOS; do not start Colima or select a Docker runtime.
+The image smoke defaults to Apple Container on macOS and rejects other runtimes there.
+`just nix-image-load` is Linux-only; use the OCI export/load workflow below on macOS.
+
 Native static builds run directly on macOS. Image assembly and the Linux importer run inside
 a Linux coordinator. A generic remote-builder setting alone does not cover the locally
 preferred nix2container metadata steps. With Apple's `container` CLI running, create a

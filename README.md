@@ -36,6 +36,9 @@ bun run test:e2e   # Playwright against `vite preview`
 at `result/share/keiro-ui`; `nix build .#console-subpath` builds for `/console/`.
 Native packages target Apple Silicon macOS and ARM64/x86-64 Linux.
 
+On macOS, use [Apple Container](docs/user/deployment.md#apple-containers-on-macos)
+for local images and smoke checks.
+
 On Linux with Docker:
 
 ```bash

@@ -19,8 +19,8 @@ VITE_BASE_PATH="$base" KEIRO_UI_GIT_COMMIT="$commit" bun run build >/dev/null
 rm -rf "$out" "release/$name.tar.gz"
 sh scripts/stage-console.sh apps/console/dist "$out" "$version" "$commit" "$base"
 
-# A stable listing and metadata, so two packs of the same commit list the same files.
+# A stable listing without macOS resource-fork metadata in the portable archive.
 (cd release && find "$name" -type f | LC_ALL=C sort >"$name.files" &&
-  tar -czf "$name.tar.gz" -T "$name.files" && rm "$name.files")
+  COPYFILE_DISABLE=1 tar -czf "$name.tar.gz" -T "$name.files" && rm "$name.files")
 echo "release-pack: wrote release/$name.tar.gz"
 if command -v shasum >/dev/null; then shasum -a 256 "release/$name.tar.gz"; else sha256sum "release/$name.tar.gz"; fi

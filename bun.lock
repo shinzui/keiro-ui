@@ -14,7 +14,7 @@
     },
     "apps/console": {
       "name": "@keiro-ui/console",
-      "version": "0.0.0",
+      "version": "0.2.0",
       "dependencies": {
         "@keiro-ui/client-core": "workspace:*",
         "@keiro-ui/client-keiro": "workspace:*",

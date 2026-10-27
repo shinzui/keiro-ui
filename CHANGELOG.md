@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased (0.2.0)
+## 0.2.0 — 2026-10-27
 
 - **Operator actions**, each riding its server's own gate and off by default: pause and resume a
   processor (shibuya `enableControl`), requeue or cancel a timer, and redrive a dead-letter queue
@@ -8,6 +8,21 @@
   the action disabled with the server's reason; keiro actions preview first and execute only
   after the operator types the target; refusals render verbatim; an unknown outcome forces a
   re-read. Executed actions are listed in a session audit sheet.
+- **Multiple applications**: deployment-owned connection catalogs, Application and Worker
+  selectors, shareable target URLs, and isolated connection sessions. Switching targets
+  clears pending confirmations and keeps reads, live feeds, and actions on the selected app
+  and logical worker. Missing surfaces render an explicit configuration state.
+- **Projections**: choose a feeding subscription from kiroku's subscription inventory on a
+  projection group.
+- **Native packages and images**: reproducible Nix builds for Apple Silicon macOS and
+  ARM64/x86-64 Linux, root and `/console/` base paths, and layered non-root Linux images.
+- **Deployment**: multi-application Caddy/nginx examples and a Kubernetes recipe with
+  immutable configuration, a private Service, health probes, and rollout/rollback guidance,
+  all included in the release archive. Site-specific image publishing and cluster checks
+  remain deployment prerequisites.
+- **Validation and documentation**: real HTTP/WebSocket multi-app browser coverage, native
+  package and image checks, and user and capability documentation, including guidance for
+  mounting inspection surfaces in an application.
 
 ## 0.1.0 — 2026-10-21
 

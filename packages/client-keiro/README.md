@@ -24,8 +24,9 @@ non-snake_case keys before sending. Contracts: `docs/guides/serve-keiro-ops-over
 
 Limits are 1–500. Cursors are opaque strings branded per read kind (`WorkflowListCursor`,
 `JournalCursor`, ...). Errors are `ApiError` with keiro's codes, plus `RouteUnavailable` (a
-host without AppHooks answers `/aggregate/*` and `/pm/*` with 400 `invalid_request`; no
-runnable host mounts them today, see keiro IR-55) and `CursorMismatch` (409
+host without AppHooks answers `/aggregate/*` and `/pm/*` with 400 `invalid_request`; the local
+stack's `jitsurei-ops-http` mounts them,
+`mori://shinzui/keiro/okf/improvement-requests/concepts/IR-55`) and `CursorMismatch` (409
 `cursor_generation_mismatch`: restart paging). Helpers: `isRouteUnavailable`,
 `isCursorMismatch`, `isMutationsDisabled`, `isSchemaDrift`, `isInspectionBusy`, `isTooLarge`.
 `keiroKeys` addresses the cache entries; `KeiroClientProvider`/`useKeiroClient` provide the client.

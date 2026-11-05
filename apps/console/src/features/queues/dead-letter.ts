@@ -50,4 +50,4 @@ export function detectDeadLetter(message: unknown): DeadLetterPayload | null {
 }
 
 export const REDRIVE_UNAVAILABLE =
-  "Redrive is not available: shibuya-pgmq-adapter has not shipped a dead-letter redrive endpoint (IR-3 is proposed)."
+  "Redrive is not available: shibuya-pgmq-adapter's dead-letter redrive is an in-process API with no HTTP endpoint."

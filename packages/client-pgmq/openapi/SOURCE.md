@@ -1,7 +1,7 @@
 # pgmq-inspect OpenAPI document
 
 `pgmq-inspect.openapi.json` is a verbatim copy of `pgmq-inspect/test/golden/openapi.json` from
-`mori://shinzui/pgmq-hs` at commit `d6750a6` (`pgmq-inspect` 0.1.0.0), copied 2026-10-21. It is
+`mori://shinzui/pgmq-hs` at commit `88afb93` (`pgmq-inspect` 0.7.0.0), copied 2026-11-04. It is
 byte-identical to the document the running server serves at `/openapi.json`.
 
 Refresh: copy the golden again, run `bun run --filter @keiro-ui/client-pgmq generate` (writes

@@ -80,3 +80,31 @@ test("a processor's Control card reports the host's disabled gate with its reaso
   await expect(control).toContainText("Control operations are disabled on the server")
   await expect(control).not.toContainText("no control surface")
 })
+
+test("a group shows the subscription keiro reports; an unmanaged group says it has none", async ({
+  page,
+}) => {
+  const positions: string[] = []
+  const checkpoints: string[] = []
+  page.on("request", (request) => {
+    const url = new URL(request.url())
+    if (url.pathname.endsWith("/projection/position")) positions.push(url.search)
+    if (url.pathname.endsWith("/subscription-checkpoints")) checkpoints.push(url.pathname)
+  })
+  await page.goto("/projections")
+  await expect(page.getByTestId("subscriptions-jitsurei-order-reporting")).toHaveText(
+    "jitsurei-order-audit-subscription",
+  )
+  await page.goto("/projections/jitsurei-order-reporting")
+  await expect(page.getByTestId("feeding-subscriptions")).toContainText(
+    "jitsurei-order-audit-subscription",
+  )
+  await expect(page.getByRole("grid", { name: "Members" })).toBeVisible()
+  expect(new Set(positions)).toEqual(new Set(["?subscription=jitsurei-order-audit-subscription"]))
+  expect(checkpoints).toEqual([])
+
+  positions.length = 0
+  await page.goto(`/projections/${encodeURIComponent("$legacy-read-model:jitsurei-area-chapters")}`)
+  await expect(page.getByTestId("no-feeding-subscription")).toBeVisible()
+  expect(positions).toEqual([])
+})

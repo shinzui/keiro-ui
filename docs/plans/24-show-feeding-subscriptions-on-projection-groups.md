@@ -10,6 +10,12 @@ provenance:
     model: "claude-opus-5-5"
     harness: "claude-code"
     at: 2026-11-05T01:05:55Z
+  revisions:
+    - model: "claude-opus-5-5"
+      harness: "claude-code"
+      at: 2026-11-05T03:33:08Z
+      mode: "implement"
+      note: "Feeding subscription states, table column, and ADR-13 rule implemented"
 ---
 
 # Show feeding subscriptions on projection groups
@@ -38,16 +44,23 @@ today's chooser and says that the host does not report the answer.
 
 ## Progress
 
-- [ ] M1: `ProjectionGroupStatus` accepts the field as optional; recorded `projection-status.json` parses
+- [x] M1 (2026-11-04): `ProjectionGroupStatus` accepts the field as optional; recorded `projection-status.json` parses
   with it and a body without it parses to `undefined`, and the `projection_groups` feed keeps it.
-- [ ] M2: `/projections/$group` and `/projections` render all of the absent, empty, one, and several
+- [x] M2 (2026-11-04): `/projections/$group` and `/projections` render all of the absent, empty, one, and several
   states, proven by `projections.test.tsx` and Playwright and against the live stack. Docs and
   [ADR-13](../adr/0013-honest-gates.md) are updated.
 
 
 ## Surprises & Discoveries
 
-(None yet.)
+- 2026-11-04: `projection-status.json` is derived, so its "two names" group (`jitsurei-order-search`) comes from
+  `packages/testing/scripts/derive.ts`, not the seed. On the live stack the one managed group is
+  `jitsurei-order-reporting`, fed by `jitsurei-order-audit-subscription`, which has no checkpoints in the seed. Its live
+  page therefore shows the reported name, one position read, and "No members have checkpoints", not populated rows.
+  The populated table is proven by the mock suites.
+
+- 2026-11-04: The page previously rendered the chooser before the status row loaded and for an unknown group. It now
+  renders the subscription section only once a row exists, which is what "show neither the chooser nor a claim" requires.
 
 
 ## Decision Log
@@ -78,7 +91,11 @@ today's chooser and says that the host does not report the answer.
 
 ## Outcomes & Retrospective
 
-(To be filled during and after implementation.)
+Complete on 2026-11-04. A group page reads the reported subscription with no input and never asks kiroku; two names offer
+exactly two choices; an empty list says none is recorded and reads nothing; an absent field keeps the chooser and says
+the host does not report the answer. The list has a Subscriptions column with no per-row reads. The rule is recorded in
+[ADR-13](../adr/0013-honest-gates.md). The tests for the absent and empty states each assert the other's sentence is
+missing, so swapping the two fails. No friction was recorded under this plan.
 
 
 ## Context and Orientation

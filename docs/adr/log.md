@@ -1,5 +1,8 @@
 # Bundle Update Log
 
+## 2026-11-04
+* **Update**: ADR-13 adds that an absent field or refused route from an older host is a missing capability, never an empty or negative fact.
+
 ## 2026-10-26
 * **Update**: Record delivered multi-application and Kubernetes recipe in ADR-9, including capability removal and separate cluster verification.
 * **Addition**: Add ADR-15: URL target and logical-worker identity, disposable sessions, optional surfaces and captured mutation attribution.

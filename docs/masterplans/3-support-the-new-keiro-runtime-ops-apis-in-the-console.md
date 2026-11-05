@@ -162,7 +162,7 @@ describe changes those plans first.
 ## Progress
 
 EP-22 is Complete: the stack runs the current checkouts, fixtures are recorded from it, and its producer/consumer check
-against keiro `9da47eb7` changed none of the sibling plans' shapes. EP-23 is Complete. EP-24 and EP-25 are ready.
+against keiro `9da47eb7` changed none of the sibling plans' shapes. EP-23 and EP-24 are Complete. EP-25 is ready.
 
 Integration gate, outside any single child: with all children complete, `cd apps/console && bunx playwright test
 --config playwright.live.config.ts` passes against the stack with `/aggregates`, `/process-managers`, and

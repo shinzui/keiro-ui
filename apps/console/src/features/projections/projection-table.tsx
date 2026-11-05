@@ -104,6 +104,7 @@ export function ProjectionTable({
         <TableHead>Global position distance</TableHead>
         <TableHead>Rebuild</TableHead>
         <TableHead>Query models</TableHead>
+        <TableHead>Subscriptions</TableHead>
         <TableHead>Failure</TableHead>
         <TableHead>Last promoted</TableHead>
       </TableHeader>
@@ -159,6 +160,11 @@ export function ProjectionTable({
                 </span>
                 <Tooltip>{group.query_models.join(", ") || "none"}</Tooltip>
               </TooltipTrigger>
+            </TableCell>
+            <TableCell className="text-xs" data-testid={`subscriptions-${group.group_id}`}>
+              {group.feeding_subscriptions === undefined
+                ? "not reported"
+                : group.feeding_subscriptions.join(", ") || "—"}
             </TableCell>
             <TableCell className="max-w-56">
               {group.failed_at ? (

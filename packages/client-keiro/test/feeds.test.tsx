@@ -160,4 +160,21 @@ describe("feed hooks", () => {
     )
     expect(typeof page?.visible_store_head).toBe("bigint")
   })
+
+  test("the projection groups feed keeps feeding_subscriptions through a snapshot and an update", async () => {
+    feedScript("keiro", { append: 2, intervalMs: 10, changedFields: { lifecycle_phase: "paused" } })
+    const { wrapper, queryClient } = makeWrapper()
+    renderHook(() => useProjectionGroupsFeed(), { wrapper })
+    const rows = () =>
+      queryClient.getQueryData<{
+        items: { group_id: string; lifecycle_phase: string; feeding_subscriptions?: string[] }[]
+      }>(keiroKeys.projections.status())?.items ?? []
+    await waitFor(() => expect(rows().some((r) => r.lifecycle_phase === "paused")).toBe(true), {
+      timeout: 3000,
+    })
+    expect(rows().every((r) => Array.isArray(r.feeding_subscriptions))).toBe(true)
+    expect(
+      rows().find((r) => r.group_id === "jitsurei-order-search")?.feeding_subscriptions,
+    ).toEqual(["jitsurei-order-search", "jitsurei-order-search-facets"])
+  })
 })

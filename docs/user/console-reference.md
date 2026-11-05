@@ -38,8 +38,10 @@ Notes on what each section shows when a server cannot answer fully:
   the active connection profile, the ones opened recently, or a typed name.
 - **Streams**: a single-stream read does not report global positions, so those rows say "not
   reported"; the event's own page has the real position.
-- **Projections**: keiro does not say which subscription feeds a projection group, so a group
-  page offers kiroku's durable subscriptions as choices and never assumes the mapping.
+- **Projections**: a group page shows the checkpoints of the subscription keiro says feeds it, with
+  a choice when there are several, and the list has a Subscriptions column. Inline-only and unmanaged
+  groups have none (`—`). A host that does not report this (`not reported`) offers the durable
+  subscriptions kiroku knows, or a typed name.
 - **Queues**: messages and the archive are peeked, never leased. The dead-letter panel reads
   payloads written by shibuya-pgmq-adapter. A dead-letter queue is redriven through keiro, so
   redrive needs a keiro host that allows mutations.

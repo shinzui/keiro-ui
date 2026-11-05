@@ -20,10 +20,11 @@ test("distances read n/a, caught up, and exact numbers; a feed update lands live
     "rebuilding",
   )
   await expect(page.getByTestId("projections-caption")).toContainText("live")
+  await expect(page.getByTestId("subscriptions-jitsurei-order-reporting")).toHaveText(
+    "jitsurei-order-reporting",
+  )
   await table.getByRole("link", { name: "jitsurei-order-reporting" }).click()
-  await page
-    .getByRole("textbox", { name: "Feeding subscription name" })
-    .fill("jitsurei-order-reporting")
-  await page.getByRole("button", { name: "Show checkpoints" }).click()
+  // keiro names the feeding subscription, so its checkpoints appear with no input.
   await expect(page.getByTestId("max-distance")).toHaveText("21")
+  await expect(page.getByRole("textbox", { name: "Feeding subscription name" })).toHaveCount(0)
 })

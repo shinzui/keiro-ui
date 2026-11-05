@@ -1,6 +1,7 @@
 # Bundle Update Log
 
 ## 2026-11-04
+* **Update**: Projection pages name the feeding subscription when the keiro host reports it.
 * **Update**: The process-manager index lists mounted managers from keiro's catalog.
 * **Update**: Correct the one-origin recipes: kiroku-metrics 0.4 refuses browser WebSocket upgrades unless the page's origin is allow-listed, including behind a same-origin proxy.
 

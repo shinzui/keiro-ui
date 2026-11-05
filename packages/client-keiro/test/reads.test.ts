@@ -1,4 +1,6 @@
+import { fixtureText } from "@keiro-ui/testing"
 import { type MockServer, pins, startMockServer } from "@keiro-ui/testing/node"
+import { http, HttpResponse } from "msw"
 import { afterAll, afterEach, beforeAll, expect, test } from "vitest"
 
 import { createKeiroClient } from "../src"
@@ -22,6 +24,22 @@ test("timers: pending page and the bare stuck array", async () => {
   const stuck = await keiro.timers.stuck()
   expect(stuck[0]?.timer_id).toBe(pin.timer_id)
   expect(stuck[0]).not.toHaveProperty("last_error")
+})
+
+test("feeding_subscriptions: an array when reported, undefined when the host omits it", async () => {
+  const recorded = await keiro.projections.status({ limit: 100 })
+  expect(recorded.items.every((item) => Array.isArray(item.feeding_subscriptions))).toBe(true)
+  const empty = recorded.items.find((item) => item.serving_position_basis === "unmanaged")
+  expect(empty?.feeding_subscriptions).toEqual([])
+
+  const body = JSON.parse(fixtureText("keiro/projection-status.json")) as {
+    items: { feeding_subscriptions?: string[] }[]
+  }
+  for (const item of body.items) delete item.feeding_subscriptions
+  mock.use(http.get("*/keiro/projection/status", () => HttpResponse.json(body)))
+  const older = await keiro.projections.status({ limit: 100 })
+  expect(older.items.length).toBeGreaterThan(0)
+  expect(older.items.every((item) => item.feeding_subscriptions === undefined)).toBe(true)
 })
 
 test("projections keep keiro's position vocabulary as bigint", async () => {

@@ -30,7 +30,7 @@ evidence:
     proves: Distance reads unmanaged, none, caught up, behind, or ahead, exactly beyond 2^53.
   - kind: test
     resource: apps/console/src/features/projections/projections.test.tsx
-    proves: The distance column, live feed updates, overflow re-reads, the group page's stated subscription limitation, and shard bucket ownership.
+    proves: The distance column, live feed updates, overflow re-reads, the group page's reported, empty, and unreported feeding subscription states, and shard bucket ownership.
 ---
 
 # Projection and shard monitoring
@@ -48,8 +48,10 @@ a sharded subscription.
 
 ## Limits
 
-- keiro does not say which subscription feeds a projection group. A group page offers the
-  durable subscriptions kiroku knows as choices, or a typed name, and never assumes the
-  mapping. The choices were added after 0.1.0; in 0.1.0 the name is typed.
+- Which subscription feeds a group comes from keiro's `feeding_subscriptions`, which is not in a released
+  keiro as of 0.23.0.0. A host that does not send it keeps the choice of durable subscriptions kiroku knows,
+  or a typed name, and says the host does not report the answer. An empty list means keiro records none, as
+  for inline-only and unmanaged groups.
+- The position of one subscription is read at a time, the selected one, to stay inside keiro's inspection budget.
 - A distance reads n/a when either position is unknown.
 - Read-only: the console does not start, stop, or rebuild projections.

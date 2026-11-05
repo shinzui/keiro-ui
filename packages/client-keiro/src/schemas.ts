@@ -171,6 +171,11 @@ export const ProjectionGroupStatus = z
   .object({
     group_id: z.string(),
     query_models: z.array(z.string()),
+    /**
+     * Sorted names of the durable subscriptions feeding this group. Absent: this host does not
+     * report it. Empty: it reports none, as for inline-only and unmanaged groups. Never conflate them.
+     */
+    feeding_subscriptions: z.array(z.string()).optional(),
     lifecycle_phase: z.string(),
     reads_allowed: z.boolean(),
     writes_allowed: z.boolean(),

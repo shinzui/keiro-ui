@@ -5,7 +5,7 @@ description: The console renders every server-side gate as the server states it 
 docId: ADR-13
 status: Accepted
 date: 2026-10-21
-timestamp: 2026-10-21T23:00:00Z
+timestamp: 2026-11-04T20:00:00Z
 generated:
   by: claude-code/claude-opus-5-5
   at: 2026-10-21T23:00:00Z
@@ -38,6 +38,13 @@ refused in ways an operator must be able to tell apart.
 4. **Server rules are documented, not worked around.** shibuya refuses a control POST whose
    `Origin` is not in `corsAllowedOrigins`, even on one origin; the console sends the browser's
    request unchanged and `docs/deployment.md` says to list the console's origin.
+5. **Absence is not a fact about the application.** One console can face hosts at different
+   versions ([ADR-15](0015-target-identity-and-disposable-connection-sessions.md)), so a field an
+   older host omits, or a route it refuses, is a missing capability. It is never rendered as an
+   empty or negative fact. keiro's `feeding_subscriptions` absent means "this host does not report
+   it", and empty means "none recorded". `timers_configured: null` reads "unknown", not "no". When a
+   refusal cannot tell the causes apart, as `/pm/types` cannot between an older host and one with no
+   hooks, the sentence claims neither. Such a sentence must not name a release unless one is known.
 
 ## Consequences
 

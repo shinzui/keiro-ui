@@ -132,13 +132,16 @@ function ProjectionGroupPage() {
             </CardContent>
           </Card>
         )}
-        <FeedingSubscription
-          key={search.subscription ?? ""}
-          subscription={search.subscription}
-          onSubscription={(subscription) =>
-            void navigate({ search: (prev) => ({ ...prev, subscription }) })
-          }
-        />
+        {row && (
+          <FeedingSubscription
+            key={search.subscription ?? ""}
+            reported={row.group.feeding_subscriptions}
+            subscription={search.subscription}
+            onSubscription={(subscription) =>
+              void navigate({ search: (prev) => ({ ...prev, subscription }) })
+            }
+          />
+        )}
         <p className="text-xs text-muted-foreground">
           Rebuild and promotion are operator-CLI actions in this release.
         </p>
@@ -147,7 +150,94 @@ function ProjectionGroupPage() {
   )
 }
 
+/** Absent and empty are different facts: this host does not say, or it says there are none. */
 function FeedingSubscription({
+  reported,
+  subscription,
+  onSubscription,
+}: {
+  reported: string[] | undefined
+  subscription: string | undefined
+  onSubscription: (subscription: string | undefined) => void
+}) {
+  if (reported === undefined)
+    return <UnreportedSubscription subscription={subscription} onSubscription={onSubscription} />
+  if (reported.length === 0)
+    return (
+      <section aria-label="Feeding subscription" className="text-sm text-muted-foreground">
+        <p data-testid="no-feeding-subscription">
+          keiro records no feeding subscription for this group; it is inline-only or unmanaged.
+        </p>
+      </section>
+    )
+  return (
+    <ReportedSubscriptions
+      names={reported}
+      subscription={subscription}
+      onSubscription={onSubscription}
+    />
+  )
+}
+
+/**
+ * The host named what feeds this group, so the only choices are those names. A `subscription` in an
+ * old link that is not among them must still open, so it falls back with a visible note.
+ */
+function ReportedSubscriptions({
+  names,
+  subscription,
+  onSubscription,
+}: {
+  names: string[]
+  subscription: string | undefined
+  onSubscription: (subscription: string | undefined) => void
+}) {
+  const known = subscription !== undefined && names.includes(subscription)
+  const selected = known ? subscription : names[0]!
+  return (
+    <section aria-label="Feeding subscription" className="flex flex-col gap-3">
+      <p className="text-sm" data-testid="feeding-subscriptions">
+        <span className="text-muted-foreground">Fed by </span>
+        {names.map((name, index) => (
+          <span key={name}>
+            {index > 0 && ", "}
+            <Link {...links.subscription(name)} className="underline-offset-2 hover:underline">
+              {name}
+            </Link>
+          </span>
+        ))}
+      </p>
+      {subscription !== undefined && !known && (
+        <p className="text-sm text-muted-foreground" data-testid="subscription-not-feeding">
+          {subscription} does not feed this group.
+        </p>
+      )}
+      {names.length > 1 && (
+        <div
+          className="flex flex-wrap items-center gap-1.5 text-xs"
+          role="group"
+          aria-label="Feeding subscriptions"
+        >
+          <span className="text-muted-foreground">Checkpoints of:</span>
+          {names.map((name) => (
+            <Button
+              key={name}
+              size="xs"
+              variant={name === selected ? "secondary" : "outline"}
+              onPress={() => onSubscription(name)}
+            >
+              {name}
+            </Button>
+          ))}
+        </div>
+      )}
+      <SubscriptionPosition subscription={selected} />
+    </section>
+  )
+}
+
+/** A host that does not report the answer: the operator picks, and the console never assumes. */
+function UnreportedSubscription({
   subscription,
   onSubscription,
 }: {
@@ -155,10 +245,7 @@ function FeedingSubscription({
   onSubscription: (subscription: string | undefined) => void
 }) {
   const [draft, setDraft] = useState(subscription ?? "")
-  const position = useProjectionPosition(subscription)
-  const data = position.data
-  // The durable subscriptions kiroku knows, offered as choices: the operator picks, the console
-  // never assumes which one feeds the group (keiro IR-57 asks keiro to say).
+  // The durable subscriptions kiroku knows, offered as choices.
   const inventory = useKirokuCheckpoints()
   const kirokuConfigured = useSurfaceAvailable("kiroku")
   const known = [
@@ -212,82 +299,90 @@ function FeedingSubscription({
       )}
       {subscription === undefined ? (
         <p className="text-sm text-muted-foreground" data-testid="subscription-limitation">
-          keiro does not expose which subscription feeds this group; choose or enter it to see
-          checkpoints.
+          This keiro host does not report which subscription feeds this group; choose or enter it to
+          see checkpoints.
         </p>
-      ) : position.isError ? (
-        <p className="text-sm text-destructive">{position.error.message}</p>
-      ) : data ? (
-        <div className="flex flex-col gap-2">
-          <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm">
-            <dt className="text-muted-foreground">store position</dt>
-            <dd>
-              <PositionBadge value={data.store_position} label="store position" />
-            </dd>
-            <dt className="text-muted-foreground">visible store head</dt>
-            <dd>
-              <PositionBadge value={data.visible_store_head} label="visible store head" />
-            </dd>
-            <dt className="text-muted-foreground">maximum global position distance</dt>
-            <dd className="tabular-nums" data-testid="max-distance">
-              {data.maximum_global_position_distance === null
-                ? "—"
-                : formatInt(data.maximum_global_position_distance)}
-            </dd>
-            <dt className="text-muted-foreground">minimum checkpoint position</dt>
-            <dd className="tabular-nums">
-              {data.minimum_checkpoint_position === null
-                ? "—"
-                : formatInt(data.minimum_checkpoint_position)}
-            </dd>
-          </dl>
-          <Table aria-label="Members">
-            <TableHeader>
-              <TableHead isRowHeader>Member</TableHead>
-              <TableHead>Checkpoint position</TableHead>
-              <TableHead>Global position distance</TableHead>
-              <TableHead>Updated</TableHead>
-            </TableHeader>
-            <TableBody
-              renderEmptyState={() => (
-                <p className="p-4 text-center text-sm text-muted-foreground">
-                  No members have checkpoints.
-                </p>
-              )}
-            >
-              {data.members.map((member) => (
-                <TableRow key={member.member} id={String(member.member)}>
-                  <TableCell>{member.member}</TableCell>
-                  <TableCell>
-                    <PositionBadge value={member.checkpoint_position} label="checkpoint position" />
-                  </TableCell>
-                  <TableCell className="tabular-nums">
-                    {member.global_position_distance === null ||
-                    member.global_position_distance === undefined
-                      ? "—"
-                      : formatInt(member.global_position_distance)}
-                  </TableCell>
-                  <TableCell>
-                    {member.checkpoint_updated_at ? (
-                      <Timestamp value={member.checkpoint_updated_at} />
-                    ) : (
-                      "—"
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          <Link
-            {...links.subscription(subscription)}
-            className="text-sm underline-offset-2 hover:underline"
-          >
-            Open {subscription} in Subscriptions
-          </Link>
-        </div>
       ) : (
-        <Skeleton className="h-24" />
+        <SubscriptionPosition subscription={subscription} />
       )}
     </section>
+  )
+}
+
+function SubscriptionPosition({ subscription }: { subscription: string }) {
+  const position = useProjectionPosition(subscription)
+  const data = position.data
+  return position.isError ? (
+    <p className="text-sm text-destructive">{position.error.message}</p>
+  ) : data ? (
+    <div className="flex flex-col gap-2">
+      <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm">
+        <dt className="text-muted-foreground">store position</dt>
+        <dd>
+          <PositionBadge value={data.store_position} label="store position" />
+        </dd>
+        <dt className="text-muted-foreground">visible store head</dt>
+        <dd>
+          <PositionBadge value={data.visible_store_head} label="visible store head" />
+        </dd>
+        <dt className="text-muted-foreground">maximum global position distance</dt>
+        <dd className="tabular-nums" data-testid="max-distance">
+          {data.maximum_global_position_distance === null
+            ? "—"
+            : formatInt(data.maximum_global_position_distance)}
+        </dd>
+        <dt className="text-muted-foreground">minimum checkpoint position</dt>
+        <dd className="tabular-nums">
+          {data.minimum_checkpoint_position === null
+            ? "—"
+            : formatInt(data.minimum_checkpoint_position)}
+        </dd>
+      </dl>
+      <Table aria-label="Members">
+        <TableHeader>
+          <TableHead isRowHeader>Member</TableHead>
+          <TableHead>Checkpoint position</TableHead>
+          <TableHead>Global position distance</TableHead>
+          <TableHead>Updated</TableHead>
+        </TableHeader>
+        <TableBody
+          renderEmptyState={() => (
+            <p className="p-4 text-center text-sm text-muted-foreground">
+              No members have checkpoints.
+            </p>
+          )}
+        >
+          {data.members.map((member) => (
+            <TableRow key={member.member} id={String(member.member)}>
+              <TableCell>{member.member}</TableCell>
+              <TableCell>
+                <PositionBadge value={member.checkpoint_position} label="checkpoint position" />
+              </TableCell>
+              <TableCell className="tabular-nums">
+                {member.global_position_distance === null ||
+                member.global_position_distance === undefined
+                  ? "—"
+                  : formatInt(member.global_position_distance)}
+              </TableCell>
+              <TableCell>
+                {member.checkpoint_updated_at ? (
+                  <Timestamp value={member.checkpoint_updated_at} />
+                ) : (
+                  "—"
+                )}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      <Link
+        {...links.subscription(subscription)}
+        className="text-sm underline-offset-2 hover:underline"
+      >
+        Open {subscription} in Subscriptions
+      </Link>
+    </div>
+  ) : (
+    <Skeleton className="h-24" />
   )
 }

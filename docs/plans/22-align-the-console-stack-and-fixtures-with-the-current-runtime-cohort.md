@@ -52,8 +52,10 @@ servers refuse. No new screen is added here; the sibling plans add them.
   `/pm/types`, and `/snapshot/show`, against a stack built from the current checkouts (keiro `9da47eb7`,
   kiroku `aa2c6ab`, pgmq-hs `88afb93`, adapter `e549451`) with `jitsurei-ops-http` on port 9093;
   `KEIRO_UI_LIVE=1 bun run --filter @keiro-ui/client-keiro test` parses those bodies (43 tests pass).
-- [ ] M2: `packages/testing/fixtures` is re-recorded with updated pins, the hand-written
-  aggregate and process-manager bodies are replaced by recorded ones, and `bun run test` passes.
+- [x] M2 (2026-11-04): `packages/testing/fixtures` is re-recorded with updated pins, the hand-written
+  aggregate and process-manager bodies are replaced by recorded ones, and `bun run test` passes (632
+  tests), with `bun run test:e2e` (56) and `bun run test:e2e:multi-app` (9). Three refusal bodies stay
+  derived; see Surprises & Discoveries.
 - [ ] M3: Each upstream behaviour change listed in Plan of Work has been checked and either fixed or
   recorded as not applicable; the deployment guide, client READMEs, and client-pgmq's OpenAPI copy
   are current; `bun run check`, `bun run test`, and the Playwright suites pass.
@@ -71,10 +73,25 @@ servers refuse. No new screen is added here; the sibling plans add them.
   there is no mutation host to switch; `dev/README.md` and the spec's header now name `jitsurei-ops-http
   --enable-mutations` as the host to start by hand for the default profile.
 
-- 2026-11-04: `just jitsurei-all` appends rather than resets, so the `jitsurei` database still holds the
-  2026-10-21 seed beside today's: `$all` has 95 events and old pins still resolve. Pins were still moved to
-  the newest run. Nobody needs to drop the database for a re-record, but the pinned ids are not the first
-  rows on list pages.
+- 2026-11-04: `just jitsurei-all` appends rather than resets, and tests depend on what one seed produces:
+  recording over the accumulated database (95 events, stale 2026-10-21 rows) failed 8 tests on page counts
+  and first rows. `pgmq_dev` had drifted the same way, with 154 dead letters from the simulator. So the
+  fixtures come from a new `jitsurei` (31 events) and reset demo queues, and `dev/README.md` now documents
+  this as "Re-recording fixtures". The earlier database is kept as `jitsurei_before_ep22`, not dropped.
+
+- 2026-11-04: The acceptance line "no `derived: true` on `keiro/aggregate-*` or `keiro/pm-*`" holds for every
+  body a hook-mounting host can produce. Three refusals cannot be recorded from it, and stay derived from a
+  live capture of the standalone `keiro-ops-http`: `aggregate-types.error.json`, `pm-list.error.json`, and the
+  new `pm-types.error.json`, which `docs/plans/23-list-mounted-process-managers-from-the-ops-catalog.md` needs.
+
+- 2026-11-04: `projection-status.json` stays derived, contrary to this plan's Decision Log wording, because
+  tests need one group per display case (rebuilding, failed) that the seed does not produce. Its rows carry
+  `feeding_subscriptions`, including one group with two names. The real shape is
+  `projection-status.recorded.json`, whose managed group is fed by `jitsurei-order-audit-subscription`. Derived
+  distances are now relative to the recorded head, so the literals in tests survive a reseed.
+
+- 2026-11-04: Added `aggregate-list-credit-limit`, beyond the listed slugs, so a screen can reach the register
+  aggregate from its list in mock mode.
 
 
 ## Decision Log

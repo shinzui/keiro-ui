@@ -4,13 +4,13 @@
   "port_env": "STACK_KIROKU_PORT",
   "cursor_param": "from",
   "pins": {
-    "stream": "order-demo-20261021202320671316000000",
+    "stream": "order-demo-20261105031554720089000000",
     "category": "order",
     "subscription": "jitsurei-order-reporting",
     "member": "0",
-    "event_with_causation": "01a16021-f590-706d-a7d6-5082cdf1ddd6",
-    "event_cause": "01a16021-f586-765a-a938-f5c753d2af5a",
-    "event_causation_unresolved": "6e8e9bb5-3c00-5f95-8b6c-a7f9dfbcbe92"
+    "event_with_causation": "01a1a9b4-b4ec-7267-9523-74941328f939",
+    "event_cause": "01a1a9b4-b4e9-7298-a60a-6ac12bc8570a",
+    "event_causation_unresolved": "d31b5a7f-4857-5f20-ad86-23c5f00399c6"
   },
   "entries": [
     {
@@ -55,7 +55,9 @@
       "query": {
         "limit": "100"
       },
-      "needs": ["subscription"]
+      "needs": [
+        "subscription"
+      ]
     },
     {
       "slug": "streams",
@@ -148,17 +150,23 @@
     {
       "slug": "event-with-causation",
       "path": "/events/{event_with_causation}",
-      "needs": ["event_with_causation"]
+      "needs": [
+        "event_with_causation"
+      ]
     },
     {
       "slug": "event-cause",
       "path": "/events/{event_cause}",
-      "needs": ["event_cause"]
+      "needs": [
+        "event_cause"
+      ]
     },
     {
       "slug": "event-causation-unresolved",
       "path": "/events/{event_causation_unresolved}",
-      "needs": ["event_causation_unresolved"]
+      "needs": [
+        "event_causation_unresolved"
+      ]
     },
     {
       "slug": "event",

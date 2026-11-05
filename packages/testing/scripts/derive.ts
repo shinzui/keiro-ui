@@ -7,15 +7,19 @@
 // and the dead-letter pages are derived from kiroku's docs/user/metrics.md shapes. The recorded
 // (empty) bodies are kept as <slug>.recorded.json for empty-state tests.
 //
-// shibuya: the only long-running host (the shibuya-pgmq-adapter example consumer) builds
-// against Hackage shibuya-metrics 0.10.0.x: no detailed fields, no /control. The default
-// /metrics is shibuya-metrics/test/golden/processor-metrics.json.golden (every processor state,
-// latency, progress, oldestInFlight); the recorded basic map is metrics.recorded.json.
+// shibuya: the only long-running host (the shibuya-pgmq-adapter example consumer) now builds
+// against shibuya-metrics 0.12, so /control is recorded and reports disabled, but its config
+// leaves the detailed fields off. The default /metrics is
+// shibuya-metrics/test/golden/processor-metrics.json.golden (every processor state, latency,
+// progress, oldestInFlight); the recorded basic map is metrics.recorded.json. The refused
+// control POST (403 control_disabled) is recorded too.
 //
-// keiro: /aggregate/* and /pm/* fixtures were written by hand from keiro's encoders (see their
-// derived_from); this script only registers them. The jitsurei seed leaves no pending or stuck
-// timer, so /timer/pending/list and /timer/stuck/list are derived from keiro's timer encoders;
-// the recorded (empty) bodies are kept as <slug>.recorded.json.
+// keiro: jitsurei-ops-http serves /aggregate/* and /pm/*, so those bodies are recorded; only the
+// refusals of a host without AppHooks are derived, since the stack's host can't answer that way.
+// The jitsurei seed leaves no pending or stuck timer, so /timer/pending/list and /timer/stuck/list
+// are derived from keiro's timer encoders; the recorded (empty) bodies are kept as
+// <slug>.recorded.json. /projection/status and /projection/position keep their recorded rows and
+// add one group per display case.
 import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs"
 import { dirname, join } from "node:path"
 
@@ -62,6 +66,10 @@ const kirokuManifest = JSON.parse(readFileSync(kirokuManifestPath, "utf8")) as M
 // Named after keiro's projection group so the Projections and Subscriptions screens join.
 const ORDERS = "jitsurei-order-reporting"
 const CHAPTERS = "jitsurei-area-chapters"
+// Distances, not positions, are what the screens show, so they stay the same when a reseed moves
+// the head of the log: tests can state them as literals.
+const ORDERS_MEMBER_DISTANCE = 21
+const CARRIER_QUOTES_DISTANCE = 26
 
 interface RecordedEvent {
   position: bigint
@@ -95,7 +103,7 @@ function deriveKiroku() {
   const checkpoints = [
     { subscription: CHAPTERS, member: 0, position: head },
     { subscription: ORDERS, member: 0, position: Math.max(head - 2, 0) },
-    { subscription: ORDERS, member: 1, position: Math.min(9, head) },
+    { subscription: ORDERS, member: 1, position: Math.max(head - ORDERS_MEMBER_DISTANCE, 0) },
   ]
 
   keepRecorded("kiroku/subscription-checkpoints.json")
@@ -121,7 +129,12 @@ function deriveKiroku() {
     `[${[
       { subscription: CHAPTERS, member: 0, phase: "live", position: head },
       { subscription: ORDERS, member: 0, phase: "live", position: Math.max(head - 1, 0) },
-      { subscription: ORDERS, member: 1, phase: "retrying", position: Math.min(9, head) },
+      {
+        subscription: ORDERS,
+        member: 1,
+        phase: "retrying",
+        position: Math.max(head - ORDERS_MEMBER_DISTANCE, 0),
+      },
     ]
       .map(
         (r) =>
@@ -148,7 +161,7 @@ function deriveKiroku() {
     derived_from: `${KIROKU_DOCS}: embedded hosts without a provider; select with useScenario({ fail: { kiroku: ["subscriptions-live"] } })`,
   })
 
-  const ordersMetrics = `{"db_error_count":3,"lag":${head - 9},"last_known_position":9,"last_stop_reason":"crashed"}`
+  const ordersMetrics = `{"db_error_count":3,"lag":${ORDERS_MEMBER_DISTANCE},"last_known_position":${head - ORDERS_MEMBER_DISTANCE},"last_stop_reason":"crashed"}`
   const chaptersMetrics = `{"db_error_count":0,"lag":0,"last_known_position":${head},"last_stop_reason":null}`
   keepRecorded("kiroku/metrics.json")
   const recordedMetrics = read("kiroku/metrics.recorded.json")
@@ -287,44 +300,16 @@ function deriveShibuya() {
     contentType: "application/json",
     derived_from: `${SHIBUYA_REPO} shibuya-metrics/test/golden/processor-metrics.json.golden (the "detailed" processor)`,
   })
-
-  keepRecorded("shibuya/control.json")
-  derive("shibuya/control.json", `{"enabled":false,"operations":["pause","resume"]}`, {
-    ...meta.files["shibuya/control.recorded.json"]!,
-    variant: "default",
-    status: 200,
-    contentType: "application/json",
-    derived_from: `${SHIBUYA_REPO} shibuya-metrics/src/Shibuya/Metrics/Control.hs (enableControl defaults off)`,
-  })
-  derive(
-    "shibuya/control-pause.error.json",
-    `{"code":"control_disabled","error":"Control operations are disabled"}`,
-    {
-      ...meta.files["shibuya/control-pause.error.json"]!,
-      status: 403,
-      contentType: "application/json",
-      derived_from: `${SHIBUYA_REPO} shibuya-metrics/src/Shibuya/Metrics/Control.hs (403 control_disabled); the Hackage 0.10.0.x example host answers 404`,
-    },
-  )
 }
 
 // --- keiro ---------------------------------------------------------------------------------
 
-// The aggregate and process-manager routes exist only when a host mounts AppHooks; no runnable
-// host does, so these bodies were written by hand from keiro's encoders (route grammar: only the
-// command words are path segments; type, id, and correlation are query flags).
 const KEIRO = "mori://shinzui/keiro"
-const keiroPins: {
-  aggregate_type: string
-  aggregate_id: string
+const keiroPins = (
+  JSON.parse(readFileSync(join(packageRoot, "manifests/keiro.json"), "utf8")) as Manifest
+).pins as {
   process_manager: string
   correlation_id: string
-  timer_id?: string
-} = {
-  aggregate_type: "order",
-  aggregate_id: "demo-20261021202320671316000000",
-  process_manager: "jitsurei-fulfillment",
-  correlation_id: "demo-20261021202320671316000000",
 }
 
 function keiroEntry(
@@ -351,149 +336,36 @@ function keiroEntry(
   }
 }
 
-function registerKeiro() {
-  const {
-    aggregate_type: type,
-    aggregate_id: id,
-    process_manager: pm,
-    correlation_id: correlation,
-  } = keiroPins
-  const entries: [string, Omit<FileMeta, "derived">][] = [
-    [
-      "keiro/aggregate-types.json",
-      keiroEntry(
-        "aggregate-types",
-        "default",
-        "/aggregate/types",
-        {},
-        200,
-        "keiro/src/Keiro/Inspection/Aggregate.hs aggregateTypeJson; keiro-ops/src/Keiro/Ops/Aggregate.hs ({items} envelope); inspectors jitsurei/src/Jitsurei/Inspection.hs",
-      ),
-    ],
-    [
-      "keiro/aggregate-list.json",
-      keiroEntry(
-        "aggregate-list",
-        "default",
-        "/aggregate/list",
-        { name: type },
-        200,
-        "keiro/src/Keiro/Inspection/Aggregate.hs aggregateListPageJson; rows from the recorded kiroku/streams-by-category.json",
-      ),
-    ],
-    [
-      "keiro/aggregate-show.json",
-      keiroEntry(
-        "aggregate-show",
-        "default",
-        "/aggregate/show",
-        { name: type, id },
-        200,
-        "keiro/src/Keiro/Inspection/Aggregate.hs aggregate view, hydration, and snapshot encoders; state folded from the recorded order stream",
-      ),
-    ],
-    [
-      "keiro/aggregate-show.error.json",
-      keiroEntry(
-        "aggregate-show",
-        "error",
-        "/aggregate/show",
-        { name: type, id: "missing" },
-        422,
-        "keiro-ops-http Application.hs 422 command_failed for AggregateNotFound",
-      ),
-    ],
-    [
-      "keiro/aggregate-snapshot.json",
-      keiroEntry(
-        "aggregate-snapshot",
-        "default",
-        "/aggregate/snapshot",
-        { name: type, id },
-        200,
-        "keiro/src/Keiro/Inspection/Aggregate.hs snapshotStatusJson; keiro-ops/src/Keiro/Ops/Aggregate.hs",
-      ),
-    ],
-    [
-      "keiro/pm-list.json",
-      keiroEntry(
-        "pm-list",
-        "default",
-        "/pm/list",
-        { name: pm },
-        200,
-        "keiro/src/Keiro/ProcessManager/Inspect.hs instancePageJson",
-      ),
-    ],
-    [
-      "keiro/pm-show.json",
-      keiroEntry(
-        "pm-show",
-        "default",
-        "/pm/show",
-        { name: pm, correlation },
-        200,
-        "keiro/src/Keiro/ProcessManager/Inspect.hs processManagerViewJson; journal event from the recorded $all log",
-      ),
-    ],
-    [
-      "keiro/pm-show.error.json",
-      keiroEntry(
-        "pm-show",
-        "error",
-        "/pm/show",
-        { name: pm, correlation: "missing" },
-        200,
-        "keiro/src/Keiro/ProcessManager/Inspect.hs: an unknown correlation id answers 200 with the body null",
-      ),
-    ],
-  ]
-  for (const [relative, entry] of entries) {
-    meta.files[relative] = { ...entry, derived: true }
-    console.log(`registered ${relative}`)
-  }
-  // A host without AppHooks refuses the command word; bodies captured from the standalone
-  // jitsurei keiro-ops-http on 2026-10-21 (served for the `fail` scenario).
+// A host without AppHooks refuses the command word. jitsurei-ops-http mounts them, so these bodies
+// are live captures from the standalone keiro-ops-http on the same database (2026-11-04), served
+// for the `fail` scenario.
+function deriveKeiroRefusals() {
+  const refusal = (args: string[], message: string) =>
+    json({ error: { code: "invalid_request", details: { arguments: args }, message } })
+  const didYouMean = "Did you mean one of these?\n    pgmq\n    wf\n\nUsage: keiro-ops COMMAND"
+  const pm = keiroPins.process_manager
+  const captured = "keiro-ops-http on a host without AppHooks (live capture)"
   derive(
     "keiro/aggregate-types.error.json",
-    json({
-      error: {
-        code: "invalid_request",
-        details: { arguments: ["aggregate", "types"] },
-        message: "Invalid argument `aggregate'\n\nUsage: keiro-ops COMMAND",
-      },
-    }),
-    keiroEntry(
-      "aggregate-types",
-      "error",
-      "/aggregate/types",
-      {},
-      400,
-      "keiro-ops-http on a host without AppHooks (live capture)",
-    ),
+    refusal(["aggregate", "types"], "Invalid argument `aggregate'\n\nUsage: keiro-ops COMMAND"),
+    keiroEntry("aggregate-types", "error", "/aggregate/types", {}, 400, captured),
   )
   derive(
     "keiro/pm-list.error.json",
-    json({
-      error: {
-        code: "invalid_request",
-        details: { arguments: ["pm", "list", `--name=${pm}`] },
-        message:
-          "Invalid argument `pm'\n\nDid you mean one of these?\n    pgmq\n    wf\n\nUsage: keiro-ops COMMAND",
-      },
-    }),
-    keiroEntry(
-      "pm-list",
-      "error",
-      "/pm/list",
-      { name: pm },
-      400,
-      "keiro-ops-http on a host without AppHooks (live capture)",
-    ),
+    refusal(["pm", "list", `--name=${pm}`], `Invalid argument \`pm'\n\n${didYouMean}`),
+    keiroEntry("pm-list", "error", "/pm/list", { name: pm }, 400, captured),
   )
+  derive(
+    "keiro/pm-types.error.json",
+    refusal(["pm", "types"], `Invalid argument \`pm'\n\n${didYouMean}`),
+    keiroEntry("pm-types", "error", "/pm/types", {}, 400, captured),
+  )
+}
+
+function writeTimerPin(timerId: string) {
   const manifestPath = join(packageRoot, "manifests/keiro.json")
   const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as Manifest
-  manifest.pins = { ...manifest.pins, ...keiroPins }
+  manifest.pins.timer_id = timerId
   writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
 }
 
@@ -559,14 +431,15 @@ function deriveKeiroTimers() {
     variant: "default",
     derived_from: `${KEIRO} keiro-ops/src/Keiro/Ops/Timer.hs timerJson (a bare array); the firing row of the derived pending ledger`,
   })
-  keiroPins.timer_id = timers[0]!.timer_id
+  writeTimerPin(timers[0]!.timer_id)
 }
 
 // Projection status rows follow keiro_read.projection_group_status_v1 (keiro/src/Keiro/ReadModel/
 // Rebuild/Status.hs) and shards follow keiro-ops/src/Keiro/Ops/Shard.hs. The jitsurei seed
 // serves no position for any group and runs no sharded subscription, so the derived bodies
-// keep the recorded rows and add one group per display case, aligned with the derived kiroku
-// checkpoints of jitsurei-order-reporting (members at 28 and 9; head 30).
+// keep the recorded unmanaged rows and add one group per display case, aligned with the derived
+// kiroku checkpoints of jitsurei-order-reporting and the recorded head. Each row carries
+// feeding_subscriptions, whose real shape is in projection-status.recorded.json.
 function deriveKeiroProjections() {
   const statusPath = "keiro/projection-status.json"
   const positionPath = "keiro/projection-position.json"
@@ -584,7 +457,9 @@ function deriveKeiroProjections() {
     items: Record<string, unknown>[]
     observed_at: string
   }
-  const head = 30
+  const head = Number(
+    bigintField(read("kiroku/subscription-checkpoints.recorded.json"), "store_position") ?? 0n,
+  )
   const quiet = {
     active_run_id: null,
     candidate_rebuild_head: null,
@@ -606,8 +481,9 @@ function deriveKeiroProjections() {
       group_id: "jitsurei-order-reporting",
       lifecycle_phase: "live",
       query_models: ["jitsurei-order-reporting"],
+      feeding_subscriptions: ["jitsurei-order-reporting"],
       serving_position_basis: "checkpoint",
-      serving_applied_position: 9,
+      serving_applied_position: head - ORDERS_MEMBER_DISTANCE,
       serving_revision_id: "rev-order-reporting-1",
     },
     {
@@ -615,6 +491,7 @@ function deriveKeiroProjections() {
       group_id: "jitsurei-order-search",
       lifecycle_phase: "rebuilding",
       query_models: ["jitsurei-order-search", "jitsurei-order-search-facets"],
+      feeding_subscriptions: ["jitsurei-order-search", "jitsurei-order-search-facets"],
       serving_position_basis: "append",
       serving_applied_position: head,
       serving_revision_id: "rev-order-search-1",
@@ -629,10 +506,11 @@ function deriveKeiroProjections() {
       group_id: "jitsurei-carrier-quotes",
       lifecycle_phase: "failed",
       query_models: ["jitsurei-carrier-quotes"],
+      feeding_subscriptions: ["jitsurei-carrier-quotes"],
       reads_allowed: false,
       writes_allowed: false,
       serving_position_basis: "checkpoint",
-      serving_applied_position: 4,
+      serving_applied_position: head - CARRIER_QUOTES_DISTANCE,
       serving_revision_id: "rev-carrier-quotes-1",
       failed_at: "2026-10-21T21:12:00.000Z",
       failure_code: "apply_failed",
@@ -650,22 +528,22 @@ function deriveKeiroProjections() {
       subscription: "jitsurei-order-reporting",
       store_position: head,
       visible_store_head: head,
-      minimum_checkpoint_position: 9,
-      maximum_global_position_distance: 21,
+      minimum_checkpoint_position: head - ORDERS_MEMBER_DISTANCE,
+      maximum_global_position_distance: ORDERS_MEMBER_DISTANCE,
       members: [
         {
           subscription: "jitsurei-order-reporting",
           member: 0,
-          checkpoint_position: 28,
+          checkpoint_position: head - 2,
           checkpoint_updated_at: "2026-10-21T21:24:50.767Z",
           global_position_distance: 2,
         },
         {
           subscription: "jitsurei-order-reporting",
           member: 1,
-          checkpoint_position: 9,
+          checkpoint_position: head - ORDERS_MEMBER_DISTANCE,
           checkpoint_updated_at: "2026-10-21T21:23:50.767Z",
-          global_position_distance: 21,
+          global_position_distance: ORDERS_MEMBER_DISTANCE,
         },
       ],
     }),
@@ -766,7 +644,7 @@ deriveShibuya()
 derivePgmqDeadLetterQueue()
 deriveKeiroTimers()
 deriveKeiroProjections()
-registerKeiro()
+deriveKeiroRefusals()
 meta.files = Object.fromEntries(
   Object.entries(meta.files).toSorted(([a], [b]) => a.localeCompare(b)),
 )

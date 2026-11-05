@@ -56,6 +56,21 @@ A simulator sends a small `orders` batch every 30 s so the processors have work.
 - Start over on pgmq: stop the stack, `dropdb`/`createdb` `pgmq_dev` in
   `$STACK_PGMQ_SOCKET_DIR`, and start it again.
 
+## Re-recording fixtures
+
+`bun run fixtures:record`, then `bun run --filter @keiro-ui/testing derive`, writes
+`packages/testing/fixtures/` from the running stack. Both databases must look newly seeded, because
+tests rely on what a single seed produces, such as how many pages a list has:
+
+- `just jitsurei-all` appends rather than resets. Stop the stack, drop or rename `jitsurei`, run
+  `just stack-seed` once, start the stack, and set the ids in `packages/testing/manifests/keiro.json`
+  `pins` from this seed. Blank the `stream` and `event_*` pins in `manifests/kiroku.json` so the recorder
+  resolves them again.
+- The simulator keeps adding dead letters to `pgmq_dev`. Before recording, drop the `console_demo`,
+  `console_demo_dlq`, and `console_notify` queues, delete all but the oldest row of `pgmq.q_dlq_orders`,
+  and run `bash dev/seed-queues.sh`, so that `dlq_orders` holds the oldest message and `console_demo` the
+  most visible ones.
+
 ## The mori profile
 
 `just stack-up mori` runs the same four surfaces against a local

@@ -1,4 +1,4 @@
-import { startMockServer, type MockServer } from "@keiro-ui/testing/node"
+import { pins, startMockServer, type MockServer } from "@keiro-ui/testing/node"
 import { act, cleanup, fireEvent, screen, waitFor } from "@testing-library/react"
 import { afterAll, afterEach, beforeAll, expect, test } from "vitest"
 
@@ -42,7 +42,7 @@ test("canonical entry, native anchors, settings redirect and Back/Forward retain
   const { router } = await renderRoute("/workflows", { catalog })
   await screen.findByRole("grid", { name: "Workflow instances" })
   expect(currentSearch(router)).toMatchObject({ target: "orders", worker: "one" })
-  const workflow = screen.getByRole("link", { name: "workflow-20261021202320830171000000" })
+  const workflow = screen.getByRole("link", { name: pins("keiro").workflow_id! })
   expect(workflow.getAttribute("href")).toContain("target=orders")
   expect(workflow.getAttribute("href")).toContain("worker=one")
   await act(() =>
@@ -110,8 +110,10 @@ test("optional raw events and inspector sheets show configuration reasons withou
   const listener = ({ request }: { request: Request }) => paths.push(new URL(request.url).pathname)
   mock.server.events.on("request:start", listener)
   await renderRoute(
-    "/aggregates/order/demo-20261021202320671316000000?target=orders&sheet=event:missing",
-    { catalog },
+    `/aggregates/order/${pins("keiro").aggregate_id}?target=orders&sheet=event:missing`,
+    {
+      catalog,
+    },
   )
   expect(
     await screen.findByText("Raw events: Not configured for this application"),

@@ -1,1 +1,1 @@
-{"application":"running","dependencies":[],"processors":{"failed":0,"healthy":3,"stuck":0,"total":3},"ready":true}
+{"application":"running","dependencies":[],"processors":{"failed":0,"healthy":3,"paused":0,"stuck":0,"total":3},"ready":true}

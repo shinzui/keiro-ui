@@ -1,24 +1,38 @@
 {
-  "recorded_at": "2026-10-21T21:26:50.767Z",
-  "seed": "keiro just jitsurei-all (keiro 7ee722a7) + dev/seed-queues.sh",
+  "recorded_at": "2026-11-05T03:21:20.278Z",
+  "seed": "keiro just jitsurei-all (keiro 9da47eb7) + dev/seed-queues.sh",
   "sources": {
     "kiroku": {
-      "commit": "ea364cf"
+      "commit": "aa2c6ab"
     },
     "pgmq-hs": {
-      "commit": "d6750a6"
+      "commit": "88afb93"
     },
     "shibuya": {
-      "commit": "7adbd94"
+      "commit": "19b9ad5"
     },
     "shibuya-pgmq-adapter": {
-      "commit": "c443ac3"
+      "commit": "e549451"
     },
     "keiro": {
-      "commit": "7ee722a7"
+      "commit": "9da47eb7"
     }
   },
   "files": {
+    "keiro/aggregate-list-credit-limit.json": {
+      "surface": "keiro",
+      "slug": "aggregate-list-credit-limit",
+      "variant": "default",
+      "method": "GET",
+      "template": "/aggregate/list",
+      "query": {
+        "name": "credit-limit"
+      },
+      "params": {},
+      "request": "/aggregate/list?name=credit-limit",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8"
+    },
     "keiro/aggregate-list.json": {
       "surface": "keiro",
       "slug": "aggregate-list",
@@ -31,9 +45,22 @@
       "params": {},
       "request": "/aggregate/list?name=order",
       "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "derived_from": "mori://shinzui/keiro keiro/src/Keiro/Inspection/Aggregate.hs aggregateListPageJson; rows from the recorded kiroku/streams-by-category.json",
-      "derived": true
+      "contentType": "application/json; charset=utf-8"
+    },
+    "keiro/aggregate-show-credit-limit.json": {
+      "surface": "keiro",
+      "slug": "aggregate-show-credit-limit",
+      "variant": "default",
+      "method": "GET",
+      "template": "/aggregate/show",
+      "query": {
+        "name": "credit-limit",
+        "id": "registers-20261105031554754823000000"
+      },
+      "params": {},
+      "request": "/aggregate/show?name=credit-limit&id=registers-20261105031554754823000000",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8"
     },
     "keiro/aggregate-show.error.json": {
       "surface": "keiro",
@@ -48,9 +75,7 @@
       "params": {},
       "request": "/aggregate/show?name=order&id=missing",
       "status": 422,
-      "contentType": "application/json; charset=utf-8",
-      "derived_from": "mori://shinzui/keiro keiro-ops-http Application.hs 422 command_failed for AggregateNotFound",
-      "derived": true
+      "contentType": "application/json; charset=utf-8"
     },
     "keiro/aggregate-show.json": {
       "surface": "keiro",
@@ -60,14 +85,27 @@
       "template": "/aggregate/show",
       "query": {
         "name": "order",
-        "id": "demo-20261021202320671316000000"
+        "id": "demo-20261105031554720089000000"
       },
       "params": {},
-      "request": "/aggregate/show?name=order&id=demo-20261021202320671316000000",
+      "request": "/aggregate/show?name=order&id=demo-20261105031554720089000000",
       "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "derived_from": "mori://shinzui/keiro keiro/src/Keiro/Inspection/Aggregate.hs aggregate view, hydration, and snapshot encoders; state folded from the recorded order stream",
-      "derived": true
+      "contentType": "application/json; charset=utf-8"
+    },
+    "keiro/aggregate-snapshot-credit-limit.json": {
+      "surface": "keiro",
+      "slug": "aggregate-snapshot-credit-limit",
+      "variant": "default",
+      "method": "GET",
+      "template": "/aggregate/snapshot",
+      "query": {
+        "name": "credit-limit",
+        "id": "registers-20261105031554754823000000"
+      },
+      "params": {},
+      "request": "/aggregate/snapshot?name=credit-limit&id=registers-20261105031554754823000000",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8"
     },
     "keiro/aggregate-snapshot.json": {
       "surface": "keiro",
@@ -77,14 +115,12 @@
       "template": "/aggregate/snapshot",
       "query": {
         "name": "order",
-        "id": "demo-20261021202320671316000000"
+        "id": "demo-20261105031554720089000000"
       },
       "params": {},
-      "request": "/aggregate/snapshot?name=order&id=demo-20261021202320671316000000",
+      "request": "/aggregate/snapshot?name=order&id=demo-20261105031554720089000000",
       "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "derived_from": "mori://shinzui/keiro keiro/src/Keiro/Inspection/Aggregate.hs snapshotStatusJson; keiro-ops/src/Keiro/Ops/Aggregate.hs",
-      "derived": true
+      "contentType": "application/json; charset=utf-8"
     },
     "keiro/aggregate-types.error.json": {
       "surface": "keiro",
@@ -110,9 +146,7 @@
       "params": {},
       "request": "/aggregate/types",
       "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "derived_from": "mori://shinzui/keiro keiro/src/Keiro/Inspection/Aggregate.hs aggregateTypeJson; keiro-ops/src/Keiro/Ops/Aggregate.hs ({items} envelope); inspectors jitsurei/src/Jitsurei/Inspection.hs",
-      "derived": true
+      "contentType": "application/json; charset=utf-8"
     },
     "keiro/health.json": {
       "surface": "keiro",
@@ -192,9 +226,7 @@
       "params": {},
       "request": "/pm/list?name=jitsurei-fulfillment",
       "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "derived_from": "mori://shinzui/keiro keiro/src/Keiro/ProcessManager/Inspect.hs instancePageJson",
-      "derived": true
+      "contentType": "application/json; charset=utf-8"
     },
     "keiro/pm-show.error.json": {
       "surface": "keiro",
@@ -209,9 +241,7 @@
       "params": {},
       "request": "/pm/show?name=jitsurei-fulfillment&correlation=missing",
       "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "derived_from": "mori://shinzui/keiro keiro/src/Keiro/ProcessManager/Inspect.hs: an unknown correlation id answers 200 with the body null",
-      "derived": true
+      "contentType": "application/json; charset=utf-8"
     },
     "keiro/pm-show.json": {
       "surface": "keiro",
@@ -221,14 +251,38 @@
       "template": "/pm/show",
       "query": {
         "name": "jitsurei-fulfillment",
-        "correlation": "demo-20261021202320671316000000"
+        "correlation": "demo-20261105031554720089000000"
       },
       "params": {},
-      "request": "/pm/show?name=jitsurei-fulfillment&correlation=demo-20261021202320671316000000",
+      "request": "/pm/show?name=jitsurei-fulfillment&correlation=demo-20261105031554720089000000",
       "status": 200,
+      "contentType": "application/json; charset=utf-8"
+    },
+    "keiro/pm-types.error.json": {
+      "surface": "keiro",
+      "slug": "pm-types",
+      "variant": "error",
+      "method": "GET",
+      "template": "/pm/types",
+      "query": {},
+      "params": {},
+      "request": "/pm/types",
+      "status": 400,
       "contentType": "application/json; charset=utf-8",
-      "derived_from": "mori://shinzui/keiro keiro/src/Keiro/ProcessManager/Inspect.hs processManagerViewJson; journal event from the recorded $all log",
+      "derived_from": "mori://shinzui/keiro keiro-ops-http on a host without AppHooks (live capture)",
       "derived": true
+    },
+    "keiro/pm-types.json": {
+      "surface": "keiro",
+      "slug": "pm-types",
+      "variant": "default",
+      "method": "GET",
+      "template": "/pm/types",
+      "query": {},
+      "params": {},
+      "request": "/pm/types",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8"
     },
     "keiro/projection-position.json": {
       "surface": "keiro",
@@ -346,6 +400,34 @@
       "status": 200,
       "contentType": "application/json; charset=utf-8"
     },
+    "keiro/snapshot-show-credit-limit.json": {
+      "surface": "keiro",
+      "slug": "snapshot-show-credit-limit",
+      "variant": "default",
+      "method": "GET",
+      "template": "/snapshot/show",
+      "query": {
+        "stream": "creditLimit-registers-20261105031554754823000000"
+      },
+      "params": {},
+      "request": "/snapshot/show?stream=creditLimit-registers-20261105031554754823000000",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8"
+    },
+    "keiro/snapshot-show-missing.json": {
+      "surface": "keiro",
+      "slug": "snapshot-show-missing",
+      "variant": "default",
+      "method": "GET",
+      "template": "/snapshot/show",
+      "query": {
+        "stream": "order-missing"
+      },
+      "params": {},
+      "request": "/snapshot/show?stream=order-missing",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8"
+    },
     "keiro/stream-show.json": {
       "surface": "keiro",
       "slug": "stream-show",
@@ -357,9 +439,9 @@
         "limit": "100"
       },
       "params": {
-        "stream": "order-demo-20261021202320671316000000"
+        "stream": "order-demo-20261105031554720089000000"
       },
-      "request": "/stream/show/order-demo-20261021202320671316000000?from=0&limit=100",
+      "request": "/stream/show/order-demo-20261105031554720089000000?from=0&limit=100",
       "status": 200,
       "contentType": "application/json; charset=utf-8"
     },
@@ -454,9 +536,9 @@
       "query": {},
       "params": {
         "workflow_name": "order-fulfillment",
-        "workflow_id": "workflow-20261021202320830171000000"
+        "workflow_id": "workflow-20261105031554815945000000"
       },
-      "request": "/wf/inspect/awakeables/order-fulfillment/workflow-20261021202320830171000000",
+      "request": "/wf/inspect/awakeables/order-fulfillment/workflow-20261105031554815945000000",
       "status": 200,
       "contentType": "application/json; charset=utf-8"
     },
@@ -469,9 +551,9 @@
       "query": {},
       "params": {
         "workflow_name": "order-fulfillment",
-        "workflow_id": "workflow-20261021202320830171000000"
+        "workflow_id": "workflow-20261105031554815945000000"
       },
-      "request": "/wf/inspect/children/order-fulfillment/workflow-20261021202320830171000000",
+      "request": "/wf/inspect/children/order-fulfillment/workflow-20261105031554815945000000",
       "status": 200,
       "contentType": "application/json; charset=utf-8"
     },
@@ -499,9 +581,9 @@
       "query": {},
       "params": {
         "workflow_name": "order-fulfillment",
-        "workflow_id": "workflow-20261021202320830171000000"
+        "workflow_id": "workflow-20261105031554815945000000"
       },
-      "request": "/wf/inspect/header/order-fulfillment/workflow-20261021202320830171000000",
+      "request": "/wf/inspect/header/order-fulfillment/workflow-20261105031554815945000000",
       "status": 200,
       "contentType": "application/json; charset=utf-8"
     },
@@ -514,9 +596,9 @@
       "query": {},
       "params": {
         "workflow_name": "order-fulfillment",
-        "workflow_id": "workflow-20261021202320830171000000"
+        "workflow_id": "workflow-20261105031554815945000000"
       },
-      "request": "/wf/inspect/journal/order-fulfillment/workflow-20261021202320830171000000",
+      "request": "/wf/inspect/journal/order-fulfillment/workflow-20261105031554815945000000",
       "status": 200,
       "contentType": "application/json; charset=utf-8"
     },
@@ -529,9 +611,9 @@
       "query": {},
       "params": {
         "workflow_name": "order-fulfillment",
-        "workflow_id": "workflow-20261021202320830171000000"
+        "workflow_id": "workflow-20261105031554815945000000"
       },
-      "request": "/wf/inspect/steps/order-fulfillment/workflow-20261021202320830171000000",
+      "request": "/wf/inspect/steps/order-fulfillment/workflow-20261105031554815945000000",
       "status": 200,
       "contentType": "application/json; charset=utf-8"
     },
@@ -615,13 +697,13 @@
       "template": "/wf/inspect/list",
       "query": {
         "limit": "1",
-        "after": "eyJrIjoid2Yta2V5IiwidiI6WyJvcmRlci1mdWxmaWxsbWVudCIsIndvcmtmbG93LTIwMjYxMDIxMjAyMzIwODMwMTcxMDAwMDAwIl19"
+        "after": "eyJrIjoid2Yta2V5MiIsInYiOlsid29ya2Zsb3ctMjAyNjExMDUwMzE1NTQ4MTU5NDUwMDAwMDAiLCJvcmRlci1mdWxmaWxsbWVudCJdfQ"
       },
       "params": {},
-      "request": "/wf/inspect/list?limit=1&after=eyJrIjoid2Yta2V5IiwidiI6WyJvcmRlci1mdWxmaWxsbWVudCIsIndvcmtmbG93LTIwMjYxMDIxMjAyMzIwODMwMTcxMDAwMDAwIl19",
+      "request": "/wf/inspect/list?limit=1&after=eyJrIjoid2Yta2V5MiIsInYiOlsid29ya2Zsb3ctMjAyNjExMDUwMzE1NTQ4MTU5NDUwMDAwMDAiLCJvcmRlci1mdWxmaWxsbWVudCJdfQ",
       "status": 200,
       "contentType": "application/json; charset=utf-8",
-      "cursor": "eyJrIjoid2Yta2V5IiwidiI6WyJvcmRlci1mdWxmaWxsbWVudCIsIndvcmtmbG93LTIwMjYxMDIxMjAyMzIwODMwMTcxMDAwMDAwIl19"
+      "cursor": "eyJrIjoid2Yta2V5MiIsInYiOlsid29ya2Zsb3ctMjAyNjExMDUwMzE1NTQ4MTU5NDUwMDAwMDAiLCJvcmRlci1mdWxmaWxsbWVudCJdfQ"
     },
     "kiroku/capabilities.json": {
       "surface": "kiroku",
@@ -698,10 +780,10 @@
       "variant": "page2",
       "query": {
         "limit": "10",
-        "from": "21:91"
+        "from": "22:91"
       },
-      "request": "/subscriptions/jitsurei-order-reporting/dead-letters?limit=10&from=21%3A91",
-      "cursor": "21:91",
+      "request": "/subscriptions/jitsurei-order-reporting/dead-letters?limit=10&from=22%3A91",
+      "cursor": "22:91",
       "derived": true
     },
     "kiroku/dead-letters.recorded.json": {
@@ -730,13 +812,13 @@
       "template": "/events/{event_causation_unresolved}",
       "query": {},
       "params": {
-        "event_causation_unresolved": "6e8e9bb5-3c00-5f95-8b6c-a7f9dfbcbe92"
+        "event_causation_unresolved": "d31b5a7f-4857-5f20-ad86-23c5f00399c6"
       },
-      "request": "/events/6e8e9bb5-3c00-5f95-8b6c-a7f9dfbcbe92",
+      "request": "/events/d31b5a7f-4857-5f20-ad86-23c5f00399c6",
       "status": 200,
       "contentType": "application/json",
       "derived": true,
-      "derived_from": "recorded GET /events/6e8e9bb5-3c00-5f95-8b6c-a7f9dfbcbe92 with causationId set to 00000000-0000-4000-8000-00000000dead"
+      "derived_from": "recorded GET /events/d31b5a7f-4857-5f20-ad86-23c5f00399c6 with causationId set to 00000000-0000-4000-8000-00000000dead"
     },
     "kiroku/event-cause.json": {
       "surface": "kiroku",
@@ -746,9 +828,9 @@
       "template": "/events/{event_cause}",
       "query": {},
       "params": {
-        "event_cause": "01a16021-f586-765a-a938-f5c753d2af5a"
+        "event_cause": "01a1a9b4-b4e9-7298-a60a-6ac12bc8570a"
       },
-      "request": "/events/01a16021-f586-765a-a938-f5c753d2af5a",
+      "request": "/events/01a1a9b4-b4e9-7298-a60a-6ac12bc8570a",
       "status": 200,
       "contentType": "application/json"
     },
@@ -760,13 +842,13 @@
       "template": "/events/{event_with_causation}",
       "query": {},
       "params": {
-        "event_with_causation": "01a16021-f590-706d-a7d6-5082cdf1ddd6"
+        "event_with_causation": "01a1a9b4-b4ec-7267-9523-74941328f939"
       },
-      "request": "/events/01a16021-f590-706d-a7d6-5082cdf1ddd6",
+      "request": "/events/01a1a9b4-b4ec-7267-9523-74941328f939",
       "status": 200,
       "contentType": "application/json",
       "derived": true,
-      "derived_from": "recorded GET /events/01a16021-f590-706d-a7d6-5082cdf1ddd6 with causationId set to 01a16021-f586-765a-a938-f5c753d2af5a"
+      "derived_from": "recorded GET /events/01a1a9b4-b4ec-7267-9523-74941328f939 with causationId set to 01a1a9b4-b4e9-7298-a60a-6ac12bc8570a"
     },
     "kiroku/event.error.json": {
       "surface": "kiroku",
@@ -947,9 +1029,9 @@
         "direction": "backward"
       },
       "params": {
-        "stream": "order-demo-20261021202320671316000000"
+        "stream": "order-demo-20261105031554720089000000"
       },
-      "request": "/streams/order-demo-20261021202320671316000000/events?from=0&limit=100&direction=backward",
+      "request": "/streams/order-demo-20261105031554720089000000/events?from=0&limit=100&direction=backward",
       "status": 200,
       "contentType": "application/json"
     },
@@ -964,9 +1046,9 @@
         "limit": "100"
       },
       "params": {
-        "stream": "order-demo-20261021202320671316000000"
+        "stream": "order-demo-20261105031554720089000000"
       },
-      "request": "/streams/order-demo-20261021202320671316000000/events?from=0&limit=100",
+      "request": "/streams/order-demo-20261105031554720089000000/events?from=0&limit=100",
       "status": 200,
       "contentType": "application/json"
     },
@@ -992,9 +1074,9 @@
       "template": "/streams/{stream}",
       "query": {},
       "params": {
-        "stream": "order-demo-20261021202320671316000000"
+        "stream": "order-demo-20261105031554720089000000"
       },
-      "request": "/streams/order-demo-20261021202320671316000000",
+      "request": "/streams/order-demo-20261105031554720089000000",
       "status": 200,
       "contentType": "application/json"
     },
@@ -1035,13 +1117,13 @@
       "template": "/streams",
       "query": {
         "limit": "10",
-        "from": "page-inc-esc-20261021202320789409000000-bob"
+        "from": "page-inc-esc-20261105031554780674000000-alice"
       },
       "params": {},
-      "request": "/streams?limit=10&from=page-inc-esc-20261021202320789409000000-bob",
+      "request": "/streams?limit=10&from=page-inc-esc-20261105031554780674000000-alice",
       "status": 200,
       "contentType": "application/json",
-      "cursor": "page-inc-esc-20261021202320789409000000-bob"
+      "cursor": "page-inc-esc-20261105031554780674000000-alice"
     },
     "kiroku/subscription-checkpoints.json": {
       "surface": "kiroku",
@@ -1478,9 +1560,7 @@
       },
       "request": "/control/processors/notifications/pause",
       "status": 403,
-      "contentType": "application/json",
-      "derived_from": "mori://shinzui/shibuya shibuya-metrics/src/Shibuya/Metrics/Control.hs (403 control_disabled); the Hackage 0.10.0.x example host answers 404",
-      "derived": true
+      "contentType": "application/json"
     },
     "shibuya/control.json": {
       "surface": "shibuya",
@@ -1492,20 +1572,6 @@
       "params": {},
       "request": "/control",
       "status": 200,
-      "contentType": "application/json",
-      "derived_from": "mori://shinzui/shibuya shibuya-metrics/src/Shibuya/Metrics/Control.hs (enableControl defaults off)",
-      "derived": true
-    },
-    "shibuya/control.recorded.json": {
-      "surface": "shibuya",
-      "slug": "control",
-      "variant": "recorded",
-      "method": "GET",
-      "template": "/control",
-      "query": {},
-      "params": {},
-      "request": "/control",
-      "status": 404,
       "contentType": "application/json"
     },
     "shibuya/health-live.json": {

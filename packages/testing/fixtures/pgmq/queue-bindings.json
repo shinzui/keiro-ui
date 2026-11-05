@@ -1,1 +1,1 @@
-[{"pattern":"console.*","queue_name":"console_demo","bound_at":"2026-10-21T21:26:50.688997Z","compiled_regex":"^console\\.[^.]+$"}]
+[{"pattern":"console.*","queue_name":"console_demo","bound_at":"2026-11-05T03:21:20.19733Z","compiled_regex":"^console\\.[^.]+$"}]

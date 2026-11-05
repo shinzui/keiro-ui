@@ -1,3 +1,4 @@
+import { fixtureText } from "@keiro-ui/testing"
 import { type MockServer, startMockServer } from "@keiro-ui/testing/node"
 import { fireEvent, screen, waitFor } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
@@ -24,8 +25,11 @@ test("every card shows its fixture headline and links to its section", async () 
   await waitFor(() => expect(headline("projections")).toHaveTextContent("26"))
   expect(headline("queues")).not.toHaveTextContent("…")
   expect(headline("processors")).toHaveTextContent("running")
-  expect(headline("store")).toHaveTextContent("30")
-  await waitFor(() => expect(headline("aggregates")).toHaveTextContent("2"))
+  const { store_position: head } = JSON.parse(
+    fixtureText("kiroku/subscription-checkpoints.json"),
+  ) as { store_position: number }
+  expect(headline("store")).toHaveTextContent(String(head))
+  await waitFor(() => expect(headline("aggregates")).toHaveTextContent("3"))
   await waitFor(() => expect(headline("timers")).toHaveTextContent("3"))
   expect(screen.getByTestId("card-timers-subtitle")).toHaveTextContent("1 stuck")
   expect(await screen.findByTestId("mutations")).toHaveTextContent("mutations: disabled on server")

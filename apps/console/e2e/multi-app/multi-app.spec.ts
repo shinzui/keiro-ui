@@ -10,7 +10,14 @@ const ports = {
 }
 const fixture = (app: keyof typeof ports, path: string) => `http://127.0.0.1:${ports[app]}${path}`
 const timer = "7b2f6a0e-5c1d-4e8a-9f3b-2d6c8a1e4f01"
-const workflow = "workflow-20261021202320830171000000"
+const workflow = (
+  JSON.parse(
+    readFileSync(
+      fileURLToPath(new URL("../../../../packages/testing/manifests/keiro.json", import.meta.url)),
+      "utf8",
+    ),
+  ) as { pins: { workflow_id: string } }
+).pins.workflow_id
 async function openFlow(page: Page, app: string) {
   await page.goto(`timers?target=prod-${app}`)
   await page.getByRole("button", { name: `Actions for timer ${timer}` }).click()

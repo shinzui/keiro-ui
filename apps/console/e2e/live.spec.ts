@@ -1,7 +1,8 @@
 import { expect, test } from "@playwright/test"
 
 // Skipped unless KEIRO_UI_LIVE=1: every list screen against the EP-9 stack, through the Vite
-// proxy, with liveness on. Each list shows rows or its honest empty or not-mounted state.
+// proxy, with liveness on. Each list shows rows or its honest empty state; the stack mounts hooks,
+// so nothing here may report "not mounted".
 
 test.skip(
   process.env.KEIRO_UI_LIVE !== "1",
@@ -18,7 +19,7 @@ const lists: [path: string, ready: string][] = [
   ["/workflows", "grid"],
   ["/process-managers", "form"],
   ["/timers", "grid"],
-  ["/aggregates", "not-mounted|grid"],
+  ["/aggregates", "grid"],
   ["/projections", "grid"],
   ["/shards", "grid"],
 ]
@@ -37,9 +38,7 @@ test("every section renders against the live stack", async ({ page }) => {
   for (const [path, ready] of lists) {
     await page.goto(path)
     const main = page.getByRole("main")
-    if (ready.includes("not-mounted")) {
-      await expect(main.getByTestId("not-mounted").or(main.getByRole("grid").first())).toBeVisible()
-    } else if (ready === "form") {
+    if (ready === "form") {
       await expect(main.getByRole("form").first()).toBeVisible()
     } else {
       const grid = main.getByRole("grid").first()

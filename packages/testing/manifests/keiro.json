@@ -5,14 +5,17 @@
   "cursor_param": "after",
   "pins": {
     "workflow_name": "order-fulfillment",
-    "workflow_id": "workflow-20261021202320830171000000",
+    "workflow_id": "workflow-20261105031554815945000000",
     "timer_id": "7b2f6a0e-5c1d-4e8a-9f3b-2d6c8a1e4f01",
     "subscription": "jitsurei-order-reporting",
-    "stream": "order-demo-20261021202320671316000000",
+    "stream": "order-demo-20261105031554720089000000",
     "aggregate_type": "order",
-    "aggregate_id": "demo-20261021202320671316000000",
+    "aggregate_id": "demo-20261105031554720089000000",
     "process_manager": "jitsurei-fulfillment",
-    "correlation_id": "demo-20261021202320671316000000"
+    "correlation_id": "demo-20261105031554720089000000",
+    "register_aggregate_type": "credit-limit",
+    "register_aggregate_id": "registers-20261105031554754823000000",
+    "register_stream": "creditLimit-registers-20261105031554754823000000"
   },
   "entries": [
     {
@@ -112,7 +115,9 @@
       "query": {
         "subscription": "{subscription}"
       },
-      "needs": ["subscription"]
+      "needs": [
+        "subscription"
+      ]
     },
     {
       "slug": "shards",
@@ -124,7 +129,9 @@
       "query": {
         "subscription": "{subscription}"
       },
-      "needs": ["subscription"]
+      "needs": [
+        "subscription"
+      ]
     },
     {
       "slug": "stream-show",
@@ -161,6 +168,107 @@
       "variant": "error",
       "params": {
         "timer_id": "00000000-0000-0000-0000-000000000000"
+      }
+    },
+    {
+      "slug": "pm-types",
+      "path": "/pm/types"
+    },
+    {
+      "slug": "aggregate-types",
+      "path": "/aggregate/types"
+    },
+    {
+      "slug": "aggregate-list",
+      "path": "/aggregate/list",
+      "query": {
+        "name": "{aggregate_type}"
+      }
+    },
+    {
+      "slug": "aggregate-show",
+      "path": "/aggregate/show",
+      "query": {
+        "name": "{aggregate_type}",
+        "id": "{aggregate_id}"
+      }
+    },
+    {
+      "slug": "aggregate-show",
+      "path": "/aggregate/show",
+      "query": {
+        "name": "{aggregate_type}",
+        "id": "missing"
+      },
+      "variant": "error"
+    },
+    {
+      "slug": "aggregate-snapshot",
+      "path": "/aggregate/snapshot",
+      "query": {
+        "name": "{aggregate_type}",
+        "id": "{aggregate_id}"
+      }
+    },
+    {
+      "slug": "pm-list",
+      "path": "/pm/list",
+      "query": {
+        "name": "{process_manager}"
+      }
+    },
+    {
+      "slug": "pm-show",
+      "path": "/pm/show",
+      "query": {
+        "name": "{process_manager}",
+        "correlation": "{correlation_id}"
+      }
+    },
+    {
+      "slug": "pm-show",
+      "path": "/pm/show",
+      "query": {
+        "name": "{process_manager}",
+        "correlation": "missing"
+      },
+      "variant": "error"
+    },
+    {
+      "slug": "aggregate-list-credit-limit",
+      "path": "/aggregate/list",
+      "query": {
+        "name": "{register_aggregate_type}"
+      }
+    },
+    {
+      "slug": "aggregate-show-credit-limit",
+      "path": "/aggregate/show",
+      "query": {
+        "name": "{register_aggregate_type}",
+        "id": "{register_aggregate_id}"
+      }
+    },
+    {
+      "slug": "aggregate-snapshot-credit-limit",
+      "path": "/aggregate/snapshot",
+      "query": {
+        "name": "{register_aggregate_type}",
+        "id": "{register_aggregate_id}"
+      }
+    },
+    {
+      "slug": "snapshot-show-credit-limit",
+      "path": "/snapshot/show",
+      "query": {
+        "stream": "{register_stream}"
+      }
+    },
+    {
+      "slug": "snapshot-show-missing",
+      "path": "/snapshot/show",
+      "query": {
+        "stream": "order-missing"
       }
     }
   ]

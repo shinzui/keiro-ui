@@ -1,1 +1,1 @@
-{"error":"Processor not found","processor":"does-not-exist"}
+{"code":"processor_not_found","error":"Processor not found","processor":"does-not-exist"}

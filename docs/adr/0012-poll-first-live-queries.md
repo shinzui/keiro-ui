@@ -5,7 +5,7 @@ description: Every live screen reads through useSurfaceQuery, which polls at the
 docId: ADR-12
 status: Accepted
 date: 2026-10-21
-timestamp: 2026-10-21T23:00:00Z
+timestamp: 2026-11-04T22:00:00Z
 generated:
   by: claude-code/claude-opus-5-5
   at: 2026-10-21T23:00:00Z
@@ -36,5 +36,8 @@ a read. Without one rule per screen, each screen would decide when to trust a fr
 ## Consequences
 
 - A screen is correct with its feed off; the feed only shortens the time to show a change.
+- For the same reason a broken feed is invisible on screen. A test of feed behaviour must watch the
+  socket or the frames, not the page: kiroku's origin refusal and keiro's `view_retiring` both went
+  unnoticed behind working polling.
 - Screens state their freshness (an "as of" from the page's `observed_at` or the fetch time)
   and their mode ("live", "polling", "paused") from the feed hook's status.

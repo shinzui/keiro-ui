@@ -161,12 +161,12 @@ describe changes those plans first.
 
 ## Progress
 
-EP-22 is Complete: the stack runs the current checkouts, fixtures are recorded from it, and its producer/consumer check
-against keiro `9da47eb7` changed none of the sibling plans' shapes. EP-23 and EP-24 are Complete. EP-25 is ready.
+All four children are Complete against keiro `9da47eb7`.
 
 Integration gate, outside any single child: with all children complete, `cd apps/console && bunx playwright test
 --config playwright.live.config.ts` passes against the stack with `/aggregates`, `/process-managers`, and
-`/projections/<group>` all showing live data and none reporting "not mounted".
+`/projections/<group>` all showing live data and none reporting "not mounted". Passed on 2026-11-04 with
+`KEIRO_UI_LIVE=1`, which the read-only tests require: 5 passed, and the 2 mutating tests skipped by design.
 
 
 ## Surprises & Discoveries
@@ -193,6 +193,10 @@ Integration gate, outside any single child: with all children complete, `cd apps
 - 2026-11-04: Fixtures need freshly seeded databases: `jitsurei-all` appends and the simulator ages `pgmq_dev`. A later
   reseed follows `dev/README.md` "Re-recording fixtures". The live managed group is fed by
   `jitsurei-order-audit-subscription`, which has no checkpoints in the seed, so its live position shows no members.
+
+- 2026-11-04: `useSurfaceQuery` refetched disabled queries on Resume, because TanStack's `refetch` ignores `enabled`.
+  EP-25 found it because its read must not happen unasked, and fixed it in `packages/client-core/src/live.ts`. Every other
+  `enabled`-gated read benefits.
 
 
 ## Decision Log
@@ -228,4 +232,21 @@ Integration gate, outside any single child: with all children complete, `cd apps
 
 ## Outcomes & Retrospective
 
-(To be filled during and after implementation.)
+Complete on 2026-11-04. The console uses what shipped: `/process-managers` lists mounted managers with no typing,
+`/projections/<group>` shows the subscription keiro names, and an aggregate page shows registers and, on an explicit press,
+what its snapshot holds. The stack runs the current checkouts on a host that mounts hooks, so these screens are proven against
+real servers. Final evidence: `bun run check`; `bun run test` (656 passed, 13 skipped); the client's live tests (48);
+`bun run test:e2e` (57); `bun run test:e2e:multi-app` (9); `CONSOLE_PORT=8088 bun run test:e2e:production` (11); and the live
+Playwright config (5 passed, 2 mutating skipped by design). No mutation was added, and no console version was released.
+
+The decomposition held. EP-22's producer/consumer check ran before any feature and changed none of their shapes, and the three
+features touched only additive lines in the shared client files. The audit repaid its cost: the deployment guide's false claim
+and the unretried `view_retiring` were both invisible behind polling, which is now recorded in
+[ADR-12](../adr/0012-poll-first-live-queries.md). [ADR-13](../adr/0013-honest-gates.md) gained the rule that absence is never a
+negative fact, and [ADR-7](../adr/0007-read-only-first-with-owning-repository-gates.md) gained opt-in reads and lost its claim
+of a redaction seam that does not exist.
+
+Still open, by decision: `mori://shinzui/keiro/okf/improvement-requests/concepts/IR-58` and
+`mori://shinzui/keiro/okf/improvement-requests/concepts/IR-59` have no routes, so they have no child plans. A deployment-wide
+payload policy remains undecided. `feeding_subscriptions` is unreleased upstream, so a rename before release would cost one schema
+key and a re-record. No friction recurred across children; FRIC-7 is accepted and FRIC-8 resolved, both under EP-22.

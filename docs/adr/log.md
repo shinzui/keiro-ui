@@ -1,6 +1,7 @@
 # Bundle Update Log
 
 ## 2026-11-04
+* **Update**: ADR-12 records that polling hides feed failures, so feed behaviour is tested at the socket.
 * **Update**: ADR-7 adds opt-in reads for data the display may withhold, and corrects item 4: the redaction seam does not yet exist.
 * **Update**: ADR-13 adds that an absent field or refused route from an older host is a missing capability, never an empty or negative fact.
 

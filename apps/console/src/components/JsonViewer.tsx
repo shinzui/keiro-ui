@@ -30,6 +30,13 @@ function Scalar({ value }: { value: unknown }) {
   return <span>{String(value)}</span>
 }
 
+/** One value in a table cell: a scalar as the tree shows it, a container as compact JSON. */
+export function JsonValue({ value }: { value: unknown }) {
+  if (typeof value === "object" && value !== null)
+    return <code className="font-mono text-xs">{toJsonText(value, 0)}</code>
+  return <Scalar value={value} />
+}
+
 function Node({ name, value, depth }: { name?: string; value: unknown; depth: number }) {
   const container = typeof value === "object" && value !== null
   const [open, setOpen] = useState(depth < 2)

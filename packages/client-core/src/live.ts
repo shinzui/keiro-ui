@@ -128,10 +128,11 @@ export function useSurfaceQuery<TData, TError = ApiError>(
   const { surface, poll, queryFn, ...rest } = options
   const available = useSurfaceAvailable(surface)
   const { paused, measure, refetchInterval } = usePollInterval(surface, poll)
+  const enabled = available ? rest.enabled : false
   const result = useQuery<TData, TError>({
     retry: surfaceRetry,
     ...rest,
-    enabled: available ? rest.enabled : false,
+    enabled,
     queryFn:
       typeof queryFn === "function"
         ? (context) =>
@@ -144,10 +145,11 @@ export function useSurfaceQuery<TData, TError = ApiError>(
   const { refetch } = result
   useEffect(() => {
     // Resume refetches immediately; cancelRefetch false joins the fetch resume() already
-    // started through refreshAll, so the query fetches exactly once.
-    if (wasPaused.current && !paused) void refetch({ cancelRefetch: false })
+    // started through refreshAll, so the query fetches exactly once. refetch ignores `enabled`, so
+    // a disabled query is skipped here or resuming would read what the caller is withholding.
+    if (wasPaused.current && !paused && enabled !== false) void refetch({ cancelRefetch: false })
     wasPaused.current = paused
-  }, [paused, refetch])
+  }, [paused, refetch, enabled])
   return result
 }
 

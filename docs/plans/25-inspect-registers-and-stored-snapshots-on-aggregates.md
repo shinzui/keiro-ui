@@ -10,6 +10,12 @@ provenance:
     model: "claude-opus-5-5"
     harness: "claude-code"
     at: 2026-11-05T01:05:55Z
+  revisions:
+    - model: "claude-opus-5-5"
+      harness: "claude-code"
+      at: 2026-11-05T03:35:49Z
+      mode: "implement"
+      note: "Register table, stored snapshot read, comparison, and ADR-7 rule implemented"
 ---
 
 # Inspect registers and stored snapshots on aggregates
@@ -39,10 +45,10 @@ in the register table, and the stored snapshot shows the same values at stream v
 
 ## Progress
 
-- [ ] M1: `keiro.snapshots.show({ stream })` parses `snapshot-show-credit-limit.json` and
+- [x] M1 (2026-11-04): `keiro.snapshots.show({ stream })` parses `snapshot-show-credit-limit.json` and
   `snapshot-show-missing.json` (to `null`), and `/aggregates/credit-limit/<id>` shows a register table for
   that aggregate and none for an `order`, proven by `aggregates.test.tsx`.
-- [ ] M2: **Read stored snapshot** makes no request until pressed, then shows contents, a comparison, and
+- [x] M2 (2026-11-04): **Read stored snapshot** makes no request until pressed, then shows contents, a comparison, and
   the raw-data warning, proven by component tests, Playwright, and the live stack. Docs and
   [ADR-7](../adr/0007-read-only-first-with-owning-repository-gates.md) are updated.
 
@@ -53,6 +59,16 @@ in the register table, and the stored snapshot shows the same values at stream v
   no such code exists: `grep -rniE 'redact|reveal'` over `apps/console/src`, `packages/client-core/src`,
   and `packages/ui/src` finds nothing, and event and queue payloads render directly. This plan does not
   build that seam (see Decision Log); the parent MasterPlan records the gap.
+
+
+- 2026-11-04: `useSurfaceQuery` refetched on Resume even for a disabled query, because TanStack's `refetch` ignores
+  `enabled`. Pressing Resume anywhere on an aggregate page would have read the raw stored snapshot without the press this
+  plan requires, and every other `enabled`-gated read had the same flaw. Fixed in
+  `packages/client-core/src/live.ts`, with a test in `packages/client-core/test/live.test.tsx` that fails without the fix.
+
+- 2026-11-04: Stored bodies also carry `observed_at` and `age_seconds`; they pass through the schema's `.passthrough()`
+  and are not displayed, because `updated_at` and the health card already answer the question. "Refresh all" and Resume
+  re-read an already pressed card, since those are explicit operator actions on data already on screen.
 
 
 ## Decision Log
@@ -83,7 +99,12 @@ in the register table, and the stored snapshot shows the same values at stream v
 
 ## Outcomes & Retrospective
 
-(To be filled during and after implementation.)
+Complete on 2026-11-04. A `credit-limit` aggregate shows `balance` 25 and `active` false in a Registers table, with the JSON
+viewer kept as the authority. **Read stored snapshot** makes no request until pressed, then shows the stored row and a
+comparison headed by both versions, with changes marked in words and never presented as an error. An incident shows no
+table, and its stored read says there is none. Values above 2^53 keep every digit. Proven by component tests,
+`apps/console/e2e/aggregates/aggregates.spec.ts`, and the live config. [ADR-7](../adr/0007-read-only-first-with-owning-repository-gates.md)
+records the opt-in rule and no longer claims a redaction seam that does not exist. No friction was recorded under this plan.
 
 
 ## Context and Orientation

@@ -5,6 +5,7 @@ description: The console ships without mutations; every mutation it ever offers 
 docId: ADR-7
 status: Accepted
 date: 2026-08-19
+timestamp: 2026-11-04T21:00:00Z
 generated:
   by: human:nadeem
   at: 2026-08-19T00:00:00Z
@@ -45,9 +46,14 @@ The console's first release is read-only. Thereafter:
    irreversibility, explicit reset-point choice, live progress.
 3. Destructive bulk operations are deferred until they can be first-class jobs with
    pre-flight impact estimates and progress, never fire-and-forget buttons.
-4. Payload visibility is an axis independent of action rights: the client packages carry
-   redaction/opt-in hooks at the render boundary, so a deployment can grant triage access
-   without payload plaintext.
+4. Payload visibility is an axis independent of action rights, so that a deployment can one day
+   grant triage access without payload plaintext. The redaction seam at the render boundary this
+   item originally described does not yet exist: event and queue payloads render directly, and a
+   deployment-wide payload policy is an open decision that would have to cover all of them.
+5. A read that returns data the application's own display may withhold, and that has no server-side
+   gate to render, is opt-in per read. keiro's `/snapshot/show` returns raw persistence JSON
+   independently of the display callback, so the console reads it only on an explicit press, never
+   polls it, and says what it may contain.
 
 Who may act is the deployment's concern, per the conventions' recorded auth posture (trusted
 network or authenticating reverse proxy); the console adds no authentication of its own.
@@ -57,7 +63,7 @@ network or authenticating reverse proxy); the console adds no authentication of 
 The console is safe to point at production from day one, and stays exactly as dangerous as
 the surfaces it fronts — no more. Mutation features land at the pace of the owning
 repositories' gated endpoints, which is slower than a UI-side shortcut and deliberately so.
-The redaction hooks cost a little client complexity before anyone demands them; retrofitting
+A redaction seam costs a little client complexity before anyone demands it; retrofitting
 payload privacy after payloads are rendered everywhere is the expensive order, so the seam is
 built first. If per-action authorization ever lands in the surfaces, the resolver-style seam
 extends this decision rather than replacing it.

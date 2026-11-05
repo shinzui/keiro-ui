@@ -16,7 +16,7 @@ test("kind → instance → browser with both panes, and the split survives a re
   await expect(page.getByRole("region", { name: "Folded state" })).toContainText(
     "full replay: snapshot_missed",
   )
-  await expect(page.getByRole("region", { name: "Snapshot" })).toContainText("absent")
+  await expect(page.getByRole("region", { name: "Snapshot", exact: true })).toContainText("absent")
 
   const left = page.getByRole("region", { name: "Stream events" })
   const handle = page.locator('[data-slot="resizable-handle"]')
@@ -34,4 +34,29 @@ test("kind → instance → browser with both panes, and the split survives a re
 
   await left.getByRole("row", { name: /OrderPlaced/ }).click()
   await expect(page).toHaveURL(/sheet=event%3A/)
+})
+
+test("registers show as a table, and the stored snapshot is read only when pressed", async ({
+  page,
+}) => {
+  const reads: string[] = []
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname.endsWith("/snapshot/show")) reads.push(request.url())
+  })
+  await open(page, "/aggregates/credit-limit")
+  const keiro = await pins(page, "keiro")
+  await page.getByRole("link", { name: keiro.register_aggregate_id!, exact: true }).click()
+  const registers = page.getByRole("region", { name: "Registers" })
+  await expect(registers.getByTestId("register-balance")).toHaveText("25")
+  await expect(registers.getByTestId("register-active")).toHaveText("false")
+  expect(reads).toEqual([])
+
+  const card = page.getByRole("region", { name: "Stored snapshot" })
+  await expect(card).toContainText("can include fields this application's display omits")
+  await card.getByRole("button", { name: "Read stored snapshot" }).click()
+  await expect(card.getByTestId("comparison-versions")).toHaveText(
+    "current at state version 1, stored at stream version 1",
+  )
+  await expect(card.getByTestId("difference-balance")).toHaveText("")
+  await expect(card.getByRole("button", { name: "Read again" })).toBeVisible()
 })

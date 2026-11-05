@@ -7,10 +7,14 @@ import { PositionBadge } from "@/components/PositionBadge"
 import { links } from "@/lib/links"
 
 import { HydrationBadge } from "../shared/HydrationBadge"
+import { registersOf } from "./registers"
+import { RegistersTable } from "./RegistersTable"
 import { SnapshotCard } from "./SnapshotCard"
+import { StoredSnapshotCard } from "./StoredSnapshotCard"
 
 /** The folded state keiro rebuilt, how it was rebuilt, and the snapshot's health. */
 export function FoldedStatePane({ view }: { view: AggregateView }) {
+  const registers = registersOf(view.state)
   return (
     <section aria-label="Folded state" className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2">
@@ -49,8 +53,15 @@ export function FoldedStatePane({ view }: { view: AggregateView }) {
           </>
         )}
       </dl>
+      {registers && <RegistersTable registers={registers} />}
       <JsonViewer label="State" value={view.state} />
       <SnapshotCard snapshot={view.snapshot} />
+      <StoredSnapshotCard
+        key={view.stream_name}
+        stream={view.stream_name}
+        currentState={view.state}
+        stateVersion={view.state_version}
+      />
     </section>
   )
 }

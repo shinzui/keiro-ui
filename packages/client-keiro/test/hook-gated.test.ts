@@ -51,6 +51,14 @@ test("the process-manager catalog, where unknown timers stay null rather than fa
   expect(row?.timers_configured).toBeNull()
 })
 
+test("a stored snapshot parses with exact versions; a missing one is null", async () => {
+  const stored = await keiro.snapshots.show({ stream: pin.register_stream! })
+  expect(stored?.stream).toBe(pin.register_stream)
+  expect(typeof stored?.stream_version).toBe("bigint")
+  expect(stored?.state).toMatchObject({ registers: { active: false, balance: 25 } })
+  expect(await keiro.snapshots.show({ stream: "order-missing" })).toBeNull()
+})
+
 test("a catalog refused by a host without hooks is RouteUnavailable", async () => {
   useScenario({ fail: { keiro: ["pm-types"] } })
   const error = await keiro.processManagers.types().catch((e: unknown) => e)

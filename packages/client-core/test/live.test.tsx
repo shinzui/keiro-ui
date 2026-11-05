@@ -84,6 +84,25 @@ describe("useSurfaceQuery", () => {
     expect(queryFn.mock.calls.length).toBe(atPause + 1)
   })
 
+  test("resuming does not read a query its caller has disabled", async () => {
+    const queryClient = new QueryClient()
+    const queryFn = vi.fn(async () => "value")
+    const { result } = renderHook(
+      () => {
+        const liveness = useLiveness()
+        useSurfaceQuery({ surface: "keiro", queryKey: ["keiro", "held"], queryFn, enabled: false })
+        return liveness
+      },
+      { wrapper: wrapper(queryClient) },
+    )
+    act(() => result.current.pause())
+    act(() => result.current.resume())
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10)
+    })
+    expect(queryFn).not.toHaveBeenCalled()
+  })
+
   test("a slow fetch stretches the next interval to the clamp", async () => {
     const queryClient = new QueryClient()
     const queryFn = vi.fn(

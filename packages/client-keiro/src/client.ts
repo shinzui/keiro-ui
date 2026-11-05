@@ -29,6 +29,7 @@ import {
   ProcessManagerDetail,
   ProcessManagerListPage,
   ProcessManagerTypes,
+  StoredSnapshot,
   ProjectionPosition,
   ProjectionStatusPage,
   ShardList,
@@ -263,6 +264,11 @@ export function createKeiroClient(options: {
         read(AggregateDetail, ["aggregate", "show"], [], query, signal),
       snapshot: (query: { name: string; id: string }, signal?: AbortSignal) =>
         read(AggregateSnapshot, ["aggregate", "snapshot"], [], query, signal),
+    },
+    /** Raw stored rows; resolves to null when the stream or its snapshot is missing. */
+    snapshots: {
+      show: (query: { stream: string }, signal?: AbortSignal) =>
+        read(StoredSnapshot.nullable(), ["snapshot", "show"], [], query, signal),
     },
     /** Hook-gated, like `aggregates`. `show` resolves to null for an unknown correlation id. */
     processManagers: {

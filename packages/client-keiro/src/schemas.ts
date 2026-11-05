@@ -314,6 +314,26 @@ export const ProcessManagerTypes = z.object({ items: z.array(ProcessManagerType)
 export type ProcessManagerType = z.output<typeof ProcessManagerType>
 export type ProcessManagerTypes = z.output<typeof ProcessManagerTypes>
 
+/**
+ * `/snapshot/show`: the stored row, whose `state` is raw persistence JSON independent of the
+ * application's display callback. Its version belongs to the cached fold and may be older than the
+ * head. Not hook-gated; the client models a missing stream or snapshot's JSON `null` separately.
+ */
+export const StoredSnapshot = z
+  .object({
+    stream: z.string(),
+    stream_version: int64(),
+    state: z.unknown(),
+    state_codec_version: z.number(),
+    regfile_shape_hash: z.string().nullable(),
+    state_shape_hash: z.string().nullable(),
+    state_bytes: z.number(),
+    created_at: timestamp,
+    updated_at: timestamp,
+  })
+  .passthrough()
+export type StoredSnapshot = z.output<typeof StoredSnapshot>
+
 export const AggregateSummary = z
   .object({
     aggregate_id: z.string(),

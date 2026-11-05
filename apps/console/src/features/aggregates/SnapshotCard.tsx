@@ -6,7 +6,7 @@ import type { ReactNode } from "react"
 import { Timestamp } from "@/components/timestamp"
 import { formatDuration } from "@/lib/format"
 
-function Hash({ value }: { value: string }) {
+export function Hash({ value }: { value: string }) {
   return (
     <button
       type="button"

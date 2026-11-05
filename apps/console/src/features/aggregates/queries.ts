@@ -65,6 +65,23 @@ export function useAggregateSnapshot(type: string, id: string) {
   })
 }
 
+/** Only on an explicit press: raw persisted data, read once per press and never refreshed by itself. */
+export function useStoredSnapshot(stream: string, enabled: boolean) {
+  const keiro = useKeiroClient()
+  return useSurfaceQuery({
+    surface: "keiro",
+    queryKey: keiroKeys.snapshots.show(stream),
+    queryFn: ({ signal }) => keiro.snapshots.show({ stream }, signal),
+    enabled,
+    poll: false,
+    // Mounted or refocused after a press is not another press.
+    gcTime: 0,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: false,
+  })
+}
+
 /**
  * The aggregate's stream from kiroku, one page per cursor; disabled until the aggregate view
  * names the stream (the show query gates this one).

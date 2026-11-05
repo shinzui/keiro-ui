@@ -46,6 +46,9 @@ export const keiroKeys = {
     show: (name: string, id: string) => k("aggregates", "show", name, id),
     snapshot: (name: string, id: string) => k("aggregates", "snapshot", name, id),
   },
+  snapshots: {
+    show: (stream: string) => k("snapshots", "show", stream),
+  },
   processManagers: {
     types: () => k("process-managers", "types"),
     list: (name: string, query: Filters = {}) => k("process-managers", "list", name, query),

@@ -32,6 +32,10 @@ Notes on what each section shows when a server cannot answer fully:
 - **Aggregates** and **Process managers** need a keiro host that mounts its inspection hooks.
   Without them the page says "… inspection is not mounted on this keiro host" and names the
   probed path, instead of showing an error.
+- **Aggregates**: an instance shows its registers when the state has them. **Read stored snapshot**
+  shows what the snapshot holds beside current values. It is raw persisted data that can include fields
+  the application's display omits, so it is read only when pressed and never refreshed by itself. Stored
+  values are a cache and can be older; a difference is not an error.
 - **Process managers**: the index lists what the host mounts, with each manager's category,
   snapshot configuration, and whether it has timers (`unknown` when keiro cannot say). A host that
   refuses that list, because it has no hooks or predates keiro 0.22, offers the names configured on

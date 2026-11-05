@@ -1,7 +1,7 @@
 ---
 title: Aggregate inspection
 type: Capability
-description: Browse the aggregate kinds a keiro host registers and open an instance as its raw events beside the state keiro folded from them.
+description: Browse the aggregate kinds a keiro host registers and open an instance as its raw events beside the state keiro folded from them, its registers, and on request what its stored snapshot holds.
 generated:
   by: claude-code/claude-opus-5-5
   at: "2026-10-21T23:45:00Z"
@@ -45,6 +45,11 @@ the other the state keiro folded from them, how it was hydrated, and the snapsho
 
 ## Limits
 
+- The Registers table appears only when the state has a non-empty `registers` object, the shape of
+  keiro's default snapshot codec. A custom codec's state stays in the JSON viewer. Field types are not assumed.
+- The stored snapshot is raw persisted JSON, which can include fields the application's display omits.
+  It is read only when an operator presses **Read stored snapshot**, never polled, and appears only
+  on the aggregate page. It is advisory and can be older than current values; a difference is not an error.
 - Works only on a keiro host that mounts its aggregate inspection hooks. Many hosts do not
   (the mori dev profile is one); the page then names the probed path and says the inspection
   is not mounted.

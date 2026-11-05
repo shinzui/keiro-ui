@@ -1,6 +1,7 @@
 # Bundle Update Log
 
 ## 2026-11-04
+* **Update**: CAP-6 shows registers, and on an explicit press a stored snapshot's contents compared with current values.
 * **Update**: Projection monitoring names each group's feeding subscriptions from keiro, keeping the chooser for hosts that do not report them.
 * **Update**: CAP-7 lists mounted process managers from keiro's catalog, keeping the name form for hosts that refuse it.
 

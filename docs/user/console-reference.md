@@ -32,8 +32,10 @@ Notes on what each section shows when a server cannot answer fully:
 - **Aggregates** and **Process managers** need a keiro host that mounts its inspection hooks.
   Without them the page says "… inspection is not mounted on this keiro host" and names the
   probed path, instead of showing an error.
-- **Process managers** have no discovery read in keiro. The index offers the names configured
-  on the active connection profile, the ones opened recently, or a typed name.
+- **Process managers**: the index lists what the host mounts, with each manager's category,
+  snapshot configuration, and whether it has timers (`unknown` when keiro cannot say). A host that
+  refuses that list, because it has no hooks or predates keiro 0.22, offers the names configured on
+  the active connection profile, the ones opened recently, or a typed name.
 - **Streams**: a single-stream read does not report global positions, so those rows say "not
   reported"; the event's own page has the real position.
 - **Projections**: keiro does not say which subscription feeds a projection group, so a group
@@ -95,7 +97,7 @@ the same catalog; a local target missing in another browser shows unavailable.
 | `surfaces` | Optional `keiro`, `kiroku`, `pgmq`, `shibuya` HTTP(S) base URLs, with paths allowed. Root-relative paths use the page origin. |
 | `workers` | Named entries with `id`, `label`, `shibuyaBaseUrl`; mutually exclusive with a direct Shibuya URL. |
 | `defaultWorkerId` | Worker to choose when a URL does not specify one. Multiple workers without a default require selection. |
-| `processManagerNames` | Configured names offered by the process-manager index. |
+| `processManagerNames` | Names offered by the process-manager index on a host that cannot list its managers. |
 | `deadLetterQueueSuffix` | Dead-letter name suffix, default `_dlq`. |
 
 The built-in Same origin target retains `/kiroku`, `/shibuya`, `/pgmq`, `/keiro` only when no

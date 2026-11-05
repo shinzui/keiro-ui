@@ -9,19 +9,19 @@ test.skip(
   "set KEIRO_UI_LIVE=1 with the stack and `bun run dev` running",
 )
 
-const lists: [path: string, ready: string][] = [
-  ["/streams", "grid"],
-  ["/categories", "grid"],
-  ["/events", "grid"],
-  ["/subscriptions", "grid"],
-  ["/queues", "grid"],
-  ["/processors", "grid"],
-  ["/workflows", "grid"],
-  ["/process-managers", "form"],
-  ["/timers", "grid"],
-  ["/aggregates", "grid"],
-  ["/projections", "grid"],
-  ["/shards", "grid"],
+const lists: string[] = [
+  "/streams",
+  "/categories",
+  "/events",
+  "/subscriptions",
+  "/queues",
+  "/processors",
+  "/workflows",
+  "/process-managers",
+  "/timers",
+  "/aggregates",
+  "/projections",
+  "/shards",
 ]
 
 test("every section renders against the live stack", async ({ page }) => {
@@ -35,17 +35,13 @@ test("every section renders against the live stack", async ({ page }) => {
   }
   await expect(page.getByTestId("card-queues-headline")).not.toHaveText("…")
 
-  for (const [path, ready] of lists) {
+  for (const path of lists) {
     await page.goto(path)
     const main = page.getByRole("main")
-    if (ready === "form") {
-      await expect(main.getByRole("form").first()).toBeVisible()
-    } else {
-      const grid = main.getByRole("grid").first()
-      await expect(grid).toBeVisible()
-      // At least one data row, or the table's own empty state; never a stuck "Loading…".
-      await expect(grid).not.toContainText("Loading…", { timeout: 15_000 })
-    }
+    const grid = main.getByRole("grid").first()
+    await expect(grid).toBeVisible()
+    // At least one data row, or the table's own empty state; never a stuck "Loading…".
+    await expect(grid).not.toContainText("Loading…", { timeout: 15_000 })
   }
   expect(errors).toEqual([])
 })
@@ -58,7 +54,19 @@ test("the stack's keiro host mounts aggregates and process managers", async ({ p
   }
   await expect(main.getByTestId("not-mounted")).toHaveCount(0)
 
-  await page.goto("/process-managers/jitsurei-fulfillment")
+  let catalogReads = 0
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname.endsWith("/pm/types")) catalogReads += 1
+  })
+  await page.goto("/process-managers")
+  await expect(main.getByTestId("timers-jitsurei-fulfillment")).toHaveText("unknown")
+  await expect(main.getByRole("textbox", { name: "Process manager name" })).toHaveCount(0)
+  // Longer than keiro's 5 s poll: the catalog is not re-read. The dev server's StrictMode can read
+  // it twice at mount, so this compares counts rather than expecting one.
+  const atMount = catalogReads
+  await page.waitForTimeout(6_000)
+  expect(catalogReads).toBe(atMount)
+  await main.getByRole("link", { name: "jitsurei-fulfillment", exact: true }).click()
   await expect(main.getByRole("link", { name: /^demo-/ }).first()).toBeVisible()
   await expect(main.getByTestId("not-mounted")).toHaveCount(0)
 })

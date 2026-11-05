@@ -99,9 +99,9 @@ routes follow its command grammar.
 | # | Title | Path | Hard Deps | Soft Deps | Status |
 |---|-------|------|-----------|-----------|--------|
 | 22 | Align the console stack and fixtures with the current runtime cohort | docs/plans/22-align-the-console-stack-and-fixtures-with-the-current-runtime-cohort.md | None | None | Complete |
-| 23 | List mounted process managers from the ops catalog | docs/plans/23-list-mounted-process-managers-from-the-ops-catalog.md | EP-22 | None | Not Started |
-| 24 | Show feeding subscriptions on projection groups | docs/plans/24-show-feeding-subscriptions-on-projection-groups.md | EP-22 | None | Not Started |
-| 25 | Inspect registers and stored snapshots on aggregates | docs/plans/25-inspect-registers-and-stored-snapshots-on-aggregates.md | EP-22 | None | Not Started |
+| 23 | List mounted process managers from the ops catalog | docs/plans/23-list-mounted-process-managers-from-the-ops-catalog.md | EP-22 | None | Complete |
+| 24 | Show feeding subscriptions on projection groups | docs/plans/24-show-feeding-subscriptions-on-projection-groups.md | EP-22 | None | Complete |
+| 25 | Inspect registers and stored snapshots on aggregates | docs/plans/25-inspect-registers-and-stored-snapshots-on-aggregates.md | EP-22 | None | Complete |
 
 Status values: Not Started, In Progress, Complete, Cancelled.
 Rows use each child's repository plan number, so EP-22 means `docs/plans/22-...`.
@@ -162,7 +162,7 @@ describe changes those plans first.
 ## Progress
 
 EP-22 is Complete: the stack runs the current checkouts, fixtures are recorded from it, and its producer/consumer check
-against keiro `9da47eb7` changed none of the sibling plans' shapes. EP-23, EP-24, and EP-25 are ready.
+against keiro `9da47eb7` changed none of the sibling plans' shapes. EP-23 is Complete. EP-24 and EP-25 are ready.
 
 Integration gate, outside any single child: with all children complete, `cd apps/console && bunx playwright test
 --config playwright.live.config.ts` passes against the stack with `/aggregates`, `/process-managers`, and

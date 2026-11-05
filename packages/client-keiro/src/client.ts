@@ -28,6 +28,7 @@ import {
   OutboxRow,
   ProcessManagerDetail,
   ProcessManagerListPage,
+  ProcessManagerTypes,
   ProjectionPosition,
   ProjectionStatusPage,
   ShardList,
@@ -265,6 +266,7 @@ export function createKeiroClient(options: {
     },
     /** Hook-gated, like `aggregates`. `show` resolves to null for an unknown correlation id. */
     processManagers: {
+      types: (signal?: AbortSignal) => read(ProcessManagerTypes, ["pm", "types"], [], {}, signal),
       list: (
         query: { name: string; limit?: number; after?: ProcessManagerListCursor },
         signal?: AbortSignal,

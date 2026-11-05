@@ -1,4 +1,4 @@
-import { type MockServer, pins, startMockServer } from "@keiro-ui/testing/node"
+import { type MockServer, pins, startMockServer, useScenario } from "@keiro-ui/testing/node"
 import { fireEvent, screen, waitFor, within } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { afterAll, afterEach, beforeAll, expect, test } from "vitest"
@@ -111,11 +111,88 @@ test("truncated provenance says so", async () => {
   expect(await screen.findByText("provenance bounded; some entries omitted")).toBeInTheDocument()
 })
 
-test("the index never calls keiro and opens a typed name", async () => {
+function catalog(items: Record<string, unknown>[]) {
+  mock.use(http.get("*/keiro/pm/types", () => HttpResponse.json({ items })))
+}
+
+test("the index lists the catalog, and a row opens that manager", async () => {
   const { router } = await renderRoute("/process-managers")
-  const input = await screen.findByRole("textbox", { name: "Process manager name" })
+  const table = await screen.findByRole("grid", { name: "Process managers" })
+  const link = await within(table).findByRole("link", { name: process_manager! })
+  const row = link.closest("tr")!
+  expect(row).toHaveTextContent("fulfillment")
+  expect(row).toHaveTextContent("never")
+  expect(screen.queryByRole("textbox", { name: "Process manager name" })).not.toBeInTheDocument()
+  fireEvent.click(link)
+  await waitFor(() =>
+    expect(router.state.location.pathname).toBe(`/process-managers/${process_manager}`),
+  )
+})
+
+test("timers read yes, no, or unknown; null is never no", async () => {
+  const row = { category: "c", snapshots_configured: false, snapshot_policy: "never" }
+  catalog([
+    { ...row, name: "with", timers_configured: true },
+    { ...row, name: "without", timers_configured: false },
+    { ...row, name: "unsure", timers_configured: null },
+  ])
+  await renderRoute("/process-managers")
+  expect(await screen.findByTestId("timers-with")).toHaveTextContent(/^yes$/)
+  expect(screen.getByTestId("timers-without")).toHaveTextContent(/^no$/)
+  expect(screen.getByTestId("timers-unsure")).toHaveTextContent(/^unknown$/)
+})
+
+test("an empty catalog says so rather than offering a form", async () => {
+  catalog([])
+  await renderRoute("/process-managers")
+  expect(await screen.findByText("This host mounts no process managers.")).toBeInTheDocument()
+  expect(screen.queryByRole("textbox", { name: "Process manager name" })).not.toBeInTheDocument()
+})
+
+test("a host that refuses the catalog keeps the form, without guessing why", async () => {
+  useScenario({ fail: { keiro: ["pm-types"] } })
+  const { router } = await renderRoute("/process-managers")
+  const note = await screen.findByTestId("catalog-unavailable")
+  expect(note).toHaveTextContent("does not list its process managers")
+  expect(note).not.toHaveTextContent(/mounted|version|upgrade/i)
+  const input = screen.getByRole("textbox", { name: "Process manager name" })
   fireEvent.change(input, { target: { value: "shipping" } })
   fireEvent.submit(screen.getByRole("form", { name: "Open a process manager" }))
   await waitFor(() => expect(router.state.location.pathname).toBe("/process-managers/shipping"))
   expect(currentSearch(router)).toEqual({ target: "same-origin" })
+})
+
+test("any other failure shows its message, not the form", async () => {
+  mock.use(
+    http.get("*/keiro/pm/types", () =>
+      HttpResponse.json(
+        { error: { code: "command_failed", message: "catalog read failed" } },
+        { status: 422 },
+      ),
+    ),
+  )
+  await renderRoute("/process-managers")
+  expect(await screen.findByText(/catalog read failed/)).toBeInTheDocument()
+  expect(screen.queryByRole("textbox", { name: "Process manager name" })).not.toBeInTheDocument()
+})
+
+test("a name absent from the catalog still goes to the server, which answers for it", async () => {
+  const paths: string[] = []
+  mock.use(
+    http.get("*/keiro/pm/types", ({ request }) => {
+      paths.push(new URL(request.url).pathname)
+      return HttpResponse.json({ items: [] })
+    }),
+    http.get("*/keiro/pm/list", ({ request }) => {
+      paths.push(new URL(request.url).search)
+      return HttpResponse.json(
+        { error: { code: "command_failed", message: "unknown process manager" } },
+        { status: 422 },
+      )
+    }),
+  )
+  await renderRoute("/process-managers/not-in-the-catalog")
+  expect(await screen.findByText(/unknown process manager/)).toBeInTheDocument()
+  expect(paths.some((path) => path.includes("name=not-in-the-catalog"))).toBe(true)
+  expect(paths.some((path) => path.endsWith("/pm/types"))).toBe(false)
 })

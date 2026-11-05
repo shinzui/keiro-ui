@@ -134,7 +134,7 @@ function ProfileForm({
         </Field>
         <Field>
           <FieldLabel htmlFor={`${formId}-pm-names`}>Process manager names</FieldLabel>
-          {/* keiro exposes no list of mounted process managers; the index page offers these. */}
+          {/* The index page offers these only when a keiro host cannot list its managers. */}
           <Textarea
             id={`${formId}-pm-names`}
             placeholder="One name per line"

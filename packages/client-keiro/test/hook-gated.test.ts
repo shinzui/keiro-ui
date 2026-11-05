@@ -1,4 +1,4 @@
-import { type MockServer, pins, startMockServer } from "@keiro-ui/testing/node"
+import { type MockServer, pins, startMockServer, useScenario } from "@keiro-ui/testing/node"
 import { afterAll, afterEach, beforeAll, expect, test } from "vitest"
 
 import { createKeiroClient, isRouteUnavailable, RouteUnavailable } from "../src"
@@ -42,6 +42,19 @@ test("process managers, and null for an unknown correlation", async () => {
   expect(
     await keiro.processManagers.show({ name: pin.process_manager!, correlation: "missing" }),
   ).toBeNull()
+})
+
+test("the process-manager catalog, where unknown timers stay null rather than false", async () => {
+  const types = await keiro.processManagers.types()
+  const row = types.items.find((t) => t.name === pin.process_manager)
+  expect(row).toMatchObject({ category: "fulfillment", snapshot_policy: "never" })
+  expect(row?.timers_configured).toBeNull()
+})
+
+test("a catalog refused by a host without hooks is RouteUnavailable", async () => {
+  useScenario({ fail: { keiro: ["pm-types"] } })
+  const error = await keiro.processManagers.types().catch((e: unknown) => e)
+  expect(isRouteUnavailable(error)).toBe(true)
 })
 
 test("a host without hooks answers 400 invalid_request, surfaced as RouteUnavailable", async () => {

@@ -10,6 +10,12 @@ provenance:
     model: "claude-opus-5-5"
     harness: "claude-code"
     at: 2026-11-05T01:05:55Z
+  revisions:
+    - model: "claude-opus-5-5"
+      harness: "claude-code"
+      at: 2026-11-05T03:29:35Z
+      mode: "implement"
+      note: "Catalog read, page, fallback, and docs implemented"
 ---
 
 # List mounted process managers from the ops catalog
@@ -37,16 +43,18 @@ that has not upgraded.
 
 ## Progress
 
-- [ ] M1: `keiro.processManagers.types()` parses the recorded `keiro/pm-types.json`, and answers
+- [x] M1 (2026-11-04): `keiro.processManagers.types()` parses the recorded `keiro/pm-types.json`, and answers
   `RouteUnavailable` on a host without the route, proven in `packages/client-keiro/test/hook-gated.test.ts`.
-- [ ] M2: `/process-managers` renders the catalog, the empty catalog, the fallback form, and an unknown
+- [x] M2 (2026-11-04): `/process-managers` renders the catalog, the empty catalog, the fallback form, and an unknown
   `timers_configured` honestly, proven in `process-managers.test.tsx` and Playwright, and against the
   live stack. The user and capability docs describe it.
 
 
 ## Surprises & Discoveries
 
-(None yet.)
+- 2026-11-04: On the local stack `timers_configured` is `null` for `jitsurei-fulfillment`, so the seed itself shows
+  `unknown`. The Validation section's "requested once" is two reads at mount under the dev server's `StrictMode`,
+  matching `/aggregate/types`, and no more after that. The live test therefore asserts that the count does not grow.
 
 
 ## Decision Log
@@ -70,7 +78,10 @@ that has not upgraded.
 
 ## Outcomes & Retrospective
 
-(To be filled during and after implementation.)
+Complete on 2026-11-04. `/process-managers` lists what the host mounts with no typing and no configuration, each row
+opens that manager, and a host that refuses the catalog keeps the name form under a sentence that claims no cause.
+Evidence: 639 unit tests, 56 mock end-to-end tests, and the live config, which also asserts no polling of the catalog.
+No friction was recorded under this plan.
 
 
 ## Context and Orientation

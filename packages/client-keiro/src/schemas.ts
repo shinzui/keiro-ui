@@ -294,6 +294,21 @@ export const AggregateType = z
 export const AggregateTypes = z.object({ items: z.array(AggregateType) }).passthrough()
 export type AggregateType = z.output<typeof AggregateType>
 
+export const ProcessManagerType = z
+  .object({
+    name: z.string(),
+    category: z.string(),
+    snapshots_configured: z.boolean(),
+    /** "never", "every:N", "on_terminal", or "custom". */
+    snapshot_policy: z.string(),
+    /** null means keiro does not know, not that the manager has no timers. */
+    timers_configured: z.boolean().nullable(),
+  })
+  .passthrough()
+export const ProcessManagerTypes = z.object({ items: z.array(ProcessManagerType) }).passthrough()
+export type ProcessManagerType = z.output<typeof ProcessManagerType>
+export type ProcessManagerTypes = z.output<typeof ProcessManagerTypes>
+
 export const AggregateSummary = z
   .object({
     aggregate_id: z.string(),

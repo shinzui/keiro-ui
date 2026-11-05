@@ -10,6 +10,17 @@ import { useRecent } from "@/shell/recent"
 export const DEFAULT_LIMIT = 50
 export const DEFAULT_TIMER_LIMIT = 20
 
+/** The mounted managers. No polling: a catalog changes only when the host redeploys. */
+export function useProcessManagerTypes() {
+  const keiro = useKeiroClient()
+  return useSurfaceQuery({
+    surface: "keiro",
+    queryKey: keiroKeys.processManagers.types(),
+    queryFn: ({ signal }) => keiro.processManagers.types(signal),
+    poll: false,
+  })
+}
+
 export function useInstancePage(name: string, params: { after?: string; limit?: number }) {
   const keiro = useKeiroClient()
   const limit = params.limit ?? DEFAULT_LIMIT
@@ -38,8 +49,8 @@ export function useInstance(name: string, correlation: string, timerLimit: numbe
 const PM_PATH = /^\/process-managers\/([^/?#]+)/
 
 /**
- * Manager names to offer: the active profile's configured list, then names seen in recents.
- * keiro has no read listing mounted process managers, so nothing is ever discovered or guessed.
+ * Manager names to offer when the host cannot list its managers: the active profile's configured
+ * list, then names seen in recents. Nothing is guessed.
  */
 export function useKnownManagerNames(): { configured: string[]; recent: string[] } {
   const { active } = useConnectionProfiles()

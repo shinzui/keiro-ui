@@ -1,5 +1,5 @@
 import { useSurfaceAvailable, type Surface } from "@keiro-ui/client-core"
-import { isRouteUnavailable } from "@keiro-ui/client-keiro"
+import { isInspectionReadUnavailable, isRouteUnavailable } from "@keiro-ui/client-keiro"
 import { Card, CardContent, CardHeader, CardTitle } from "@keiro-ui/ui/components/card"
 import {
   Collapsible,
@@ -26,7 +26,6 @@ import {
   useStoreMetrics,
   useTimersCard,
   useWorkflowsCard,
-  WORKFLOW_SAMPLE,
 } from "./queries"
 import { useSampleHistory } from "./sample-history"
 import { StatCard } from "./stat-card"
@@ -76,27 +75,39 @@ function QueuesCard() {
 }
 
 function WorkflowsCard() {
-  const list = useWorkflowsCard()
-  const items = list.data?.items ?? []
-  const more = list.data?.nextCursor !== undefined
-  const count = (c: string) =>
-    `${items.filter((wf) => wf.status_class === c).length}${more ? "+" : ""}`
+  const query = useWorkflowsCard()
+  const data = query.data
+  const unavailable = isInspectionReadUnavailable(query.error, "workflow-counts")
   return (
     <StatCard
       title="Workflows"
       testId="card-workflows"
       to={links.workflows()}
-      headline={list.data ? count("running") : failed(list.error)}
+      headline={
+        data
+          ? formatInt(data.counts.running)
+          : unavailable
+            ? "Exact workflow counts unavailable on this host"
+            : failed(query.error)
+      }
       label="running"
       subtitle={
-        list.data &&
-        `${more ? `newest ${WORKFLOW_SAMPLE} instances: ` : ""}${STATUS_CLASSES.filter(
-          (c) => c !== "running",
-        )
-          .map((c) => `${c} ${count(c)}`)
-          .join(" · ")}`
+        <>
+          {data &&
+            STATUS_CLASSES.filter((c) => c !== "running")
+              .map((c) => `${c} ${formatInt(data.counts[c])}`)
+              .join(" · ")}
+          {query.error && (
+            <span role="status" className="block text-destructive">
+              {data && "Stale counts: "}
+              {unavailable
+                ? "Exact workflow counts unavailable on this host"
+                : `${query.error.code ?? "read_failed"}: ${query.error.message}`}
+            </span>
+          )}
+        </>
       }
-      observedAt={list.data?.observed_at ?? list.dataUpdatedAt}
+      observedAt={data?.observed_at}
     />
   )
 }

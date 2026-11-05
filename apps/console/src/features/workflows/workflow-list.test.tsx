@@ -1,21 +1,26 @@
+import { fixtureText } from "@keiro-ui/testing"
 import { feedScript, type MockServer, pins, startMockServer } from "@keiro-ui/testing/node"
 import { fireEvent, screen, waitFor, within } from "@testing-library/react"
+import { http, HttpResponse } from "msw"
 import { afterAll, afterEach, beforeAll, expect, test } from "vitest"
 
 import { currentSearch, renderRoute } from "@/test/render-route"
 
 let mock: MockServer
 const listRequests: URL[] = []
+const countRequests: URL[] = []
 beforeAll(() => {
   mock = startMockServer()
   mock.server.events.on("request:start", ({ request }) => {
     const url = new URL(request.url)
     if (url.pathname.endsWith("/wf/inspect/list")) listRequests.push(url)
+    if (url.pathname.endsWith("/wf/inspect/counts")) countRequests.push(url)
   })
 })
 afterEach(() => {
   mock.reset()
   listRequests.length = 0
+  countRequests.length = 0
 })
 afterAll(() => mock.close())
 
@@ -80,3 +85,69 @@ test("Next requests the server's cursor as `after`; Previous returns to page one
   fireEvent.click(screen.getByRole("button", { name: "Previous" }))
   await waitFor(() => expect(currentSearch(router).after).toBeUndefined())
 })
+
+test("totals are exact and only workflow name scopes the summary", async () => {
+  const body = JSON.parse(fixtureText("keiro/workflow-counts.json"))
+  body.counts.running = "9007199254740993"
+  mock.use(http.get("*/keiro/wf/inspect/counts", () => HttpResponse.json(body)))
+  const { router } = await renderRoute(
+    "/workflows?workflow_name=Order:Child&status_class=failed&created_since=2026-01-01&limit=10&ordering=created_desc",
+  )
+  const panel = await screen.findByRole("region", { name: "Workflow status totals" })
+  await waitFor(() =>
+    expect(
+      within(panel).getByTestId("workflow-count-running").textContent?.replace(/\s/g, ""),
+    ).toBe("9007199254740993"),
+  )
+  expect(panel).toHaveTextContent("Retained workflows named Order:Child")
+  expect(panel).toHaveTextContent(
+    "Status and time filters apply to the list below, not these totals.",
+  )
+  expect(countRequests.map((url) => [...url.searchParams])).toEqual([
+    [["workflow_name", "Order:Child"]],
+  ])
+  fireEvent.click(screen.getByRole("button", { name: "retrying" }))
+  await waitFor(() => expect(currentSearch(router).status_class).toContain("retrying"))
+  expect(countRequests).toHaveLength(1)
+  fireEvent.change(screen.getByRole("textbox", { name: "Workflow name" }), {
+    target: { value: "order:child" },
+  })
+  fireEvent.keyDown(screen.getByRole("textbox", { name: "Workflow name" }), { key: "Enter" })
+  await waitFor(() =>
+    expect(countRequests.at(-1)?.searchParams.get("workflow_name")).toBe("order:child"),
+  )
+})
+
+test.each(["unavailable", "inspection_timeout"])(
+  "%s counts leave list paging usable",
+  async (kind) => {
+    mock.use(
+      http.get("*/keiro/wf/inspect/counts", () =>
+        HttpResponse.json(
+          {
+            error: {
+              code: kind === "unavailable" ? "invalid_request" : kind,
+              message: "count read refused",
+              details: { arguments: ["wf", "inspect", "counts"] },
+            },
+          },
+          { status: 400 },
+        ),
+      ),
+    )
+    const { router } = await renderRoute("/workflows")
+    const panel = await screen.findByRole("region", { name: "Workflow status totals" })
+    await waitFor(() =>
+      expect(panel).toHaveTextContent(
+        kind === "unavailable"
+          ? "Exact workflow counts unavailable on this host"
+          : "inspection_timeout: count read refused",
+      ),
+    )
+    expect(within(panel).queryByTestId("workflow-count-running")).not.toBeInTheDocument()
+    const table = await screen.findByRole("grid", { name: "Workflow instances" })
+    await within(table).findByText(pins("keiro").workflow_id!)
+    fireEvent.click(screen.getByRole("button", { name: "Next" }))
+    await waitFor(() => expect(currentSearch(router).after).toEqual(expect.any(String)))
+  },
+)

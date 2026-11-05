@@ -48,7 +48,10 @@ test("counts retain every digit, reject negatives and missing statuses, and send
       expect([...new URL(request.url).searchParams]).toEqual([
         ["workflow_name", "Exact Name:Child"],
       ])
-      return HttpResponse.json(body)
+      return new HttpResponse(
+        JSON.stringify(body).replace('"9007199254740993"', "9007199254740993"),
+        { headers: { "content-type": "application/json" } },
+      )
     }),
   )
   const result = await client.workflows.counts({ workflow_name: "Exact Name:Child" })

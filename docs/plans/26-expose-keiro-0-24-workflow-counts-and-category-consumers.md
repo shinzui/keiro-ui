@@ -50,20 +50,25 @@ zeroes. This plan adds reads only; it does not release the console or add operat
 ## Progress
 
 - [x] M1 (2026-11-05): Both public clients decode the rebuilt 0.24.0.0 example host at `ec47c922`; all four live checks pass. Six new fixtures have five HTTP 200 responses and one HTTP 400 invalid cursor. Client/testing suites pass 193 checks, including synthetic pagination, exact integers, validation and availability. Existing entity pins and unrelated surface bytes are preserved.
-- [ ] M2: Overview and Workflows show exact, lossless, correctly scoped workflow totals, with honest unavailable and failed-read states.
-- [ ] M3: Category details show paged declared consumers, coverage, matching bindings, and useful links without disrupting event inspection.
+- [x] M2 (2026-11-05): Overview uses exact counts without a list read; Workflows shows all seven totals with exact-name scope, observation time, stale/error and unavailable states. Focused unit and browser checks pass, including digits above 2^53, list independence and a 16-second pause beyond the count poll interval. The live browser comparison matches all seven endpoint values.
+- [x] M3 (2026-11-05): Category details show recorded declarations and partial coverage with independent paging/refresh and useful target-preserving links. Thirteen panel checks cover every consumer/source kind, full/partial/zero coverage, unregistered groups, failures, cursor recovery and late category responses. Mock and live browser checks pass for order, its projection link and creditLimit.
 - [ ] M4: Mock and live browser checks prove both features, including deployment switching; capability and operator documentation describe the verified behavior.
 
-Implementation (2026-11-05): M1 is verified against the running default stack without reseeding.
-The new fixture metadata identifies `ec47c922`; Hackage and upstream tags confirm 0.24.0.0.
-Continue with the workflow summaries and category panel, then integrated browser validation.
+Implementation (2026-11-05): All feature behavior is verified against the running default stack
+without reseeding. The fixture source identifies `ec47c922`; the original database seed
+description remains unchanged. Final documentation/friction triage and completion recording
+remain for M4.
 
 
 ## Surprises & Discoveries
 
+- Observation (2026-11-05): The example seed has exactly two retained completed workflows and one order consumer, with both inline and subscription bindings. A limit-one consumer read has no continuation. Two-page and large-integer cases therefore use explicitly synthetic overrides.
+- Observation (2026-11-05): Required strict capability validation exposed missing recommended review metadata on all eleven existing concepts. The catalog now records a bounded metadata review (identifiers, provider, package names and evidence paths), with `commented` outcome; it claims no independent behavioral approval. See FRIC-10 in `docs/friction-log/`.
+
 
 ## Decision Log
 
+- Decision (2026-11-05): Targeted fixture recording preserves the original seed description and untouched surface source commits. Recording the rebuilt host proves its response source, not that the database was reseeded.
 - Decision (2026-11-05): Implement the two newly released reads in one standalone plan, following the completed `docs/masterplans/3-support-the-new-keiro-runtime-ops-apis-in-the-console.md`. That initiative already delivered process-manager discovery, feeding subscriptions, and stored snapshots. It explicitly deferred workflow counts and category discovery until routes existed; both now ship in 0.24.0.0. Do not reopen its completed children or repeat their UI work.
 - Decision (2026-11-05): Replace Overview's workflow sample with exact counts, and add the same summary to Workflows scoped only by the exact workflow name. The endpoint supports no status or time filters. Label that scope and keep list filters independent; do not invent filtered totals or count list pages in the browser. On hosts lacking counts, say exact counts are unavailable and keep the workflow list usable; do not silently fall back to a sample.
 - Decision (2026-11-05): Query consumers only for the category currently open. Treat the answer as mounted configuration with explicitly reported coverage, not running workers, checkpoint progress, or proof that a handler will process an event. Refresh this metadata manually rather than polling every category. This keeps request volume bounded and avoids conflating declarations with runtime facts.

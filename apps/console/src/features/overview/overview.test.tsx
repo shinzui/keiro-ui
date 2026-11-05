@@ -38,36 +38,65 @@ test("every card shows its fixture headline and links to its section", async () 
   await waitFor(() => expect(router.state.location.pathname).toBe("/projections"))
 })
 
-test("workflow counts are marked as a sample when more instances exist", async () => {
+test("workflow totals are exact, lossless and never read a sample list", async () => {
+  const body = JSON.parse(fixtureText("keiro/workflow-counts.json"))
+  body.counts.running = "9007199254740993"
+  body.counts.completed = 1001
+  mock.use(http.get("*/keiro/wf/inspect/counts", () => HttpResponse.json(body)))
+  await renderRoute("/")
+  await waitFor(() =>
+    expect(headline("workflows").textContent?.replace(/\s/g, "")).toBe("9007199254740993"),
+  )
+  const subtitle = screen.getByTestId("card-workflows-subtitle")
+  expect(subtitle).toHaveTextContent("completed 1 001")
+  expect(screen.getByTestId("card-workflows")).not.toHaveTextContent(/newest|sample|\+/)
+  expect(requests.some((url) => url.pathname.endsWith("/wf/inspect/list"))).toBe(false)
+})
+
+test("an unavailable counts route keeps the workflow link", async () => {
   mock.use(
-    http.get("*/keiro/wf/inspect/list", () =>
-      HttpResponse.json({
-        items: [
-          {
-            workflow_name: "w",
-            workflow_id: "1",
-            status: "running",
-            status_class: "running",
-            attempts: 0,
-            generation: 0,
-            created_at: "2026-10-21T00:00:00Z",
-            updated_at: "2026-10-21T00:00:00Z",
-            completed_at: null,
-            next_attempt_at: null,
-            wake_after: null,
-            lease_expires_at: null,
-            leased_by: null,
-            last_error: null,
+    http.get("*/keiro/wf/inspect/counts", () =>
+      HttpResponse.json(
+        {
+          error: {
+            code: "invalid_request",
+            message: "unknown command",
+            details: { arguments: ["wf", "inspect", "counts"] },
           },
-        ],
-        next_cursor: "more",
-        observed_at: "2026-10-21T00:00:00Z",
-      }),
+        },
+        { status: 400 },
+      ),
     ),
   )
-  await renderRoute("/")
-  await waitFor(() => expect(headline("workflows")).toHaveTextContent("1+"))
-  expect(screen.getByTestId("card-workflows-subtitle")).toHaveTextContent(/^newest 500 instances: /)
+  const { router } = await renderRoute("/")
+  await waitFor(() =>
+    expect(headline("workflows")).toHaveTextContent(
+      "Exact workflow counts unavailable on this host",
+    ),
+  )
+  fireEvent.click(screen.getByTestId("card-workflows"))
+  await waitFor(() => expect(router.state.location.pathname).toBe("/workflows"))
+})
+
+test("a failed refresh retains counts with their original time and a stale error", async () => {
+  const { queryClient } = await renderRoute("/")
+  await waitFor(() => expect(headline("workflows")).toHaveTextContent("0"))
+  const card = screen.getByTestId("card-workflows")
+  const observed = card.querySelector("time")?.dateTime
+  mock.use(
+    http.get("*/keiro/wf/inspect/counts", () =>
+      HttpResponse.json(
+        { error: { code: "inspection_timeout", message: "budget expired" } },
+        { status: 400 },
+      ),
+    ),
+  )
+  await queryClient.invalidateQueries({ queryKey: ["keiro", "workflows", "counts"] })
+  await waitFor(() =>
+    expect(card).toHaveTextContent("Stale counts: inspection_timeout: budget expired"),
+  )
+  expect(headline("workflows")).toHaveTextContent("0")
+  expect(card.querySelector("time")?.dateTime).toBe(observed)
 })
 
 test("a host without the hooks makes the aggregates card say so", async () => {

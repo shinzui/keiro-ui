@@ -82,3 +82,37 @@ test("sidebar presets and recents", async ({ page }) => {
   await page.getByRole("link", { name: "Instances" }).click()
   await expect(page.getByRole("link", { name: `${workflow_name} / ${workflow_id}` })).toBeVisible()
 })
+
+test("exact totals scope only by workflow name while list filters remain independent", async ({
+  page,
+}) => {
+  const reads: URL[] = []
+  page.on("request", (request) => {
+    const url = new URL(request.url())
+    if (url.pathname.endsWith("/wf/inspect/counts")) reads.push(url)
+  })
+  await open(
+    page,
+    "/workflows?workflow_name=order-fulfillment&status_class=failed&ordering=created_desc&limit=10",
+  )
+  const summary = page.getByRole("region", { name: "Workflow status totals" })
+  await expect(summary).toContainText("Retained workflows named order-fulfillment")
+  await expect(summary).toContainText(
+    "Status and time filters apply to the list below, not these totals.",
+  )
+  for (const status of [
+    "running",
+    "retrying",
+    "sleeping",
+    "awaiting",
+    "completed",
+    "cancelled",
+    "failed",
+  ]) {
+    await expect(summary.getByTestId(`workflow-count-${status}`)).toBeVisible()
+  }
+  await page.getByRole("button", { name: "retrying", exact: true }).click()
+  expect(reads.length).toBeGreaterThan(0)
+  expect(reads.every((url) => url.search === "?workflow_name=order-fulfillment")).toBe(true)
+  await expect(page.getByRole("grid", { name: "Workflow instances" })).toBeVisible()
+})

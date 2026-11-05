@@ -26,8 +26,19 @@ test("pausing liveness stops the cards' polling; resuming refetches at once", as
       reads.push(path)
   })
   await page.getByRole("button", { name: "Pause live updates" }).click()
-  await page.waitForTimeout(7000)
+  await page.waitForTimeout(16000)
   expect(reads).toEqual([])
   await page.getByRole("button", { name: /Resume live updates/ }).click()
   await expect.poll(() => reads.length).toBeGreaterThanOrEqual(5)
+  await expect.poll(() => reads.includes("/keiro/wf/inspect/counts")).toBe(true)
+})
+
+test("Overview reads exact totals without sampling the workflow list", async ({ page }) => {
+  const reads: string[] = []
+  page.on("request", (request) => reads.push(new URL(request.url()).pathname))
+  await open(page, "/")
+  await expect(page.getByTestId("card-workflows-subtitle")).toContainText("completed 2")
+  await expect(page.getByTestId("card-workflows")).not.toContainText(/newest|sample|\+/)
+  expect(reads).toContain("/keiro/wf/inspect/counts")
+  expect(reads).not.toContain("/keiro/wf/inspect/list")
 })

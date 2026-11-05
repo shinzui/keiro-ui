@@ -17,18 +17,7 @@ export function useQueuesCard() {
   })
 }
 
-export const WORKFLOW_SAMPLE = 500
-
-/** The newest 500 instances; counts carry "+" when a further page exists. */
-export function useWorkflowsCard() {
-  const keiro = useKeiroClient()
-  const filters = { ordering: "created_desc", limit: WORKFLOW_SAMPLE }
-  return useSurfaceQuery({
-    surface: "keiro",
-    queryKey: keiroKeys.workflows.list(filters),
-    queryFn: ({ signal }) => keiro.workflows.list(filters, signal),
-  })
-}
+export { useWorkflowCounts as useWorkflowsCard } from "@/features/workflows/queries"
 
 /** The projections list's first page (the same cache entry the feed and list use). */
 export function useProjectionsCard() {

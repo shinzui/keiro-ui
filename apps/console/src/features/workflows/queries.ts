@@ -107,3 +107,15 @@ export function useAwakeables(name: string, id: string) {
       keiro.workflows.awakeables(name, id, { after, limit: DETAIL_PAGE }, signal),
   })
 }
+
+/** Counts have only an exact name scope, independent of list filters and feed pages. */
+export function useWorkflowCounts(workflowName?: string) {
+  const keiro = useKeiroClient()
+  const filters = { workflow_name: workflowName }
+  return useSurfaceQuery({
+    surface: "keiro",
+    queryKey: keiroKeys.workflows.counts(filters),
+    queryFn: ({ signal }) => keiro.workflows.counts(filters, signal),
+    poll: 15_000,
+  })
+}

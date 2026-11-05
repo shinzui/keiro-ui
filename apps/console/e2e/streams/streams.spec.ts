@@ -54,3 +54,32 @@ test("categories list and a category's events", async ({ page }) => {
       .nth(1),
   ).toBeVisible()
 })
+
+test("category declarations retain coverage, refresh manually and link to inspection", async ({
+  page,
+}) => {
+  const reads: string[] = []
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname.endsWith("/projection/consumers")) reads.push(request.url())
+  })
+  await open(page, "/categories")
+  expect(reads).toEqual([])
+  await page.getByRole("link", { name: "order", exact: true }).click()
+  const panel = page.getByRole("region", { name: "Declared consumers" })
+  await expect(panel).toContainText("Projection catalog metadata: available")
+  await expect(panel).toContainText("Durable subscriber metadata: unavailable")
+  await expect(panel).toContainText("inline")
+  const atMount = reads.length
+  await page.waitForTimeout(6000)
+  expect(reads).toHaveLength(atMount)
+  await panel.getByRole("button", { name: "Refresh consumers" }).click()
+  await expect.poll(() => reads.length).toBeGreaterThan(atMount)
+  const link = panel.getByRole("link", { name: "jitsurei-order-reporting", exact: true })
+  await expect(link).toHaveAttribute("href", /target=same-origin/)
+  await link.click()
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("jitsurei-order-reporting")
+  await page.goto("/categories/creditLimit")
+  await expect(panel).toContainText("No matching consumers in the reported metadata")
+  await expect(panel).toContainText("Durable subscriber metadata: unavailable")
+  await expect(page.getByRole("grid", { name: "Events in category creditLimit" })).toBeVisible()
+})

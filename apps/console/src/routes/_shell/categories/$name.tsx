@@ -4,6 +4,7 @@ import { useMemo, useState } from "react"
 
 import { CursorPager } from "@/components/CursorPager"
 import { PageHeader } from "@/components/page-header"
+import { CategoryConsumersPanel } from "@/features/streams/CategoryConsumersPanel"
 import { EventsTable } from "@/features/streams/EventsTable"
 import {
   LiveTailControls,
@@ -69,6 +70,7 @@ function CategoryPage() {
         }
       />
       <div className="flex flex-col gap-3 p-6">
+        <CategoryConsumersPanel category={name} />
         {tail.overflow && <OverflowNotice message={tail.overflow} onDismiss={tail.clearOverflow} />}
         {page.isError && <p className="text-sm text-destructive">{page.error.message}</p>}
         <EventsTable events={shown} showStream label={`Events in category ${name}`} />

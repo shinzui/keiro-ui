@@ -1,6 +1,6 @@
 {
-  "recorded_at": "2026-11-05T03:21:20.278Z",
-  "seed": "keiro just jitsurei-all (keiro 9da47eb7) + dev/seed-queues.sh",
+  "recorded_at": "2026-11-05T22:08:14.818Z",
+  "seed": "keiro just jitsurei-all (keiro ec47c922) + dev/seed-queues.sh",
   "sources": {
     "kiroku": {
       "commit": "aa2c6ab"
@@ -15,7 +15,7 @@
       "commit": "e549451"
     },
     "keiro": {
-      "commit": "9da47eb7"
+      "commit": "ec47c922"
     }
   },
   "files": {
@@ -145,6 +145,51 @@
       "query": {},
       "params": {},
       "request": "/aggregate/types",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8"
+    },
+    "keiro/category-consumers-bad-cursor.error.json": {
+      "surface": "keiro",
+      "slug": "category-consumers-bad-cursor",
+      "variant": "error",
+      "method": "GET",
+      "template": "/projection/consumers",
+      "query": {
+        "category": "order",
+        "after": "garbage"
+      },
+      "params": {},
+      "request": "/projection/consumers?category=order&after=garbage",
+      "status": 400,
+      "contentType": "application/json; charset=utf-8"
+    },
+    "keiro/category-consumers-credit-limit.json": {
+      "surface": "keiro",
+      "slug": "category-consumers-credit-limit",
+      "variant": "default",
+      "method": "GET",
+      "template": "/projection/consumers",
+      "query": {
+        "category": "creditLimit",
+        "limit": "100"
+      },
+      "params": {},
+      "request": "/projection/consumers?category=creditLimit&limit=100",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8"
+    },
+    "keiro/category-consumers-order.json": {
+      "surface": "keiro",
+      "slug": "category-consumers-order",
+      "variant": "default",
+      "method": "GET",
+      "template": "/projection/consumers",
+      "query": {
+        "category": "order",
+        "limit": "100"
+      },
+      "params": {},
+      "request": "/projection/consumers?category=order&limit=100",
       "status": 200,
       "contentType": "application/json; charset=utf-8"
     },
@@ -554,6 +599,46 @@
         "workflow_id": "workflow-20261105031554815945000000"
       },
       "request": "/wf/inspect/children/order-fulfillment/workflow-20261105031554815945000000",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8"
+    },
+    "keiro/workflow-counts-empty.json": {
+      "surface": "keiro",
+      "slug": "workflow-counts-empty",
+      "variant": "default",
+      "method": "GET",
+      "template": "/wf/inspect/counts",
+      "query": {
+        "workflow_name": "keiro-ui-counts-missing"
+      },
+      "params": {},
+      "request": "/wf/inspect/counts?workflow_name=keiro-ui-counts-missing",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8"
+    },
+    "keiro/workflow-counts-named.json": {
+      "surface": "keiro",
+      "slug": "workflow-counts-named",
+      "variant": "default",
+      "method": "GET",
+      "template": "/wf/inspect/counts",
+      "query": {
+        "workflow_name": "order-fulfillment"
+      },
+      "params": {},
+      "request": "/wf/inspect/counts?workflow_name=order-fulfillment",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8"
+    },
+    "keiro/workflow-counts.json": {
+      "surface": "keiro",
+      "slug": "workflow-counts",
+      "variant": "default",
+      "method": "GET",
+      "template": "/wf/inspect/counts",
+      "query": {},
+      "params": {},
+      "request": "/wf/inspect/counts",
       "status": 200,
       "contentType": "application/json; charset=utf-8"
     },

@@ -13,3 +13,5 @@ export type AggregateListCursor = Cursor<"aggregate-list">
 export type ProcessManagerListCursor = Cursor<"process-manager-list">
 export type TimerCursor = Cursor<"timer">
 export type ProjectionStatusCursor = Cursor<"projection-status">
+
+export type CategoryConsumersCursor = Cursor<"category-consumers">

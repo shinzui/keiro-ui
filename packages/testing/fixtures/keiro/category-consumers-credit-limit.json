@@ -1,0 +1,1 @@
+{"schema":"keiro/category-consumers/v1","category":"creditLimit","scope":"mounted_configuration","coverage":{"durable_subscribers":false,"projection_catalog":true},"items":[]}

@@ -3,6 +3,7 @@ import { z } from "zod"
 
 import type {
   AggregateListCursor,
+  CategoryConsumersCursor,
   AwakeablesCursor,
   ChildrenCursor,
   JournalCursor,
@@ -473,3 +474,59 @@ export type AggregateListPage = z.output<typeof AggregateListPage>
 export type PendingTimerPage = z.output<typeof TimerPage>
 export type ProcessManagerInstancePage = z.output<typeof ProcessManagerListPage>
 export type ProcessManagerInstanceView = ProcessManagerDetail
+
+/** Current retained instance headers, counted in one database observation. */
+export const WorkflowCounts = z
+  .object({
+    observed_at: timestamp,
+    counts: z
+      .object({
+        running: int64().refine((n) => n >= 0n),
+        retrying: int64().refine((n) => n >= 0n),
+        sleeping: int64().refine((n) => n >= 0n),
+        awaiting: int64().refine((n) => n >= 0n),
+        completed: int64().refine((n) => n >= 0n),
+        cancelled: int64().refine((n) => n >= 0n),
+        failed: int64().refine((n) => n >= 0n),
+      })
+      .passthrough(),
+  })
+  .passthrough()
+export type WorkflowCounts = z.output<typeof WorkflowCounts>
+
+export const ConsumerSource = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("all") }).passthrough(),
+  z.object({ kind: z.literal("category"), category: z.string() }).passthrough(),
+  z.object({ kind: z.literal("namespace"), namespace: z.string() }).passthrough(),
+])
+export const ConsumerBinding = z
+  .object({
+    projection_id: z.string().nullable(),
+    handler_name: z.string().nullable(),
+    subscription_id: z.string().nullable(),
+    subscription_name: z.string().nullable(),
+    delivery: z.enum(["inline", "subscription"]),
+    source: ConsumerSource,
+  })
+  .passthrough()
+export const CategoryConsumer = z
+  .object({
+    kind: z.enum(["durable_subscriber", "process_manager", "projection_group"]),
+    name: z.string(),
+    group_id: z.string().nullable(),
+    bindings: z.array(ConsumerBinding),
+  })
+  .passthrough()
+export const CategoryConsumersPage = pageSchema(
+  CategoryConsumer,
+  cursor<CategoryConsumersCursor>(),
+  z.object({
+    schema: z.literal("keiro/category-consumers/v1"),
+    category: z.string(),
+    scope: z.literal("mounted_configuration"),
+    coverage: z
+      .object({ projection_catalog: z.boolean(), durable_subscribers: z.boolean() })
+      .passthrough(),
+  }),
+)
+export type CategoryConsumersPage = z.output<typeof CategoryConsumersPage>

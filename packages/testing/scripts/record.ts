@@ -346,9 +346,24 @@ async function main() {
     "shibuya-pgmq-adapter": env.SHIBUYA_PGMQ_ADAPTER_REPO,
     keiro: env.KEIRO_REPO,
   }
-  meta.sources = Object.fromEntries(
-    Object.entries(repos).map(([name, repo]) => [name, { commit: gitHead(repo) }]),
+  // A targeted recording must not claim new provenance for untouched surfaces.
+  const selectedRepos = new Set(
+    ordered.flatMap((surface) =>
+      surface === "pgmq"
+        ? ["pgmq-hs"]
+        : surface === "shibuya"
+          ? ["shibuya", "shibuya-pgmq-adapter"]
+          : [surface],
+    ),
   )
+  meta.sources = {
+    ...meta.sources,
+    ...Object.fromEntries(
+      Object.entries(repos)
+        .filter(([name]) => selectedRepos.has(name))
+        .map(([name, repo]) => [name, { commit: gitHead(repo) }]),
+    ),
+  }
   meta.recorded_at = new Date().toISOString()
   meta.seed = `keiro just jitsurei-all (keiro ${gitHead(env.KEIRO_REPO)}) + dev/seed-queues.sh`
   meta.files = Object.fromEntries(

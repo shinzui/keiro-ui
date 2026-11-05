@@ -13,9 +13,9 @@ non-snake_case keys before sending. Contracts: `docs/guides/serve-keiro-ops-over
 | Namespace                      | Methods → routes                                                                                                                                                                                                                                                                         |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `health`                       | `get()` → `/health`; 503 bodies (`schema_drift`, `unavailable`, `inspection_busy`) are answers, not errors                                                                                                                                                                               |
-| `workflows`                    | `list(filters)` → `/wf/inspect/list` (`status_class[]`, `workflow_name`, `created_since/before`, `updated_since/before`, `ordering`, `limit`, `after`); `header`, `journal`, `steps`, `children`, `awakeables` → `/wf/inspect/<kind>/{name}/{id}` (journal and steps carry `generation`) |
+| `workflows`                    | `counts({workflow_name?}, signal?)` → `/wf/inspect/counts`; `list(filters)` → `/wf/inspect/list` (`status_class[]`, `workflow_name`, `created_since/before`, `updated_since/before`, `ordering`, `limit`, `after`); `header`, `journal`, `steps`, `children`, `awakeables` → `/wf/inspect/<kind>/{name}/{id}` (journal and steps carry `generation`) |
 | `timers`                       | `pending({manager?, correlation?, after?, limit?})`; `stuck({min_age?, min_attempts?})` returns a bare array                                                                                                                                                                             |
-| `projections`                  | `status({after?, limit?})` (ADR-35 frozen contract); `position({subscription})` → `store_position`, `visible_store_head`, `minimum_checkpoint_position`, `maximum_global_position_distance` (bigint, keiro's names)                                                                      |
+| `projections`                  | `consumers({category, limit?, after?}, signal?)` → `/projection/consumers`; `status({after?, limit?})` (ADR-35 frozen contract); `position({subscription})` → `store_position`, `visible_store_head`, `minimum_checkpoint_position`, `maximum_global_position_distance` (bigint, keiro's names)                                                                      |
 | `shards`                       | `list()`, `status({subscription})`                                                                                                                                                                                                                                                       |
 | `streams`                      | `show(stream, {from?, limit?})`, `causation(eventId)`, `subscriptions()`                                                                                                                                                                                                                 |
 | `outbox` / `inbox`             | `backlog()`, `list({source, ...})`, `show(...)`                                                                                                                                                                                                                                          |
@@ -31,6 +31,16 @@ stack's `jitsurei-ops-http` mounts them,
 `cursor_generation_mismatch`: restart paging). Helpers: `isRouteUnavailable`,
 `isCursorMismatch`, `isMutationsDisabled`, `isSchemaDrift`, `isInspectionBusy`, `isTooLarge`.
 `keiroKeys` addresses the cache entries; `KeiroClientProvider`/`useKeiroClient` provide the client.
+
+`workflows.counts` returns seven nonnegative bigint totals of retained current headers and
+`observed_at`. Only the optional exact, case-sensitive workflow name scopes counts; list
+filters do not. `projections.consumers` describes mounted configuration with independent
+projection/durable coverage, required nullable binding identities, exact source declarations,
+and an opaque `CategoryConsumersCursor` normalized as `nextCursor`. Category names must be
+nonempty with no surrounding whitespace. The server defaults to 100 consumer items (maximum
+500), including every binding within each item. Both reads accept abort signals.
+`isInspectionReadUnavailable(error, "workflow-counts" | "category-consumers")` recognizes
+only the call's command refusal; other failures retain their original `ApiError`.
 
 ## Feeds (`@keiro-ui/client-keiro/feeds`)
 

@@ -1,5 +1,7 @@
 import { type QueryKeyPart, surfaceKey } from "@keiro-ui/client-core"
 
+import type { WorkflowCountsFilters, CategoryConsumersQuery } from "./client"
+
 const k = (...parts: QueryKeyPart[]) => surfaceKey("keiro", ...parts)
 type Filters = Record<string, unknown>
 
@@ -9,6 +11,8 @@ export const keiroKeys = {
   health: () => k("health"),
   workflows: {
     all: () => k("workflows"),
+    counts: (filters: WorkflowCountsFilters = {}) =>
+      k("workflows", "counts", { workflow_name: filters.workflow_name }),
     list: (filters: Filters = {}) => k("workflows", "list", filters),
     header: (name: string, id: string) => k("workflows", "header", name, id),
     journal: (name: string, id: string, query: Filters = {}) =>
@@ -27,6 +31,7 @@ export const keiroKeys = {
   },
   projections: {
     all: () => k("projections"),
+    consumers: (query: CategoryConsumersQuery) => k("projections", "consumers", { ...query }),
     status: (query: Filters = {}) => k("projections", "status", query),
     position: (subscription: string) => k("projections", "position", subscription),
   },

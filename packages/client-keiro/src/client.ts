@@ -3,6 +3,7 @@ import type { z } from "zod"
 
 import type {
   AggregateListCursor,
+  CategoryConsumersCursor,
   AwakeablesCursor,
   ChildrenCursor,
   JournalCursor,
@@ -15,6 +16,8 @@ import type {
 import { classifyError } from "./errors"
 import { commandRoute, type Flags } from "./route"
 import {
+  CategoryConsumersPage,
+  WorkflowCounts,
   AggregateDetail,
   AggregateListPage,
   AggregateSnapshot,
@@ -49,6 +52,16 @@ function checkLimit(limit: number | undefined): number | undefined {
     throw new RangeError(`keiro limit must be 1–500, got ${limit}`)
   }
   return limit
+}
+
+export interface WorkflowCountsFilters {
+  workflow_name?: string
+}
+
+export interface CategoryConsumersQuery {
+  category: string
+  limit?: number
+  after?: CategoryConsumersCursor
 }
 
 export interface WorkflowListFilters {
@@ -108,6 +121,14 @@ export function createKeiroClient(options: {
         Health.parse(await http.get("/health", { okStatuses: [200, 503], signal })),
     },
     workflows: {
+      counts: (filters: WorkflowCountsFilters = {}, signal?: AbortSignal) =>
+        read(
+          WorkflowCounts,
+          workflowPath("counts"),
+          [],
+          { workflow_name: filters.workflow_name },
+          signal,
+        ),
       list: (filters: WorkflowListFilters = {}, signal?: AbortSignal) =>
         read(
           WorkflowListPage,
@@ -193,6 +214,17 @@ export function createKeiroClient(options: {
         read(StuckTimers, ["timer", "stuck", "list"], [], filters, signal),
     },
     projections: {
+      consumers: (query: CategoryConsumersQuery, signal?: AbortSignal) => {
+        if (!query.category || query.category.trim() !== query.category)
+          throw new RangeError("category must be nonempty and have no surrounding whitespace")
+        return read(
+          CategoryConsumersPage,
+          ["projection", "consumers"],
+          [],
+          { ...query, limit: checkLimit(query.limit) },
+          signal,
+        )
+      },
       status: (
         query: { after?: ProjectionStatusCursor; limit?: number } = {},
         signal?: AbortSignal,

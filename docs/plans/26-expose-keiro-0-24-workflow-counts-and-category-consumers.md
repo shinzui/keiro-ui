@@ -16,6 +16,11 @@ provenance:
       at: 2026-11-05T21:59:53Z
       mode: "other"
       note: "Ground initial plan in the published 0.24.0.0 contracts and current console gaps"
+    - model: "gpt-6.1-sol"
+      harness: "codex-cli"
+      at: 2026-11-05T22:03:43Z
+      mode: "implement"
+      note: "Implement released workflow counts and category consumer reads with integrated acceptance evidence"
 ---
 
 # Expose Keiro 0.24 workflow counts and category consumers
@@ -44,15 +49,14 @@ zeroes. This plan adds reads only; it does not release the console or add operat
 
 ## Progress
 
-- [ ] M1: Typed clients decode both released reads against the local host, and recorded fixtures support their success, filtering, empty, and invalid-cursor cases.
+- [x] M1 (2026-11-05): Both public clients decode the rebuilt 0.24.0.0 example host at `ec47c922`; all four live checks pass. Six new fixtures have five HTTP 200 responses and one HTTP 400 invalid cursor. Client/testing suites pass 193 checks, including synthetic pagination, exact integers, validation and availability. Existing entity pins and unrelated surface bytes are preserved.
 - [ ] M2: Overview and Workflows show exact, lossless, correctly scoped workflow totals, with honest unavailable and failed-read states.
 - [ ] M3: Category details show paged declared consumers, coverage, matching bindings, and useful links without disrupting event inspection.
 - [ ] M4: Mock and live browser checks prove both features, including deployment switching; capability and operator documentation describe the verified behavior.
 
-Creation handoff (2026-11-05): source and release verification are complete, but implementation
-has not started. No host was listening on local port 9093 during planning, so no live response
-or acceptance result is claimed. Start the stack for M1. The intention was created with
-`mina ci --json "Expose Keiro 0.24 workflow counts and category consumers"` as requested.
+Implementation (2026-11-05): M1 is verified against the running default stack without reseeding.
+The new fixture metadata identifies `ec47c922`; Hackage and upstream tags confirm 0.24.0.0.
+Continue with the workflow summaries and category panel, then integrated browser validation.
 
 
 ## Surprises & Discoveries

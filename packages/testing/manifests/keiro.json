@@ -115,7 +115,9 @@
       "query": {
         "subscription": "{subscription}"
       },
-      "needs": ["subscription"]
+      "needs": [
+        "subscription"
+      ]
     },
     {
       "slug": "shards",
@@ -127,7 +129,9 @@
       "query": {
         "subscription": "{subscription}"
       },
-      "needs": ["subscription"]
+      "needs": [
+        "subscription"
+      ]
     },
     {
       "slug": "stream-show",
@@ -266,6 +270,49 @@
       "query": {
         "stream": "order-missing"
       }
+    },
+    {
+      "slug": "workflow-counts",
+      "path": "/wf/inspect/counts"
+    },
+    {
+      "slug": "workflow-counts-named",
+      "path": "/wf/inspect/counts",
+      "query": {
+        "workflow_name": "{workflow_name}"
+      }
+    },
+    {
+      "slug": "workflow-counts-empty",
+      "path": "/wf/inspect/counts",
+      "query": {
+        "workflow_name": "keiro-ui-counts-missing"
+      }
+    },
+    {
+      "slug": "category-consumers-order",
+      "path": "/projection/consumers",
+      "query": {
+        "category": "order",
+        "limit": "100"
+      }
+    },
+    {
+      "slug": "category-consumers-credit-limit",
+      "path": "/projection/consumers",
+      "query": {
+        "category": "creditLimit",
+        "limit": "100"
+      }
+    },
+    {
+      "slug": "category-consumers-bad-cursor",
+      "path": "/projection/consumers",
+      "query": {
+        "category": "order",
+        "after": "garbage"
+      },
+      "variant": "error"
     }
   ]
 }

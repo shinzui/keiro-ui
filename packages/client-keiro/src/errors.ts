@@ -57,3 +57,18 @@ export const isTooLarge = (error: unknown): boolean =>
   (error.code === "inspection_request_too_large" || error.code === "inspection_result_too_large")
 
 export { ApiError }
+
+/** Only exact, locally valid inspection calls can interpret these parser refusals. */
+export function isInspectionReadUnavailable(
+  error: unknown,
+  read: "workflow-counts" | "category-consumers",
+): boolean {
+  if (!isApiError(error) || error.surface !== "keiro" || error.status !== 400) return false
+  if (read === "category-consumers" && error.code === "unsupported_command") return true
+  if (error.code !== "invalid_request") return false
+  const details = error.details as { arguments?: unknown } | undefined
+  const args = details?.arguments
+  const command =
+    read === "workflow-counts" ? ["wf", "inspect", "counts"] : ["projection", "consumers"]
+  return Array.isArray(args) && command.every((word, index) => args[index] === word)
+}

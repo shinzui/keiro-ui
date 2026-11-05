@@ -8,6 +8,24 @@ const live = process.env.KEIRO_UI_LIVE === "1"
 const keiro = createKeiroClient({ baseUrl: "http://127.0.0.1:9093" })
 
 describe.runIf(live)("keiro-ops-http on 9093", () => {
+  test("released counts and category consumers decode through public methods", async () => {
+    const global = await keiro.workflows.counts()
+    expect(Object.keys(global.counts)).toHaveLength(7)
+    expect(typeof global.counts.running).toBe("bigint")
+    const named = await keiro.workflows.counts({ workflow_name: "order-fulfillment" })
+    expect(named.observed_at).toBeTypeOf("string")
+    const missing = await keiro.workflows.counts({ workflow_name: "keiro-ui-counts-missing" })
+    expect(Object.values(missing.counts)).toEqual(Array(7).fill(0n))
+    const order = await keiro.projections.consumers({ category: "order", limit: 100 })
+    expect(order.items.map((item) => item.name)).toContain("jitsurei-order-reporting")
+    const empty = await keiro.projections.consumers({ category: "creditLimit", limit: 100 })
+    expect(empty.items).toEqual([])
+    expect(empty.coverage).toEqual({ projection_catalog: true, durable_subscribers: false })
+    expect((await keiro.projections.consumers({ category: "order", limit: 1 })).items).toHaveLength(
+      1,
+    )
+  })
+
   test("health, timers, projections, shards decode", async () => {
     expect((await keiro.health.get()).status).toBe("ok")
     const pending = await keiro.timers.pending()

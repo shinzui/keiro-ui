@@ -1,8 +1,13 @@
 # Merged over dev/process-compose.yaml by `just stack-up mori`: the console demo queues are
 # not seeded into mori (the shibuya baseline keeps pgmq_dev), and mori's daemon runs
-# subscriptions, timers, and job workers against the database the surfaces read.
+# subscriptions, timers, and job workers against the database the surfaces read. keiro runs the
+# standalone host because the jitsurei application hooks do not describe mori's database.
 version: "0.5"
 processes:
+  keiro-ops-http:
+    command: >-
+      dev/bin/keiro-ops-http --database-url "$STACK_DATABASE_URL" --port $STACK_KEIRO_PORT
+      --allow-origin "$STACK_CONSOLE_ORIGIN"
   pgmq-seed:
     command: 'echo "mori profile - console demo queues are not seeded"'
   mori-daemon:

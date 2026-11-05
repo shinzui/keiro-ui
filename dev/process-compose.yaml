@@ -32,12 +32,15 @@ processes:
       period_seconds: 5
     availability: { restart: on_failure, max_restarts: 3 }
 
-  # --port is mandatory: keiro-ops-http's own default (9092) is pgmq-inspect's upstream
-  # default. --allow-origin is required in development because the Vite proxy rewrites Host,
-  # and keiro admits a WebSocket upgrade only from an allow-listed Origin or its own Host.
+  # jitsurei-ops-http is the standalone host plus the jitsurei application hooks, so the
+  # aggregate, process-manager, and other hook-gated routes answer; dev/process-compose.mori.yaml
+  # swaps in the hook-less keiro-ops-http for the mori profile. It is read-only without
+  # --enable-mutations. --port is mandatory: the host's own default (9092) is pgmq-inspect's
+  # upstream default. --allow-origin is required in development because the Vite proxy rewrites
+  # Host, and keiro admits a WebSocket upgrade only from an allow-listed Origin or its own Host.
   keiro-ops-http:
     command: >-
-      dev/bin/keiro-ops-http --database-url "$STACK_DATABASE_URL" --port $STACK_KEIRO_PORT
+      dev/bin/jitsurei-ops-http --database-url "$STACK_DATABASE_URL" --port $STACK_KEIRO_PORT
       --allow-origin "$STACK_CONSOLE_ORIGIN"
     readiness_probe:
       http_get: { host: 127.0.0.1, port: 9093, path: /health }

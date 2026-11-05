@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest"
+import { z } from "zod"
 
-import { createKeiroClient, isRouteUnavailable } from "../../src"
+import { createKeiroClient } from "../../src"
 
 // With the local stack (just stack-up): KEIRO_UI_LIVE=1 bun run --filter @keiro-ui/client-keiro test
 const live = process.env.KEIRO_UI_LIVE === "1"
@@ -18,8 +19,65 @@ describe.runIf(live)("keiro-ops-http on 9093", () => {
     expect(status.items.length).toBeGreaterThan(0)
   })
 
-  test("the hook-less host answers aggregates with RouteUnavailable", async () => {
-    const error = await keiro.aggregates.types().catch((e: unknown) => e)
-    expect(isRouteUnavailable(error)).toBe(true)
+  test("jitsurei-ops-http mounts the hook-gated catalogs", async () => {
+    const aggregates = await keiro.aggregates.types()
+    expect(aggregates.items.map((item) => item.name)).toEqual(
+      expect.arrayContaining(["credit-limit", "incident", "order"]),
+    )
+  })
+
+  // The console's representative producer/consumer check for the new routes
+  // (docs/masterplans/3-support-the-new-keiro-runtime-ops-apis-in-the-console.md). Temporary
+  // schemas until the sibling plans add these to the client.
+  test("the new routes answer in the documented shapes", async () => {
+    const get = async (path: string) => {
+      const response = await fetch(`http://127.0.0.1:9093${path}`)
+      expect(response.status).toBe(200)
+      return (await response.json()) as unknown
+    }
+
+    const pmTypes = z
+      .object({
+        items: z.array(
+          z.object({
+            name: z.string(),
+            category: z.string(),
+            snapshots_configured: z.boolean(),
+            snapshot_policy: z.string(),
+            timers_configured: z.boolean().nullable(),
+          }),
+        ),
+      })
+      .parse(await get("/pm/types"))
+    expect(pmTypes.items.map((item) => item.name)).toContain("jitsurei-fulfillment")
+
+    const status = z
+      .object({
+        items: z.array(
+          z.object({ group_id: z.string(), feeding_subscriptions: z.array(z.string()) }),
+        ),
+      })
+      .parse(await get("/projection/status?limit=100"))
+    expect(status.items.length).toBeGreaterThan(0)
+
+    const list = z
+      .object({ items: z.array(z.object({ aggregate_id: z.string(), stream_name: z.string() })) })
+      .parse(await get("/aggregate/list?name=credit-limit&limit=1"))
+    const instance = list.items[0]
+    expect(instance).toBeDefined()
+    const snapshot = z
+      .object({
+        stream: z.string(),
+        stream_version: z.number(),
+        state: z.object({ registers: z.record(z.string(), z.unknown()) }),
+        state_codec_version: z.number(),
+        state_bytes: z.number(),
+        created_at: z.string(),
+        updated_at: z.string(),
+      })
+      .parse(await get(`/snapshot/show?stream=${encodeURIComponent(instance!.stream_name)}`))
+    expect(snapshot.stream).toBe(instance!.stream_name)
+
+    expect(await get("/snapshot/show?stream=order-missing")).toBeNull()
   })
 })

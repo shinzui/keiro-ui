@@ -2,8 +2,9 @@ import { expect, test } from "@playwright/test"
 
 // WARNING: this spec MUTATES the stack it points at. It pauses and resumes a shibuya processor
 // and requeues a keiro timer. Run it only against a scratch database and a mutation-enabled
-// stack (keiro-ops-http --enable-mutations; shibuya with enableControl = True and
-// corsAllowedOrigins = ["http://localhost:5173"]) — never against production:
+// stack (a keiro host with --enable-mutations, jitsurei-ops-http for the default profile;
+// shibuya with enableControl = True and corsAllowedOrigins = ["http://localhost:5173"]) — never
+// against production:
 //   KEIRO_UI_LIVE_MUTATIONS=1 bunx playwright test --config playwright.live.config.ts actions
 // Each step reads the authoritative state back over HTTP before it passes. If interrupted,
 // resume the processor by hand: curl -X POST http://127.0.0.1:9090/control/processors/<id>/resume

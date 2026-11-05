@@ -18,7 +18,14 @@ build_and_link() {
 only="${1:-all}"
 case "$only" in all | kiroku) build_and_link "$KIROKU_REPO" exe:kiroku-inspect kiroku-inspect ;; esac
 case "$only" in all | pgmq) build_and_link "$PGMQ_HS_REPO" pgmq-inspect:exe:pgmq-inspect pgmq-inspect ;; esac
-case "$only" in all | keiro) build_and_link "$KEIRO_REPO" exe:keiro-ops-http keiro-ops-http ;; esac
+case "$only" in
+  all | keiro)
+    # The standalone host serves the mori profile, whose database the jitsurei hooks do not
+    # describe; jitsurei-ops-http mounts the hook-gated routes for the default profile.
+    build_and_link "$KEIRO_REPO" exe:keiro-ops-http keiro-ops-http
+    build_and_link "$KEIRO_REPO" jitsurei-ops-http:exe:jitsurei-ops-http jitsurei-ops-http
+    ;;
+esac
 case "$only" in
   all | shibuya)
     build_and_link "$SHIBUYA_PGMQ_ADAPTER_REPO" exe:shibuya-pgmq-consumer shibuya-pgmq-consumer

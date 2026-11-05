@@ -9,10 +9,17 @@ databases on the fixed ports of
 | shibuya | `shibuya-pgmq-consumer` | 9090 | `pgmq_dev` (pgmq-hs's dev cluster) |
 | kiroku  | `kiroku-inspect`        | 9091 | `jitsurei` (keiro's dev cluster)   |
 | pgmq    | `pgmq-inspect`          | 9095 | `pgmq_dev`                         |
-| keiro   | `keiro-ops-http`        | 9093 | `jitsurei`                         |
+| keiro   | `jitsurei-ops-http`     | 9093 | `jitsurei`                         |
 
 pgmq uses 9095 rather than its upstream default 9092 (a local Kafka-compatible container
 holds 9092 on the machine this was set up on).
+
+`jitsurei-ops-http` is keiro's standalone host with the jitsurei application hooks mounted
+([mori://shinzui/keiro/okf/improvement-requests/concepts/IR-55](mori://shinzui/keiro/okf/improvement-requests/concepts/IR-55)),
+so the aggregate, process-manager, and other hook-gated routes answer. It takes the standalone
+host's flags and is read-only unless started with `--enable-mutations`; the stack never passes
+that flag, so run a scratch host by hand for `just smoke-live-mutations`. `dev/build.sh` also
+builds the hook-less `keiro-ops-http`, which the mori profile runs.
 
 ## First run
 
@@ -40,7 +47,10 @@ A simulator sends a small `orders` batch every 30 s so the processors have work.
 
 - keiro answers `{"status":"schema_drift",...}`: the jitsurei database was migrated by a
   different keiro checkout. Drop it (`dropdb -h "$STACK_PG_SOCKET_DIR" jitsurei`) and run
-  `just stack-seed` from the checkout you built `keiro-ops-http` from.
+  `just stack-seed` from the checkout you built `jitsurei-ops-http` from.
+- Aggregates or Process managers say "not mounted on this keiro host": port 9093 is running
+  the hook-less `keiro-ops-http`. `dev/bin/jitsurei-ops-http` should be running there unless
+  you started the mori profile, which is hook-less by design.
 - A port is busy: `lsof -nP -iTCP:9090-9095 -sTCP:LISTEN`. process-compose's own control API
   listens on `.dev/process-compose.sock`, not on TCP.
 - Start over on pgmq: stop the stack, `dropdb`/`createdb` `pgmq_dev` in
@@ -53,8 +63,9 @@ A simulator sends a small `orders` batch every 30 s so the processors have work.
 `mori automate daemon` beside them. mori runs 17 reactors, 3 timers, 14 kiroku subscriptions
 with durable checkpoints, and four keiro-pgmq job queues with dead-letter queues, so the
 Streams & Subscriptions, Queues, and Process Managers & Timers screens see a live
-application rather than a demo seed. It has no durable workflows and, like every runnable
-keiro host today, no aggregate or process-manager hooks; use the default profile for those.
+application rather than a demo seed. It has no durable workflows and runs the standalone
+`keiro-ops-http`, so it has no aggregate or process-manager hooks; use the default profile
+for those.
 The shibuya baseline keeps consuming `pgmq_dev` in both profiles.
 
 ```bash

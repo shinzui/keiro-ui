@@ -33,6 +33,14 @@ probe "kiroku /capabilities" "http://127.0.0.1:$STACK_KIROKU_PORT/capabilities"
 probe "pgmq /" "http://127.0.0.1:$STACK_PGMQ_PORT/"
 probe "keiro /health" "http://127.0.0.1:$STACK_KEIRO_PORT/health"
 probe "shibuya /health/live" "http://127.0.0.1:$STACK_SHIBUYA_PORT/health/live"
+probe "keiro /projection/status" "http://127.0.0.1:$STACK_KEIRO_PORT/projection/status?limit=1"
+# An ordinary database read: a stream with no snapshot answers 200 with JSON null.
+probe "keiro /snapshot/show" "http://127.0.0.1:$STACK_KEIRO_PORT/snapshot/show?stream=order-missing"
+# Hook-gated: only the default profile's jitsurei-ops-http mounts these.
+if [ "${1:-jitsurei}" != "mori" ]; then
+  probe "keiro /aggregate/types" "http://127.0.0.1:$STACK_KEIRO_PORT/aggregate/types"
+  probe "keiro /pm/types" "http://127.0.0.1:$STACK_KEIRO_PORT/pm/types"
+fi
 upgrade "ws kiroku /ws/events" "http://127.0.0.1:$STACK_KIROKU_PORT/ws/events"
 upgrade "ws kiroku /ws/metrics" "http://127.0.0.1:$STACK_KIROKU_PORT/ws/metrics"
 upgrade "ws pgmq /ws" "http://127.0.0.1:$STACK_PGMQ_PORT/ws"

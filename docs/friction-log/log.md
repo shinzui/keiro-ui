@@ -1,6 +1,10 @@
 # Bundle Update Log
 
 ## 2026-11-05
+* **Update**: FRIC-10 resolved: Resolve the missing review metadata through a verified, explicitly scoped catalog review.
+* **Update**: FRIC-9 accepted: Accept the existing derivation scope for this plan; preserve unrelated fixtures and pins.
+* **Addition**: FRIC-10 records detour documentation friction with mori://shinzui/keiro-ui: Strict capability validation requires previously absent reviews
+* **Addition**: FRIC-9 records detour tooling friction with mori://shinzui/keiro-ui: Fixture derivation rewrites unrelated surface fixtures
 * **Update**: FRIC-8 resolved: Triaged at the completion of EP-22
 * **Update**: FRIC-7 accepted: Triaged at the completion of EP-22
 * **Addition**: FRIC-8 records slowdown documentation friction with mori://shinzui/keiro-ui: Re-recording fixtures needs freshly seeded databases, which nothing said

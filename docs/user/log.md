@@ -1,5 +1,8 @@
 # Bundle Update Log
 
+## 2026-11-05
+* **Update**: Document exact retained workflow counts and category consumer metadata, coverage, manual refresh and unavailable hosts.
+
 ## 2026-11-04
 * **Update**: Aggregate pages show registers and, on request, a stored snapshot's contents.
 * **Update**: Projection pages name the feeding subscription when the keiro host reports it.

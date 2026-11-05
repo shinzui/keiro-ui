@@ -1,6 +1,18 @@
 ---
 title: Runtime overview and surface health
 type: Capability
+reviews:
+  - kind: model
+    reviewer: codex-cli/gpt-6.1-sol
+    reviewed_at: 2026-11-05T22:16:00Z
+    document_timestamp: 2026-11-05T22:10:00Z
+    scope: catalog-metadata
+    outcome: commented
+    context: Checked unique CAP handles, owning provider, workspace package names and evidence resource paths; this is not an independent behavioral review.
+    provider: openai
+    model: gpt-6.1-sol
+    effort: high
+timestamp: 2026-11-05T22:10:00Z
 description: One page that summarises a running keiro system across its four inspection surfaces and shows whether each surface answers.
 generated:
   by: claude-code/claude-opus-5-5
@@ -42,6 +54,12 @@ also shows keiro's health with its mutation gate.
 open /          → cards; click or keyboard into a section
 bottom bar      → a health dot per surface; pause/resume liveness
 ```
+
+Workflow totals are exact counts of retained current instance headers, including terminal
+instances, from Keiro 0.24's `/wf/inspect/counts`. All seven statuses retain every integer
+digit. Counts poll every 15 seconds under the shared pause/resume controls and show the
+server's observation time. Older hosts say exact counts are unavailable; failures show their
+code and message. Previously observed values carry a stale notice after a failed refresh.
 
 ## Limits
 

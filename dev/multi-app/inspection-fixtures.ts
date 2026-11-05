@@ -88,6 +88,17 @@ for (const [app, port] of [
       if (path === "/keiro/health")
         return Response.json({ status: "ok", schema_drift: [], mutations_enabled: true })
       if (path === "/keiro/wf/inspect/list") return Response.json(workflowPage())
+      if (path === "/keiro/wf/inspect/counts") {
+        const counts = read("keiro/workflow-counts.json")
+        counts.counts.running = app === "orders" ? 101 : 202
+        return Response.json(counts)
+      }
+      if (path === "/keiro/projection/consumers") {
+        const consumers = read("keiro/category-consumers-order.json")
+        consumers.category = url.searchParams.get("category")
+        consumers.items[0].name = `${app}-consumer`
+        return Response.json(consumers)
+      }
       const mutation = /^\/keiro\/timer\/(requeue|cancel)\/([^/]+)$/.exec(path)
       if (mutation && request.method === "POST") {
         const execute = body?.trim() !== ""

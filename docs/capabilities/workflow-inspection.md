@@ -1,6 +1,18 @@
 ---
 title: Durable workflow inspection
 type: Capability
+reviews:
+  - kind: model
+    reviewer: codex-cli/gpt-6.1-sol
+    reviewed_at: 2026-11-05T22:16:00Z
+    document_timestamp: 2026-11-05T22:10:00Z
+    scope: catalog-metadata
+    outcome: commented
+    context: Checked unique CAP handles, owning provider, workspace package names and evidence resource paths; this is not an independent behavioral review.
+    provider: openai
+    model: gpt-6.1-sol
+    effort: high
+timestamp: 2026-11-05T22:10:00Z
 description: Find keiro durable-workflow instances by filter and read an instance's step-grouped journal, steps, children, and awakeables.
 generated:
   by: claude-code/claude-opus-5-5
@@ -17,6 +29,9 @@ interface:
   - /workflows
   - "/workflows/<name>/<id>"
 evidence:
+  - kind: test
+    resource: apps/console/src/features/workflows/workflow-list.test.tsx
+    proves: Exact totals preserve digits beyond 2^53, scope only by workflow name and leave list paging usable when counts fail or are unavailable.
   - kind: test
     resource: apps/console/e2e/workflows/workflows.spec.ts
     proves: Filters round-trip through the URL and survive reload; paging works both ways; a feed update changes a row's badge live; detail tabs and the journal-entry sheet are URL state.
@@ -42,6 +57,13 @@ steps, child workflows, and awakeables.
 /workflows?status_class=failed      → failed instances, live first page
 /workflows/<name>/<id>?tab=journal  → step-grouped journal
 ```
+
+The status summary shows exact totals for all retained workflows, or only the exact,
+case-sensitive workflow name selected. Status, time, ordering and page filters apply to the
+list independently. The seven totals include terminal headers and carry their server
+observation time; they are not historical event totals. Counts poll every 15 seconds and
+respect pause/resume. Missing counts on older hosts, or failed count reads, leave the list
+usable and never become fabricated zeroes.
 
 ## Limits
 

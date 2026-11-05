@@ -1,4 +1,5 @@
 ---
+timestamp: 2026-11-05T22:10:00Z
 type: Reference
 title: Console reference
 description: Every section of the keiro runtime console with its URLs and the surfaces it reads, plus keyboard shortcuts and connection-profile fields.
@@ -23,7 +24,7 @@ filters, sort, and tabs in the URL, so a link reopens the same view.
 | Workflows                  | `/workflows`, `/workflows/<name>/<id>`                         | keiro, kiroku            |
 | Process Managers & Timers  | `/process-managers`, `/process-managers/<name>/<correlation>`, `/timers` | keiro          |
 | Projections & Read Models  | `/projections`, `/projections/<group>`, `/shards`              | keiro, kiroku            |
-| Streams & Subscriptions    | `/streams`, `/categories`, `/events`, `/subscriptions` and their detail pages | kiroku    |
+| Streams & Subscriptions    | `/streams`, `/categories`, `/events`, `/subscriptions` and their detail pages | kiroku, optional keiro metadata |
 | Queues & Processors        | `/queues`, `/queues/<name>`, `/processors`, `/processors/<id>` | pgmq, shibuya, keiro     |
 | Settings                   | `/settings/connections`                                        | none                     |
 
@@ -119,3 +120,23 @@ Missing surfaces show “Not configured for this application” and send no requ
 but unreachable surface shows connectivity failure instead. Only the selected app is polled.
 For runtime loading, gateway policy and separate-origin CORS, see
 [Deploying the console](deployment.md).
+
+## Workflow totals and category declarations
+
+Overview shows exact retained workflow totals for all seven statuses. Workflows shows the
+same summary scoped only by its exact, case-sensitive workflow name, when selected. Status
+and time filters, ordering, and pages affect the list independently. Counts include retained
+terminal instance headers, poll every 15 seconds, respect pause/resume, and show the server's
+observation time. Hosts without counts say so; errors expose their code and message. A failed
+refresh can retain prior values with their original time and a stale notice.
+
+On a category detail, **Declared consumers** shows matching mounted configuration from
+Keiro, with projection and durable metadata coverage stated separately. Each declaration
+shows every binding, delivery mode and source scope, linking available groups and named
+subscriptions to their existing screens in the selected application. These declarations do
+not report worker health or delivery progress. No matches in partial metadata is not proof
+that no other consumers exist. Use **Refresh consumers** to fetch page one again; consumer
+pagination is independent of event pages and live following and does not poll while idle.
+A changed inventory or expired cursor restarts only the consumer panel. Missing Keiro
+configuration, unavailable discovery routes and read failures leave events usable. A server
+result-size refusal is an error, not a truncated inventory.

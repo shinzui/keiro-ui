@@ -365,7 +365,9 @@ async function main() {
     ),
   }
   meta.recorded_at = new Date().toISOString()
-  meta.seed = `keiro just jitsurei-all (keiro ${gitHead(env.KEIRO_REPO)}) + dev/seed-queues.sh`
+  // Recording one surface does not imply that the database was seeded again.
+  if (!meta.seed || selected.length === surfaces.length)
+    meta.seed = `keiro just jitsurei-all (keiro ${gitHead(env.KEIRO_REPO)}) + dev/seed-queues.sh`
   meta.files = Object.fromEntries(
     Object.entries(meta.files).toSorted(([a], [b]) => a.localeCompare(b)),
   )

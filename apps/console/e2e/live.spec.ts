@@ -145,3 +145,40 @@ test("a credit-limit aggregate shows registers, then its stored snapshot on requ
     .click()
   await expect(main.getByTestId("stored-snapshot-none")).toBeVisible()
 })
+
+test("exact workflow counts and category declarations use the released reads", async ({
+  page,
+  request,
+}) => {
+  const countsRead = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname.endsWith("/wf/inspect/counts") && response.status() === 200,
+  )
+  await page.goto("/")
+  const counts = (await (await countsRead).json()).counts
+  await expect(page.getByTestId("card-workflows-headline")).toHaveText(String(counts.running))
+  const subtitle = page.getByTestId("card-workflows-subtitle")
+  for (const status of ["retrying", "sleeping", "awaiting", "completed", "cancelled", "failed"]) {
+    await expect(subtitle).toContainText(`${status} ${counts[status]}`)
+  }
+  const api = await (await request.get("/keiro/wf/inspect/counts")).json()
+  expect(api.counts).toEqual(counts)
+  const consumersRead = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname.endsWith("/projection/consumers") &&
+      response.status() === 200,
+  )
+  await page.goto("/categories/order")
+  expect((await (await consumersRead).json()).category).toBe("order")
+  const panel = page.getByRole("region", { name: "Declared consumers" })
+  await expect(panel).toContainText("Durable subscriber metadata: unavailable")
+  await expect(panel).toContainText("inline")
+  await expect(
+    panel.getByRole("link", { name: "jitsurei-order-audit-subscription", exact: true }),
+  ).toBeVisible()
+  await panel.getByRole("link", { name: "jitsurei-order-reporting", exact: true }).click()
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("jitsurei-order-reporting")
+  await page.goto("/categories/creditLimit")
+  await expect(panel).toContainText("No matching consumers in the reported metadata")
+  await expect(panel).toContainText("Durable subscriber metadata: unavailable")
+})

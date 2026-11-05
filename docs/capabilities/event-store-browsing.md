@@ -1,6 +1,18 @@
 ---
 title: Event store browsing
 type: Capability
+reviews:
+  - kind: model
+    reviewer: codex-cli/gpt-6.1-sol
+    reviewed_at: 2026-11-05T22:16:00Z
+    document_timestamp: 2026-11-05T22:10:00Z
+    scope: catalog-metadata
+    outcome: commented
+    context: Checked unique CAP handles, owning provider, workspace package names and evidence resource paths; this is not an independent behavioral review.
+    provider: openai
+    model: gpt-6.1-sol
+    effort: high
+timestamp: 2026-11-05T22:10:00Z
 description: Browse kiroku's streams, categories, global log, events, and subscriptions, with a live tail of new events and subscription checkpoints and dead letters.
 generated:
   by: claude-code/claude-opus-5-5
@@ -13,12 +25,16 @@ since: "0.1.0"
 packages:
   - "@keiro-ui/console"
   - "@keiro-ui/client-kiroku"
+  - "@keiro-ui/client-keiro"
 interface:
   - /streams
   - /categories
   - /events
   - /subscriptions
 evidence:
+  - kind: test
+    resource: apps/console/src/features/streams/category-consumers.test.tsx
+    proves: Declared consumers preserve coverage, every binding, independent paging, cursor recovery and unavailable or failed reads while events remain usable.
   - kind: test
     resource: apps/console/e2e/streams/streams.spec.ts
     proves: Streams page by cursor and filter by category; a stream's events open in a sheet that survives reload; categories list their events.
@@ -48,6 +64,15 @@ the store head, and its dead letters.
 /events                     → the $all log, newest first, following new events
 /subscriptions/<name>       → checkpoint, distance to head, dead letters
 ```
+
+Category details also read Keiro's declared consumers for the open category. The panel
+reports mounted configuration, with separate projection-catalog and durable-subscriber
+coverage, every matching binding and its exact source, and links to projection groups and
+named subscriptions. It describes neither worker health nor delivery progress. Empty
+metadata means no matches within the reported coverage. **Refresh consumers** manually
+restarts its independent pagination; metadata does not poll while idle. A changed inventory
+or expired cursor restarts only consumer pagination. Missing Keiro configuration, unavailable
+routes on older hosts, and failures remain visible while event inspection stays usable.
 
 ## Limits
 

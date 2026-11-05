@@ -36,8 +36,10 @@ probe "shibuya /health/live" "http://127.0.0.1:$STACK_SHIBUYA_PORT/health/live"
 probe "keiro /projection/status" "http://127.0.0.1:$STACK_KEIRO_PORT/projection/status?limit=1"
 # An ordinary database read: a stream with no snapshot answers 200 with JSON null.
 probe "keiro /snapshot/show" "http://127.0.0.1:$STACK_KEIRO_PORT/snapshot/show?stream=order-missing"
-# Hook-gated: only the default profile's jitsurei-ops-http mounts these.
+# Default-profile feature probes; the standalone Mori host omits consumer metadata hooks.
 if [ "${1:-jitsurei}" != "mori" ]; then
+  probe "keiro workflow counts" "http://127.0.0.1:$STACK_KEIRO_PORT/wf/inspect/counts"
+  probe "keiro category consumers" "http://127.0.0.1:$STACK_KEIRO_PORT/projection/consumers?category=order&limit=100"
   probe "keiro /aggregate/types" "http://127.0.0.1:$STACK_KEIRO_PORT/aggregate/types"
   probe "keiro /pm/types" "http://127.0.0.1:$STACK_KEIRO_PORT/pm/types"
 fi

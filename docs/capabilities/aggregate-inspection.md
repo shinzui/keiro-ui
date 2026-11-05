@@ -1,6 +1,18 @@
 ---
 title: Aggregate inspection
 type: Capability
+timestamp: 2026-11-05T22:16:00Z
+reviews:
+  - kind: model
+    reviewer: codex-cli/gpt-6.1-sol
+    reviewed_at: 2026-11-05T22:16:00Z
+    document_timestamp: 2026-11-05T22:16:00Z
+    scope: catalog-metadata
+    outcome: commented
+    context: Checked unique CAP handles, owning provider, workspace package names and evidence resource paths; this is not an independent behavioral review.
+    provider: openai
+    model: gpt-6.1-sol
+    effort: high
 description: Browse the aggregate kinds a keiro host registers and open an instance as its raw events beside the state keiro folded from them, its registers, and on request what its stored snapshot holds.
 generated:
   by: claude-code/claude-opus-5-5

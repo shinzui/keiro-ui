@@ -318,3 +318,54 @@ test("identical queue and processor IDs resolve to each app's own data when conf
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("detailed")
   }
 })
+
+test("workflow counts and category consumers follow target selection and reject late reads", async ({
+  page,
+  request,
+}) => {
+  await request.post(fixture("orders", "/__control"), { data: { delayMs: 1000 } })
+  await page.goto("categories/order?target=prod-orders")
+  await expect
+    .poll(async () =>
+      (await (await request.get(fixture("orders", "/__journal"))).json()).some(
+        (r: any) => r.path === "/keiro/projection/consumers",
+      ),
+    )
+    .toBe(true)
+  await page.getByRole("combobox", { name: "Application" }).selectOption("prod-billing")
+  await expect(page.getByTestId("card-workflows-headline")).toHaveText("202")
+  await page.goto("categories/order?target=prod-billing")
+  const panel = page.getByRole("region", { name: "Declared consumers" })
+  await expect(panel).toContainText("billing-consumer")
+  await page.waitForTimeout(1200)
+  await expect(panel).not.toContainText("orders-consumer")
+  await panel.getByRole("link", { name: "jitsurei-order-reporting", exact: true }).click()
+  await expect(page).toHaveURL(/projections\/jitsurei-order-reporting\?target=prod-billing/)
+  await request.post(fixture("orders", "/__control"), { data: { delayMs: 0 } })
+  await page.goto("categories/order?target=prod-orders")
+  await expect(panel).toContainText("orders-consumer")
+  await page.goto("?target=prod-orders")
+  await expect(page.getByTestId("card-workflows-headline")).toHaveText("101")
+
+  // Delayed counts from Orders must also stay in their retired session.
+  await request.post(fixture("orders", "/__control"), { data: { delayMs: 1000 } })
+  await page.reload()
+  await page.getByRole("combobox", { name: "Application" }).selectOption("prod-billing")
+  await expect(page.getByTestId("card-workflows-headline")).toHaveText("202")
+  await page.waitForTimeout(1200)
+  await expect(page.getByTestId("card-workflows-headline")).toHaveText("202")
+
+  const config = JSON.parse(originalConfig)
+  delete config.targets[1].surfaces.keiro
+  writeFileSync(configPath(), JSON.stringify(config))
+  await page.reload()
+  const before = (await (await request.get(fixture("billing", "/__journal"))).json()).filter(
+    (r: any) => r.path.startsWith("/keiro/"),
+  ).length
+  await page.goto("categories/order?target=prod-billing")
+  await expect(panel).toContainText("Keiro inspection is not configured")
+  const after = (await (await request.get(fixture("billing", "/__journal"))).json()).filter(
+    (r: any) => r.path.startsWith("/keiro/"),
+  ).length
+  expect(after).toBe(before)
+})

@@ -1,6 +1,18 @@
 ---
 title: Timer ledger
 type: Capability
+timestamp: 2026-11-05T22:16:00Z
+reviews:
+  - kind: model
+    reviewer: codex-cli/gpt-6.1-sol
+    reviewed_at: 2026-11-05T22:16:00Z
+    document_timestamp: 2026-11-05T22:16:00Z
+    scope: catalog-metadata
+    outcome: commented
+    context: Checked unique CAP handles, owning provider, workspace package names and evidence resource paths; this is not an independent behavioral review.
+    provider: openai
+    model: gpt-6.1-sol
+    effort: high
 description: Page keiro's pending timers live with manager and correlation filters, and find stuck timers by age and attempt count.
 generated:
   by: claude-code/claude-opus-5-5

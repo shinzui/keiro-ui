@@ -71,6 +71,26 @@ tests rely on what a single seed produces, such as how many pages a list has:
   and run `bash dev/seed-queues.sh`, so that `dlq_orders` holds the oldest message and `console_demo` the
   most visible ones.
 
+### Workflow counts and declared consumers
+
+Build Keiro 0.24.0.0 or later and restart the host before recording the new reads.
+`just stack-check` probes `/wf/inspect/counts` and
+`/projection/consumers?category=order&limit=100` for the default example profile.
+The standalone Mori profile does not mount consumer metadata hooks, so those two
+feature probes are omitted there.
+
+For these additive reads, use `bun run fixtures:record keiro` and
+`bun run --filter @keiro-ui/testing derive` without reseeding or changing entity pins.
+Targeted recording preserves the original seed description and untouched surface provenance;
+the Keiro source commit identifies the rebuilt recording host. Derivation still processes all
+surfaces: inspect its diff and preserve unrelated fixtures and entity pins. The manifest
+records global, pinned-name and missing-name counts, `order` and `creditLimit` consumer
+metadata, and the invalid consumer cursor refusal. Review
+statuses: five successes must be 200 and the invalid cursor must be 400. The example
+reports projection coverage available and durable metadata unavailable; an empty
+`creditLimit` result means no matches in that reported metadata. A `limit=1` response
+need not have another page. Synthetic tests supply multi-page cases.
+
 ## The mori profile
 
 `just stack-up mori` runs the same four surfaces against a local

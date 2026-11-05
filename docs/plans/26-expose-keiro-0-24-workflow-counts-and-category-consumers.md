@@ -52,12 +52,12 @@ zeroes. This plan adds reads only; it does not release the console or add operat
 - [x] M1 (2026-11-05): Both public clients decode the rebuilt 0.24.0.0 example host at `ec47c922`; all four live checks pass. Six new fixtures have five HTTP 200 responses and one HTTP 400 invalid cursor. Client/testing suites pass 193 checks, including synthetic pagination, exact integers, validation and availability. Existing entity pins and unrelated surface bytes are preserved.
 - [x] M2 (2026-11-05): Overview uses exact counts without a list read; Workflows shows all seven totals with exact-name scope, observation time, stale/error and unavailable states. Focused unit and browser checks pass, including digits above 2^53, list independence and a 16-second pause beyond the count poll interval. The live browser comparison matches all seven endpoint values.
 - [x] M3 (2026-11-05): Category details show recorded declarations and partial coverage with independent paging/refresh and useful target-preserving links. Thirteen panel checks cover every consumer/source kind, full/partial/zero coverage, unregistered groups, failures, cursor recovery and late category responses. Mock and live browser checks pass for order, its projection link and creditLimit.
-- [ ] M4: Mock and live browser checks prove both features, including deployment switching; capability and operator documentation describe the verified behavior.
+- [x] M4 (2026-11-05): Full checks pass: `bun run check`, 692 unit tests, production build, 60 browser tests, 10 multi-app tests, 4 live client tests and 6 read-only live browser tests (2 mutating cases intentionally skipped). All stack probes pass, including the two default-profile reads. Strict validation passes for 11 capabilities, 5 user documents and 10 friction entries. Operator/client/development documentation is updated; live screenshots were inspected.
 
-Implementation (2026-11-05): All feature behavior is verified against the running default stack
-without reseeding. The fixture source identifies `ec47c922`; the original database seed
-description remains unchanged. Final documentation/friction triage and completion recording
-remain for M4.
+Completion (2026-11-05): All four milestones are verified against the default example stack
+without reseeding. Fixture source `ec47c922` identifies the rebuilt host; the original seed
+description remains unchanged. The running stack and console dev server remain available
+for local inspection.
 
 
 ## Surprises & Discoveries
@@ -75,6 +75,35 @@ remain for M4.
 
 
 ## Outcomes & Retrospective
+
+Completed 2026-11-05. Overview and Workflows now display exact, lossless retained status
+totals from the released endpoint, with explicit name scope and honest failed/absent reads.
+Category details expose only the open category's declared consumers, every matching binding,
+coverage and links, with manual refresh and paging isolated from events. Deployment switching
+and late responses remain isolated by the existing connection-session layer; no layer change
+was needed. The live seed showed two completed workflows, one order projection group and an
+empty creditLimit inventory with durable metadata unavailable. Synthetic checks provide the
+large-count, multiple-page, coverage, failure and inventory-change cases absent from that seed.
+
+The final validation passed `just stack-check`, `bun run check`, `bun run test` (692 passed,
+14 opt-in cases skipped), `bun run build`, `bun run test:e2e` (60 passed),
+`bun run test:e2e:multi-app` (10 passed), live client reads (4 passed), and the read-only live
+browser gate (6 passed, 2 mutating cases skipped). Strict capability and user bundle checks
+passed. The recorder-only provenance follow-up also passed all 143 testing-package checks.
+Existing lint warnings and jsdom layout warnings do not fail checks. Screenshots of the live
+category and workflow screens were visually reviewed at 1440 × 1000.
+
+FRIC-9 in `docs/friction-log/` is **accepted**: derivation still operates across all surfaces;
+its output was reviewed and unrelated bytes restored, and the development guide now names
+that constraint. FRIC-10 is **resolved**: the catalog's missing recommended review metadata
+was supplied through an actual bounded metadata review, retaining strict enforcement and
+making no independent behavioral approval claim.
+
+ADR distillation reviewed the decisions and discoveries against ADR-5, ADR-7, ADR-10,
+ADR-11, ADR-12, ADR-13 and ADR-15. Their direct-client ownership, exact-integer, honest-error,
+query-liveness and disposable-session rules already cover the implementation. No new
+architectural boundary or durable exception was established, so no ADR changed. No release,
+upstream edit, migration, new mutation or database reseed was performed.
 
 
 ## Context and Orientation

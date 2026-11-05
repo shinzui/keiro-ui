@@ -1,6 +1,6 @@
 {
   "recorded_at": "2026-11-05T22:08:14.818Z",
-  "seed": "keiro just jitsurei-all (keiro ec47c922) + dev/seed-queues.sh",
+  "seed": "keiro just jitsurei-all (keiro 9da47eb7) + dev/seed-queues.sh",
   "sources": {
     "kiroku": {
       "commit": "aa2c6ab"

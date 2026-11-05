@@ -273,7 +273,8 @@ the more specific `/shibuya` and `/console` blocks come before the catch-all.
 Keep the browser's `Host` header (Caddy does by default). keiro admits a `/keiro/ws` upgrade
 whose `Origin` equals the request's own `scheme://Host`. Build the bundle with
 `VITE_BASE_PATH=/console/`. The default "Same origin" connection profile then needs no
-configuration.
+configuration. Configure the mounted kiroku application's `corsAllowOrigins` with the page's public
+origin: kiroku-metrics 0.4 refuses a browser's WebSocket upgrade otherwise, including on one origin.
 
 ## Step 7: verify
 

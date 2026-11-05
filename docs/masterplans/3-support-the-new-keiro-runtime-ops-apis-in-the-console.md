@@ -98,7 +98,7 @@ routes follow its command grammar.
 
 | # | Title | Path | Hard Deps | Soft Deps | Status |
 |---|-------|------|-----------|-----------|--------|
-| 22 | Align the console stack and fixtures with the current runtime cohort | docs/plans/22-align-the-console-stack-and-fixtures-with-the-current-runtime-cohort.md | None | None | In Progress |
+| 22 | Align the console stack and fixtures with the current runtime cohort | docs/plans/22-align-the-console-stack-and-fixtures-with-the-current-runtime-cohort.md | None | None | Complete |
 | 23 | List mounted process managers from the ops catalog | docs/plans/23-list-mounted-process-managers-from-the-ops-catalog.md | EP-22 | None | Not Started |
 | 24 | Show feeding subscriptions on projection groups | docs/plans/24-show-feeding-subscriptions-on-projection-groups.md | EP-22 | None | Not Started |
 | 25 | Inspect registers and stored snapshots on aggregates | docs/plans/25-inspect-registers-and-stored-snapshots-on-aggregates.md | EP-22 | None | Not Started |
@@ -161,8 +161,8 @@ describe changes those plans first.
 
 ## Progress
 
-EP-22 is In Progress: its Milestone 1 producer/consumer check passed against keiro `9da47eb7` and changes none of the
-sibling plans' shapes. EP-23, EP-24, and EP-25 wait on EP-22.
+EP-22 is Complete: the stack runs the current checkouts, fixtures are recorded from it, and its producer/consumer check
+against keiro `9da47eb7` changed none of the sibling plans' shapes. EP-23, EP-24, and EP-25 are ready.
 
 Integration gate, outside any single child: with all children complete, `cd apps/console && bunx playwright test
 --config playwright.live.config.ts` passes against the stack with `/aggregates`, `/process-managers`, and
@@ -185,6 +185,14 @@ Integration gate, outside any single child: with all children complete, `cd apps
 - 2026-11-04: `mori path` failed on this machine while drafting because its extension manifest database connection was
   unavailable, while `mori registry list` worked. The `mori://` URIs in these plans follow the conventions already
   used in this repository and should be resolved with `mori path` when it is available.
+
+- 2026-11-04: Feed failures are invisible on screen because polling carries the data. EP-22 found kiroku's origin refusal
+  and keiro's unretried `view_retiring` this way, and both needed a test that watches the socket. EP-24 touches a feed
+  and should do the same.
+
+- 2026-11-04: Fixtures need freshly seeded databases: `jitsurei-all` appends and the simulator ages `pgmq_dev`. A later
+  reseed follows `dev/README.md` "Re-recording fixtures". The live managed group is fed by
+  `jitsurei-order-audit-subscription`, which has no checkpoints in the seed, so its live position shows no members.
 
 
 ## Decision Log
@@ -209,6 +217,12 @@ Integration gate, outside any single child: with all children complete, `cd apps
 
 - Decision: Align the stack and record fixtures in one prerequisite plan, a whole-child hard dependency for all features.
   Rationale: recording is single-writer and every feature's mock data and live acceptance come from it.
+  Date: 2026-11-04
+
+
+- Decision: The kiroku origin rule stays in the deployment guide, with no amendment to ADR-9.
+  Rationale: ADR-9 already says same-origin deployment does not remove upstream Origin checks and that each owner must be
+  configured with the public origin. kiroku-metrics 0.4 is an instance of that rule, so only the guide was wrong.
   Date: 2026-11-04
 
 

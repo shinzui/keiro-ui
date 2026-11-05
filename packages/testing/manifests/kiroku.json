@@ -55,9 +55,7 @@
       "query": {
         "limit": "100"
       },
-      "needs": [
-        "subscription"
-      ]
+      "needs": ["subscription"]
     },
     {
       "slug": "streams",
@@ -150,23 +148,17 @@
     {
       "slug": "event-with-causation",
       "path": "/events/{event_with_causation}",
-      "needs": [
-        "event_with_causation"
-      ]
+      "needs": ["event_with_causation"]
     },
     {
       "slug": "event-cause",
       "path": "/events/{event_cause}",
-      "needs": [
-        "event_cause"
-      ]
+      "needs": ["event_cause"]
     },
     {
       "slug": "event-causation-unresolved",
       "path": "/events/{event_causation_unresolved}",
-      "needs": [
-        "event_causation_unresolved"
-      ]
+      "needs": ["event_causation_unresolved"]
     },
     {
       "slug": "event",

@@ -115,9 +115,7 @@
       "query": {
         "subscription": "{subscription}"
       },
-      "needs": [
-        "subscription"
-      ]
+      "needs": ["subscription"]
     },
     {
       "slug": "shards",
@@ -129,9 +127,7 @@
       "query": {
         "subscription": "{subscription}"
       },
-      "needs": [
-        "subscription"
-      ]
+      "needs": ["subscription"]
     },
     {
       "slug": "stream-show",

@@ -56,9 +56,10 @@ servers refuse. No new screen is added here; the sibling plans add them.
   aggregate and process-manager bodies are replaced by recorded ones, and `bun run test` passes (632
   tests), with `bun run test:e2e` (56) and `bun run test:e2e:multi-app` (9). Three refusal bodies stay
   derived; see Surprises & Discoveries.
-- [ ] M3: Each upstream behaviour change listed in Plan of Work has been checked and either fixed or
-  recorded as not applicable; the deployment guide, client READMEs, and client-pgmq's OpenAPI copy
-  are current; `bun run check`, `bun run test`, and the Playwright suites pass.
+- [x] M3 (2026-11-04): Each upstream behaviour change listed in Plan of Work has been checked and either
+  fixed or recorded as not applicable; the deployment guide, client READMEs, and client-pgmq's OpenAPI copy
+  are current; `bun run check`, `bun run test`, and the Playwright suites pass, including the production
+  smoke (`CONSOLE_PORT=8088`) and the live config.
 
 
 ## Surprises & Discoveries
@@ -77,7 +78,8 @@ servers refuse. No new screen is added here; the sibling plans add them.
   recording over the accumulated database (95 events, stale 2026-10-21 rows) failed 8 tests on page counts
   and first rows. `pgmq_dev` had drifted the same way, with 154 dead letters from the simulator. So the
   fixtures come from a new `jitsurei` (31 events) and reset demo queues, and `dev/README.md` now documents
-  this as "Re-recording fixtures". The earlier database is kept as `jitsurei_before_ep22`, not dropped.
+  this as "Re-recording fixtures" (FRIC-8 in `docs/friction-log/`). The earlier database is kept as
+  `jitsurei_before_ep22`, not dropped.
 
 - 2026-11-04: The acceptance line "no `derived: true` on `keiro/aggregate-*` or `keiro/pm-*`" holds for every
   body a hook-mounting host can produce. Three refusals cannot be recorded from it, and stay derived from a
@@ -92,6 +94,44 @@ servers refuse. No new screen is added here; the sibling plans add them.
 
 - 2026-11-04: Added `aggregate-list-credit-limit`, beyond the listed slugs, so a screen can reach the register
   aggregate from its list in mock mode.
+
+
+- 2026-11-04, kiroku origin (fixed): Proved on a second kiroku-inspect with no allow-list: an upgrade with
+  `Origin` gets `403 origin_not_allowed`, and one without gets 101. pgmq-inspect and the shibuya example answer
+  101 to a foreign `Origin`, and keiro answers 101 to its own `Host` and 403 otherwise, so kiroku is the only
+  server Recipe A must configure. Recipes A and B, the Caddy and nginx examples, and
+  `docs/user/application-integration.md` now say so. `docs/deployment/kubernetes/README.md` already requires the
+  public origin at each upstream, and ADR-9 already states that upstream Origin checks remain, so neither
+  changes. A new production test receives `/ws/events` frames through Caddy, and is refused when run from an
+  origin kiroku does not list (`CONSOLE_PORT=8089`).
+
+- 2026-11-04, `view_retiring` (fixed): keiro sends it on `subscribe` while a view's last subscriber is still
+  being cleaned up, and its guide says to retry. The console treated it as a generic error, so a quick return to
+  a screen left a socket with no subscription, reporting `live` on polling alone, until the next reconnect.
+  Dialects now name retryable codes, and `openFeed` re-sends with backoff.
+
+- 2026-11-04, keiro 0.22's other errors (not applicable): `403 origin_not_allowed` reaches the console through the
+  shared error handling, as it did before. `415 unsupported_media_type` cannot arise from the console, because
+  `packages/client-core/src/http.ts` sends `application/json` with every body.
+
+- 2026-11-04, reaction provenance (no change needed): The recorded `pm-show.json` has `provenance: null` and
+  `provenance_status: "unavailable"`; `LastReactionCard.tsx` already renders it as information, and the
+  `process-managers` Playwright spec passes against the recording.
+
+- 2026-11-04, shibuya control (no console change): The rebuilt consumer serves `/control` as
+  `{"enabled":false,"operations":["pause","resume"]}` and refuses a pause with `403 control_disabled`, so both are
+  recorded instead of derived, and the live suite asserts the disabled gate with its reason. It still serves only
+  basic metrics, so `/metrics` stays derived from the golden file.
+
+- 2026-11-04, pgmq-inspect 0.7.0.0 (copied): The `jq -S` diff of the OpenAPI document shows only the version
+  string; the client's generated types and tests are unchanged.
+
+- 2026-11-04, stale text (corrected): `packages/client-keiro/README.md`, `REDRIVE_UNAVAILABLE`, and the comments in
+  `dev/process-compose.yaml` and `scripts/derive.ts`.
+
+- 2026-11-04: Port 8080 on this machine is held by a running Redpanda Console container, and the production
+  Playwright config's `reuseExistingServer` silently tests whatever answers there, so `just smoke-production`
+  fails in confusing ways (FRIC-7 in `docs/friction-log/`). The stack allow-lists 8088 too, for this reason.
 
 
 ## Decision Log
@@ -114,7 +154,20 @@ servers refuse. No new screen is added here; the sibling plans add them.
 
 ## Outcomes & Retrospective
 
-(To be filled during and after implementation.)
+Complete on 2026-11-04. Port 9093 now runs `jitsurei-ops-http` built from the current checkouts, and aggregate and
+process-manager fixtures are recorded from it, so `/aggregates` and `/process-managers/jitsurei-fulfillment` show
+live data and nothing says "not mounted". The new bodies the feature plans consume are in place under the agreed
+slugs. Final evidence: `bun run check`; `bun run test` (632 passed, 13 skipped); `bun run test:e2e` (56);
+`bun run test:e2e:multi-app` (9); `CONSOLE_PORT=8088 bun run test:e2e:production` (11); the live config (3 passed, 2
+mutating tests skipped by design).
+
+The audit found one real console defect, the unretried `view_retiring` refusal, and one false deployment claim, the
+kiroku origin rule. Both would have been invisible on screen because polling carries the data, so each now has a
+test of the socket itself. The lesson for later plans is that a poll-backed feed fails silently, so a feed behaviour
+needs a test that watches the feed.
+
+Friction: FRIC-7 is accepted, since `CONSOLE_PORT` is a sufficient override for a machine-local conflict. FRIC-8 is
+resolved by the "Re-recording fixtures" section of `dev/README.md`.
 
 
 ## Context and Orientation

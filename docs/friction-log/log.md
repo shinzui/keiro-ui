@@ -1,5 +1,11 @@
 # Bundle Update Log
 
+## 2026-11-05
+* **Update**: FRIC-8 resolved: Triaged at the completion of EP-22
+* **Update**: FRIC-7 accepted: Triaged at the completion of EP-22
+* **Addition**: FRIC-8 records slowdown documentation friction with mori://shinzui/keiro-ui: Re-recording fixtures needs freshly seeded databases, which nothing said
+* **Addition**: FRIC-7 records detour tooling friction with mori://shinzui/keiro-ui: Production smoke silently tests whatever already answers on port 8080
+
 ## 2026-10-27
 * **Update**: FRIC-4 resolved: Verified sh scripts/smoke-kubernetes-container.sh on Apple Container; replace the previous Colima workaround with Apple-only local execution and reject other runtimes.
 

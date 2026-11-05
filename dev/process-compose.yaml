@@ -4,11 +4,16 @@
 version: "0.5"
 log_location: ./.dev/stack.log
 processes:
+  # kiroku-metrics refuses a browser's WebSocket upgrade unless its Origin is allow-listed, even
+  # through a same-origin proxy, so the dev/caddy/Caddyfile origins are listed beside Vite's: its
+  # default port and the alternative dev/caddy and the deployment guide suggest.
   kiroku-inspect:
     command: >-
       env DATABASE_URL="$STACK_DATABASE_URL"
       dev/bin/kiroku-inspect --schema kiroku --port $STACK_KIROKU_PORT
       --cors-origin "$STACK_CONSOLE_ORIGIN"
+      --cors-origin http://localhost:8080 --cors-origin http://127.0.0.1:8080
+      --cors-origin http://localhost:8088 --cors-origin http://127.0.0.1:8088
     readiness_probe:
       http_get: { host: 127.0.0.1, port: 9091, path: /health/live }
       period_seconds: 5

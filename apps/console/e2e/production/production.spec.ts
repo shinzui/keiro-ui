@@ -113,6 +113,29 @@ test.describe("tier 2", () => {
     await expect(page.getByTestId("projections-caption")).toContainText("live")
   })
 
+  // kiroku-metrics refuses an upgrade whose Origin is not allow-listed, even on one origin; no
+  // screen fails visibly because polling carries the data, so this asserts the socket itself.
+  test("the kiroku event feed sends frames through the proxy", async ({ page }) => {
+    await page.goto("./")
+    const frame = await page.evaluate(
+      () =>
+        new Promise<string>((resolve, reject) => {
+          const socket = new WebSocket(
+            new URL("/kiroku/ws/events", location.href).href.replace(/^http/, "ws"),
+          )
+          socket.addEventListener("open", () =>
+            socket.send(JSON.stringify({ type: "subscribe_events", from_position: 0 })),
+          )
+          socket.addEventListener("message", (event) => {
+            resolve(String(event.data))
+            socket.close()
+          })
+          socket.addEventListener("close", () => reject(new Error("the upgrade was refused")))
+        }),
+    )
+    expect(frame).toContain("event")
+  })
+
   test("pgmq queues answer from the page origin", async ({ page }) => {
     const response = page.waitForResponse((r) => new URL(r.url()).pathname === "/pgmq/queues")
     await page.goto("queues")

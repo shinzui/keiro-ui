@@ -49,3 +49,26 @@ test("every section renders against the live stack", async ({ page }) => {
   }
   expect(errors).toEqual([])
 })
+
+test("the stack's keiro host mounts aggregates and process managers", async ({ page }) => {
+  await page.goto("/aggregates")
+  const main = page.getByRole("main")
+  for (const name of ["credit-limit", "incident", "order"]) {
+    await expect(main.locator(`a[href^="/aggregates/${name}?"]`)).toBeVisible()
+  }
+  await expect(main.getByTestId("not-mounted")).toHaveCount(0)
+
+  await page.goto("/process-managers/jitsurei-fulfillment")
+  await expect(main.getByRole("link", { name: /^demo-/ }).first()).toBeVisible()
+  await expect(main.getByTestId("not-mounted")).toHaveCount(0)
+})
+
+test("a processor's Control card reports the host's disabled gate with its reason", async ({
+  page,
+}) => {
+  await page.goto("/processors/orders")
+  const control = page.getByRole("region", { name: "Control" })
+  await expect(control).toContainText("Control enabled: no")
+  await expect(control).toContainText("Control operations are disabled on the server")
+  await expect(control).not.toContainText("no control surface")
+})

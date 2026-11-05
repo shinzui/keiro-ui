@@ -1,5 +1,7 @@
 # Recipe A (docs/user/deployment.md): the console bundle at /console/ and four inspection servers
 # behind one origin. Replace /srv/console with the unpacked bundle and the ports with yours.
+# Caddy keeps the browser's Origin, so start kiroku-inspect with --cors-origin <this page's public
+# origin>, or kiroku-metrics refuses the browser's WebSocket upgrades with 403.
 :8080 {
 	redir /console /console/ 301
 

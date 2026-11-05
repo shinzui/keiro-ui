@@ -3,7 +3,7 @@ type: Guide
 title: Deploying the keiro runtime console
 description: Serve the static console bundle at any base path and make the four inspection surfaces reachable from it, on one origin behind a proxy, on a composing host, or on separate origins.
 docId: DOC-3
-timestamp: 2026-10-26T17:24:00Z
+timestamp: 2026-11-04T19:00:00Z
 tags: [deployment, reverse-proxy, cors, base-path, operator-actions]
 generated:
   by: claude-code/claude-opus-5-5
@@ -265,8 +265,10 @@ not proof of your gateway's authentication or cluster network enforcement.
 ## Recipe A — one origin, a reverse proxy in front of four servers
 
 The four inspection servers run on their own ports; a reverse proxy serves the bundle at
-`/console/` and forwards each surface prefix to its server with the prefix stripped. No server
-needs CORS and the console's default "Same origin" connection profile needs no configuration.
+`/console/` and forwards each surface prefix to its server with the prefix stripped. HTTP needs no
+CORS and the console's default "Same origin" connection profile needs no configuration. One
+server must still be told the page's origin: start kiroku-inspect with
+`--cors-origin https://ops.example` (see below).
 
 With Caddy (`deployment/Caddyfile.example`; Caddy forwards WebSocket upgrades and keeps the
 browser's `Host` header by default):
@@ -308,6 +310,14 @@ equals `scheme://Host` of the request it receives; nginx's default `Host` (`$pro
 every `/keiro/ws` upgrade a 403 `origin_not_allowed`. If your proxy cannot preserve `Host`,
 start keiro-ops-http with `--allow-origin https://console.example` as in recipe C.
 
+Allow-list the page's public origin at kiroku. Browsers send `Origin` on every WebSocket upgrade,
+including through a same-origin proxy, and kiroku-metrics 0.4 refuses an upgrade carrying any
+`Origin` it was not told about with 403 `origin_not_allowed`. Without
+`kiroku-inspect --cors-origin https://ops.example` (or `KIROKU_INSPECT_CORS_ORIGINS`), the Events
+screen's live feed never connects. It keeps working by polling, so this is easy to miss. Behind
+TLS termination, list the public `https://` origin, not the upstream's address. pgmq-inspect and
+the shibuya metrics server do not check the origin of an upgrade.
+
 The repository's `dev/caddy/Caddyfile` is this recipe for the local stack (`dev/README.md`):
 
 ```bash
@@ -316,7 +326,9 @@ caddy run --config dev/caddy/Caddyfile --adapter caddyfile   # from the reposito
 ```
 
 It listens on 8080 (`CONSOLE_PORT=8088 caddy run …` picks another port) and serves
-`apps/console/dist` (`CONSOLE_DIST` overrides it). Open `http://localhost:8080/console/`.
+`apps/console/dist` (`CONSOLE_DIST` overrides it). Open `http://localhost:8080/console/`. The
+stack's kiroku-inspect allow-lists ports 8080 and 8088 on `localhost` and `127.0.0.1`; add yours to
+`dev/process-compose.yaml` if you pick another port.
 
 ## Recipe B — one origin, the application already composes the surfaces
 
@@ -341,7 +353,9 @@ everything else:
 }
 ```
 
-`ComposeConfig.allowedOrigins` stays empty: the page and the surfaces share an origin. The host
+`ComposeConfig.allowedOrigins` stays empty: the page and the surfaces share an origin. Kiroku's own
+policy is separate: configure the mounted kiroku application's `corsAllowOrigins` with the page's
+public origin, or its WebSocket feeds refuse the browser as in recipe A. The host
 side is keiro's guide `docs/guides/compose-runtime-inspection-surfaces.md` in
 `mori://shinzui/keiro` (the artifact-level URI is pending).
 
@@ -360,7 +374,7 @@ server must then allow the console's origin, with its own setting:
 | keiro   | `keiro-ops-http --allow-origin https://console.example` (repeatable); a composed host sets `ComposeConfig.allowedOrigins` once, outside.                                                                       |
 
 The costs: four TLS endpoints, four allow-lists to keep in sync, and a CORS preflight before
-cross-origin requests. Recipes A and B have none of these.
+cross-origin requests. Recipes A and B need only kiroku's WebSocket origin.
 
 ## Operator actions
 

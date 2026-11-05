@@ -28,6 +28,11 @@ export interface Dialect<SubscribeArgs = void> {
   overflowCodes: string[]
   /** Any other frame that means the client must re-read (keiro sequence gaps). */
   isResync(frame: Frame): boolean
+  /**
+   * Error codes that refuse a subscription only until the server finishes cleanup (keiro's
+   * `view_retiring`); the socket stays up, so the refused subscription is re-sent with backoff.
+   */
+  retrySubscribeCodes?: string[]
 }
 
 export interface FeedHandle<SubscribeArgs = void> {
@@ -70,8 +75,9 @@ function sameArgs(a: unknown, b: unknown): boolean {
  * Connects immediately and keeps the connection up: full-jitter exponential backoff from
  * 500 ms, doubling, capped at 30 s, reset after 10 s open. Subscriptions are remembered and
  * re-sent after every reconnect, followed by `onResync({code: "reconnected"})`, because
- * frames may have been missed. `goodbye` only marks the close as server-initiated. Unknown
- * frame types and non-object messages are ignored.
+ * frames may have been missed. A `retrySubscribeCodes` refusal re-sends the subscriptions it
+ * names on the same socket, with the same backoff, until a snapshot arrives. `goodbye` only marks
+ * the close as server-initiated. Unknown frame types and non-object messages are ignored.
  */
 export function openFeed<SubscribeArgs = void>(
   options: FeedOptions<SubscribeArgs>,
@@ -91,6 +97,8 @@ export function openFeed<SubscribeArgs = void>(
   let connectedOnce = false
   let reconnectTimer: ReturnType<typeof setTimeout> | undefined
   let resetTimer: ReturnType<typeof setTimeout> | undefined
+  let retrySubscribeTimer: ReturnType<typeof setTimeout> | undefined
+  let retrySubscribeAttempt = 0
 
   const setStatus = (next: FeedStatus, detail?: { serverGoodbye: boolean }) => {
     status = next
@@ -101,14 +109,30 @@ export function openFeed<SubscribeArgs = void>(
     if (frame && socket && socket.readyState === Socket.OPEN) socket.send(serializeJson(frame))
   }
 
+  const retrySubscribe = (refusal: Frame) => {
+    clearTimeout(retrySubscribeTimer)
+    const ceiling = Math.min(maxMs, initialMs * 2 ** retrySubscribeAttempt)
+    retrySubscribeAttempt += 1
+    retrySubscribeTimer = setTimeout(() => {
+      for (const args of subscriptions) {
+        const frame = dialect.subscribe(args)
+        // A refusal without a feed name could be about any subscription on this socket.
+        if (refusal.feed === undefined || frame?.feed === refusal.feed) sendRaw(frame)
+      }
+    }, ceiling)
+  }
+
   const dispatch = (frame: Frame) => {
     const types = dialect.frameTypes
-    if (frame.type === types.snapshot) options.onSnapshot(frame)
-    else if (frame.type === types.delta) options.onDelta(frame)
+    if (frame.type === types.snapshot) {
+      retrySubscribeAttempt = 0
+      options.onSnapshot(frame)
+    } else if (frame.type === types.delta) options.onDelta(frame)
     else if (frame.type === types.error) {
       const code = typeof frame.code === "string" ? frame.code : ""
       if (dialect.overflowCodes.includes(code) || dialect.isResync(frame))
         options.onResync({ code, frame })
+      else if (dialect.retrySubscribeCodes?.includes(code)) retrySubscribe(frame)
       else options.onError?.(frame)
     } else if (frame.type === types.goodbye) serverGoodbye = true
     else if (frame.type === types.pong) return
@@ -146,6 +170,9 @@ export function openFeed<SubscribeArgs = void>(
     current.addEventListener("close", () => {
       if (closedByUser || socket !== current) return
       clearTimeout(resetTimer)
+      // Reconnecting re-sends every subscription anyway.
+      clearTimeout(retrySubscribeTimer)
+      retrySubscribeAttempt = 0
       socket = null
       if (closedByUser) {
         setStatus("closed")
@@ -179,6 +206,7 @@ export function openFeed<SubscribeArgs = void>(
       closedByUser = true
       clearTimeout(reconnectTimer)
       clearTimeout(resetTimer)
+      clearTimeout(retrySubscribeTimer)
       if (socket) socket.close()
       socket = null
       setStatus("closed")

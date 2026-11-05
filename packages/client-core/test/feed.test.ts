@@ -141,3 +141,32 @@ test("close() stops reconnecting", async () => {
   expect(server.connections()).toBe(1)
   expect(statuses.at(-1)).toBe("closed")
 })
+
+test("a retrySubscribeCodes refusal re-sends only the named subscription, not onError", async () => {
+  const received: Frame[] = []
+  const server = await scriptedServer((socket) => {
+    socket.on("message", (data) => {
+      const frame = JSON.parse(String(data)) as Frame
+      received.push(frame)
+      if (received.length === 2)
+        socket.send('{"type":"error","code":"retiring","queue":"b","feed":"b"}')
+    })
+  })
+  cleanups.push(server.close)
+  const { calls, callbacks } = recorder()
+  const feed = openFeed({
+    url: server.url,
+    dialect: {
+      ...testDialect,
+      subscribe: ({ queue }: { queue: string }) => ({ type: "subscribe", feed: queue }),
+      retrySubscribeCodes: ["retiring"],
+    },
+    subscriptions: [{ queue: "a" }, { queue: "b" }],
+    backoff: { initialMs: 5 },
+    ...callbacks,
+  })
+  cleanups.push(() => feed.close())
+  await until(() => received.length === 3)
+  expect(received.map((frame) => frame.feed)).toEqual(["a", "b", "b"])
+  expect(calls.filter(([name]) => name === "error")).toEqual([])
+})

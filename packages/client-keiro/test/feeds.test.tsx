@@ -79,6 +79,34 @@ describe("feed hooks", () => {
     )
   })
 
+  test("a view_retiring refusal retries the subscription on the same socket", async () => {
+    // Sockets from earlier tests in this file may reconnect here, so only this feed counts.
+    const sockets: string[] = []
+    mock.use(
+      ws.link("ws://*/keiro/ws").addEventListener("connection", ({ client }) => {
+        client.addEventListener("message", (event) => {
+          const frame = JSON.parse(String(event.data)) as { type: string; feed?: string }
+          if (frame.type !== "subscribe" || frame.feed !== "projection_groups") return
+          sockets.push(client.id)
+          if (sockets.length > 1) return
+          client.send(
+            JSON.stringify({
+              type: "error",
+              code: "view_retiring",
+              message: "subscription could not be initialized",
+              feed: "projection_groups",
+            }),
+          )
+        })
+      }),
+    )
+    const { wrapper } = makeWrapper()
+    const { result } = renderHook(() => useProjectionGroupsFeed(), { wrapper })
+    await waitFor(() => expect(sockets).toHaveLength(2), { timeout: 3000 })
+    expect(sockets[1]).toBe(sockets[0])
+    expect(result.current.status).toBe("live")
+  })
+
   test("the workflows feed writes the list entry and re-reads on queue_overflow", async () => {
     feedScript("keiro", { append: 1, overflowAfter: 1, intervalMs: 10 })
     const { wrapper, queryClient } = makeWrapper()

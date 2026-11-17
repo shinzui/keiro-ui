@@ -141,6 +141,34 @@ Streams & Subscriptions, Queues, and Process Managers & Timers screens see a liv
 application rather than a demo seed. It has no durable workflows and runs the standalone
 `keiro-ops-http`, so it has no aggregate or process-manager hooks; use the default profile
 for those.
+
+The mori profile's keiro host mounts mori's own service topology. Before the host starts,
+`dev/mori-topology.sh` runs `dev/bin/keiro-dsl topology` over
+`$MORI_REPO/domain/mori.keiro-workspace` and writes `.dev/mori.topology.json` (git-ignored;
+nothing is written in the mori checkout). This takes about 35 seconds, and the host waits for
+it. `just stack-build keiro` builds `keiro-dsl`. If generation fails, the step prints the
+diagnostic, the host starts without `--topology`, and the console says it serves no topology.
+`just stack-check mori` probes `/topology/summary`.
+
+Unlike the default profile, this document describes the service the host reads: 152
+declarations and 315 relations on 2026-11-17. It still yields no link to a live screen. The
+standalone host mounts no aggregate hooks, so the console reports that it cannot compare
+document and host; all of mori's projection owners are delivered inline, so none has a
+subscription; and mori declares no process or workflow. Links in both directions are covered
+by the synthetic "joined" mock scenario (`packages/testing/src/joined.ts`).
+
+keiro refuses every read, the topology included, while the database's keiro schema differs
+from the host's (`409 schema_drift`), and `/health` then answers 503, which makes
+process-compose stop the host. That happens when the mori database was migrated by an older
+keiro than the checkout `dev/bin/keiro-ops-http` was built from. Build the host from the
+keiro version mori uses, or, to look at the topology only, start the host by hand with
+`--allow-schema-drift --topology .dev/mori.topology.json` on port 9093. The gated live case
+then runs with:
+
+```bash
+cd apps/console && KEIRO_UI_LIVE=1 KEIRO_UI_LIVE_PROFILE=mori bunx playwright test --config playwright.live.config.ts -g "mori profile"
+```
+
 The shibuya baseline keeps consuming `pgmq_dev` in both profiles.
 
 ```bash

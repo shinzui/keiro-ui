@@ -266,3 +266,48 @@ test("the default stack's document and host disagree, and the console says how",
   await expect(page.getByRole("grid", { name: "Aggregate instances" })).toBeVisible()
   await expect(page.getByTestId("declaration-panel")).toHaveCount(0)
 })
+
+// The mori profile (`just stack-up mori`) mounts mori's own topology on the hook-less
+// standalone host. Run alone: KEIRO_UI_LIVE=1 KEIRO_UI_LIVE_PROFILE=mori bunx playwright test
+// --config playwright.live.config.ts -g "mori profile". The cases above assume the default profile.
+test("mori profile: a real service's own topology, with every join answering honestly", async ({
+  page,
+  request,
+}) => {
+  test.skip(process.env.KEIRO_UI_LIVE_PROFILE !== "mori", "set KEIRO_UI_LIVE_PROFILE=mori")
+  const summary = (await (await request.get("/keiro/topology/summary")).json()) as {
+    service: string
+    node_counts: Record<string, number>
+    members: unknown[]
+  }
+  expect(summary.service).toBe("mori")
+  expect(summary.members.length).toBeGreaterThan(1)
+  const total = Object.values(summary.node_counts).reduce((a, b) => a + b, 0)
+
+  await page.goto("/topology")
+  await expect(page.getByTestId("topology-service")).toHaveText("mori")
+  await expect(page.getByTestId("topology-node-total")).toHaveText(String(total))
+  // The standalone host mounts no aggregate hooks: the comparison cannot be made, and that is
+  // said, not reported as agreement or as an empty host.
+  await expect(page.getByTestId("agreement-cannot-compare")).toContainText("Cannot compare")
+
+  const aggregate = page.getByRole("grid", { name: "Aggregates" }).getByRole("link").first()
+  await aggregate.click()
+  await expect(page.getByTestId("live-not-mounted")).toContainText(
+    "does not mount the inspection hooks",
+  )
+  await expect(page.getByTestId("machine-diagram")).toBeVisible()
+
+  // Every projection owner mori declares is delivered inline, so none has a subscription.
+  await page.goto("/topology?kind=projection-owner")
+  await page.getByRole("grid", { name: "Projection owners" }).getByRole("link").first().click()
+  await expect(page.getByTestId("live-inline")).toContainText("delivered inline")
+
+  // More declarations than the map draws at once: it asks for a starting point.
+  await page.goto("/topology/map")
+  await expect(page.getByTestId("map-too-large")).toContainText(`${total} declarations`)
+  await page.getByRole("link", { name: /^Only State/ }).click()
+  await expect(page.getByTestId("service-map").locator("[data-graph-node]")).toHaveCount(
+    summary.node_counts.aggregate!,
+  )
+})

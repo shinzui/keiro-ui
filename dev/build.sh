@@ -24,6 +24,8 @@ case "$only" in
     # describe; jitsurei-ops-http mounts the hook-gated routes for the default profile.
     build_and_link "$KEIRO_REPO" exe:keiro-ops-http keiro-ops-http
     build_and_link "$KEIRO_REPO" jitsurei-ops-http:exe:jitsurei-ops-http jitsurei-ops-http
+    # keiro-dsl writes the service topology the mori profile mounts (dev/mori-topology.sh).
+    build_and_link "$KEIRO_REPO" exe:keiro-dsl keiro-dsl
     ;;
 esac
 case "$only" in

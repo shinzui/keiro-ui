@@ -2,12 +2,23 @@
 # not seeded into mori (the shibuya baseline keeps pgmq_dev), and mori's daemon runs
 # subscriptions, timers, and job workers against the database the surfaces read. keiro runs the
 # standalone host because the jitsurei application hooks do not describe mori's database.
+#
+# The host mounts mori's own service topology, generated from mori's specification before it
+# starts (dev/mori-topology.sh). Unlike the default profile's document, this one describes the
+# service whose database the host reads. If generation fails the host starts without a
+# topology, and the console says it serves none.
 version: "0.5"
 processes:
+  mori-topology:
+    command: bash dev/mori-topology.sh
+    availability: { restart: "no" }
   keiro-ops-http:
+    depends_on:
+      mori-topology: { condition: process_completed }
     command: >-
-      dev/bin/keiro-ops-http --database-url "$STACK_DATABASE_URL" --port $STACK_KEIRO_PORT
-      --allow-origin "$STACK_CONSOLE_ORIGIN"
+      bash -c 'exec dev/bin/keiro-ops-http --database-url "$STACK_DATABASE_URL"
+      --port $STACK_KEIRO_PORT --allow-origin "$STACK_CONSOLE_ORIGIN"
+      $([ -s .dev/mori.topology.json ] && echo --topology .dev/mori.topology.json)'
   pgmq-seed:
     command: 'echo "mori profile - console demo queues are not seeded"'
   mori-daemon:

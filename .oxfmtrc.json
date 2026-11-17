@@ -24,6 +24,7 @@
     "bun.lock",
     "nix/tooling-sources.json",
     "packages/testing/fixtures/**",
+    "packages/testing/topology/**",
     "**/src/generated/**",
     "**/openapi/*.json"
   ]

@@ -9,6 +9,12 @@ type Filters = Record<string, unknown>
 export const keiroKeys = {
   all: () => k(),
   health: () => k("health"),
+  topology: {
+    all: () => k("topology"),
+    summary: () => k("topology", "summary"),
+    /** The verified document; one entry, since `load` follows the host's digest itself. */
+    loaded: () => k("topology", "loaded"),
+  },
   workflows: {
     all: () => k("workflows"),
     counts: (filters: WorkflowCountsFilters = {}) =>

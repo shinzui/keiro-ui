@@ -309,6 +309,14 @@
         "after": "garbage"
       },
       "variant": "error"
+    },
+    {
+      "slug": "topology-summary",
+      "path": "/topology/summary"
+    },
+    {
+      "slug": "topology-show",
+      "path": "/topology/show"
     }
   ]
 }

@@ -1,7 +1,9 @@
 import { ApiError, isApiError } from "@keiro-ui/client-core"
 
 /**
- * `/aggregate/*` and `/pm/*` exist only when the host mounts AppHooks. Without them keiro
+ * `/aggregate/*`, `/pm/*` and `/topology/*` exist only when the host mounts the matching
+ * AppHooks (for topology, a committed document; a host too old to know the command answers
+ * the same way). Without them keiro
  * answers 400 `invalid_request` whose `details.arguments` is just the translated argv (for
  * example `["aggregate","types"]`), so the client keys on the command word it sent.
  */
@@ -26,7 +28,7 @@ export class CursorMismatch extends Error {
   }
 }
 
-export const HOOK_GATED_WORDS = ["aggregate", "pm"] as const
+export const HOOK_GATED_WORDS = ["aggregate", "pm", "topology"] as const
 
 /** Re-throws an ApiError as the typed keiro error it represents, when it is one. */
 export function classifyError(error: unknown, word: string): unknown {

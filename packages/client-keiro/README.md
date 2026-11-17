@@ -21,6 +21,7 @@ non-snake_case keys before sending. Contracts: `docs/guides/serve-keiro-ops-over
 | `outbox` / `inbox`             | `backlog()`, `list({source, ...})`, `show(...)`                                                                                                                                                                                                                                                                                                      |
 | `snapshots`                    | `show({stream})`, the raw stored row, which resolves to `null` when the stream or its snapshot is missing                                                                                                                                                                                                                                            |
 | `aggregates` (hook-gated)      | `types()`, `list({name, limit?, after?})`, `show({name, id})`, `snapshot({name, id})`; type and id are **query flags**                                                                                                                                                                                                                               |
+| `topology` (hook-gated)        | `summary()` → `/topology/summary`; `show()` → `/topology/show` as exact bytes with their digest; `load()` → the verified, validated, indexed document (see below)                                                                                                                                                                                    |
 | `processManagers` (hook-gated) | `types()`, `list({name, ...})`, `show({name, correlation, timer_limit?})`, which resolves to `null` for an unknown correlation                                                                                                                                                                                                                       |
 
 Limits are 1–500. Cursors are opaque strings branded per read kind (`WorkflowListCursor`,
@@ -41,6 +42,54 @@ nonempty with no surrounding whitespace. The server defaults to 100 consumer ite
 500), including every binding within each item. Both reads accept abort signals.
 `isInspectionReadUnavailable(error, "workflow-counts" | "category-consumers")` recognizes
 only the call's command refusal; other failures retain their original `ApiError`.
+
+## The service topology (`src/topology.ts`)
+
+The service topology is the JSON document `keiro-dsl topology` writes from a service's
+specification: every declaration as a node, every relation between them as an edge
+(`mori://shinzui/keiro/okf/user-documentation/concepts/DOC-35`). A keiro host that mounts a
+committed copy serves it unchanged. The client treats it as a declaration to verify, not as
+runtime state ([ADR-16](../../docs/adr/0016-a-served-declaration-document-is-verified-and-rejected-whole-when-unknown.md)).
+
+- `topology.summary()` returns the header: `schema_id`, `service`, `generator_version`,
+  `document_bytes` (bigint), `document_sha256`, `members`, `node_counts` and `edge_counts`
+  (bigint values, only kinds and relations that occur) and optional `source`.
+- `topology.show()` reads the document through `http.getRaw` and returns `{bytes, digest,
+  document}`: the exact bytes served, `sha256:` plus their lowercase hex SHA-256 computed
+  here (`topologyDigest`, a pure implementation that works without `crypto.subtle`), and the
+  validated document.
+- `topology.load()` returns `{summary, digest, document, index}` and implements the read
+  order. It reads the summary; throws `UnsupportedTopologySchema` without requesting the
+  document when `schema_id` is not `keiro-dsl/service-topology/1` or `/2`; returns the
+  document it already holds when the digest is unchanged (one summary request, no document
+  request); otherwise reads the document and requires its digest to equal the summary's. On
+  a mismatch it reads the pair once more, and throws `TopologyChanging` (with both digest
+  pairs in `attempts`) if that also disagrees. The verified document is kept per client
+  instance, so it never crosses deployments.
+
+Validation (`parseTopologyDocument`) passes unknown object fields through and rejects the
+whole document, as `TopologyDocumentInvalid` with a `reason` naming the first offence, when a
+node kind, an edge endpoint kind or a relation is not in the schema id's vocabulary
+(`TOPOLOGY_NODE_KINDS`, `TOPOLOGY_RELATIONS_V1`, `TOPOLOGY_RELATIONS_V2`; `feeds` exists only
+under `/2`), a (`kind`, `name`) pair repeats, or an edge names a node that is not there. The
+schema id is checked first.
+
+`indexTopology(document)` gives `node(key)`, `byKind(kind)`, `outgoing(key)` and
+`incoming(key)`, all in document order; `topologyNodeKey(kind, name)` is `kind:name`.
+`aggregateDetails`, `processDetails`, `workflowDetails` and `projectionOwnerDetails` return a
+typed view of a node's `details`, or `undefined` when they do not match. An aggregate's
+`category` and `machine` are optional: documents from older keiro-dsl versions lack them.
+
+Errors: a host that mounts no document and a host too old to know the route both answer 400
+`invalid_request`, surfaced as `RouteUnavailable` with `word` `"topology"`; the two cannot be
+told apart. `isTooLarge` (413: the document or the summary exceeds the host's response
+limit), `isSchemaDrift` and `isInspectionBusy` apply as for every read. Cache keys:
+`keiroKeys.topology.summary()` and `keiroKeys.topology.loaded()`.
+
+Test data: `@keiro-ui/testing` exports `topologyGolden(name)` (keiro's five golden documents
+as exact bytes) and `syntheticTopologySummary(bytes, overrides?)`, the summary a host would
+serve for given bytes. That summary is computed, not recorded; the recorded pair is
+`fixtures/keiro/topology-summary.json` and `topology-show.json`.
 
 ## Feeds (`@keiro-ui/client-keiro/feeds`)
 

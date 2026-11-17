@@ -33,7 +33,28 @@ const server = setupServer(
     return HttpResponse.json({ outcome: "preview" })
   }),
   http.get("http://localhost:5173/keiro/empty", () => new HttpResponse(null, { status: 204 })),
+  http.get("http://localhost:5173/keiro/raw", ({ request }) => {
+    requests.push(request.clone())
+    return new HttpResponse(RAW_BODY, { headers: { "content-type": "application/json" } })
+  }),
+  http.get("http://localhost:5173/keiro/raw-missing", () =>
+    HttpResponse.json(
+      { error: { code: "invalid_request", message: "no", details: { arguments: ["raw"] } } },
+      { status: 400 },
+    ),
+  ),
 )
+
+// A byte-order mark, an id above 2^53, an invalid UTF-8 byte and a trailing newline: text
+// decoding drops or replaces the first and third, so only the bytes are exact.
+const RAW_BODY = new Uint8Array([
+  0xef,
+  0xbb,
+  0xbf,
+  ...new TextEncoder().encode('{"id":9007199254740993,"x":"'),
+  0xff,
+  ...new TextEncoder().encode('"}\n'),
+])
 
 beforeAll(() => server.listen({ onUnhandledFrame: "error" }))
 afterEach(() => {
@@ -145,4 +166,29 @@ describe("maxConcurrent", () => {
     await expect(limit(async () => Promise.reject(new Error("boom")))).rejects.toThrow("boom")
     expect(await limit(async () => "next")).toBe("next")
   })
+})
+
+test("getRaw returns the body's exact bytes and their decoding, sending as get does", async () => {
+  const raw = await keiro.getRaw("/raw", { query: { a: 1 } })
+  expect(Array.from(raw.bytes)).toEqual(Array.from(RAW_BODY))
+  expect(raw.text).toBe('{"id":9007199254740993,"x":"\uFFFD"}\n')
+  expect(requests[0]!.headers.get("accept")).toBe("application/json")
+  expect(new URL(requests[0]!.url).search).toBe("?a=1")
+  // get parses the same decoding.
+  expect(await keiro.get("/raw")).toEqual({ id: 9007199254740993n, x: "\uFFFD" })
+})
+
+test("getRaw normalizes an error body as get does", async () => {
+  const [raw, parsed] = await Promise.all([
+    keiro.getRaw("/raw-missing").catch((e: unknown) => e),
+    keiro.get("/raw-missing").catch((e: unknown) => e),
+  ])
+  expect(raw).toBeInstanceOf(ApiError)
+  expect(raw).toMatchObject({
+    surface: "keiro",
+    status: 400,
+    code: "invalid_request",
+    details: { arguments: ["raw"] },
+  })
+  expect((raw as ApiError).message).toBe((parsed as ApiError).message)
 })

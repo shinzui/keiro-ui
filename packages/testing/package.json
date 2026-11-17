@@ -18,6 +18,7 @@
     "derive": "bun scripts/derive.ts"
   },
   "dependencies": {
+    "@noble/hashes": "2.4.0",
     "msw": "3.0.3"
   },
   "devDependencies": {

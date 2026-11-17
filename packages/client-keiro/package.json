@@ -14,7 +14,8 @@
     "smoke": "bun scripts/smoke.ts"
   },
   "dependencies": {
-    "@keiro-ui/client-core": "workspace:*"
+    "@keiro-ui/client-core": "workspace:*",
+    "@noble/hashes": "2.4.0"
   },
   "devDependencies": {
     "@keiro-ui/testing": "workspace:*",

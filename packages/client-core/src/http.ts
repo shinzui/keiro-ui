@@ -19,11 +19,21 @@ export interface RequestOptions {
   okStatuses?: readonly number[]
 }
 
+export interface RawBody {
+  bytes: Uint8Array
+  text: string
+}
+
 export interface HttpClient {
   readonly surface: Surface
   readonly baseUrl: string
   url(path: string, query?: Query): string
   get<T = unknown>(path: string, options?: RequestOptions): Promise<T>
+  /**
+   * A GET whose body is returned exactly as received: `bytes` is what the server sent, and
+   * `text` is its UTF-8 decoding. For bodies whose digest the caller verifies.
+   */
+  getRaw(path: string, options?: RequestOptions): Promise<RawBody>
   post<T = unknown>(path: string, options?: RequestOptions & { body?: unknown }): Promise<T>
 }
 
@@ -102,11 +112,16 @@ export function createHttpClient(options: {
   const url = (path: string, query?: Query) =>
     `${base}${path.startsWith("/") ? path : `/${path}`}${encodeQuery(query)}`
 
-  async function request<T>(
+  /**
+   * One exchange: URL, headers, concurrency slot, abort and network-error handling, and error
+   * normalisation. The body is read as bytes; `text` decodes them as `Response.text()` would
+   * (a byte-order mark dropped, invalid sequences replaced), so only `bytes` is exact.
+   */
+  async function exchange(
     method: "GET" | "POST",
     path: string,
     opts: RequestOptions & { body?: unknown } = {},
-  ): Promise<T> {
+  ): Promise<{ response: Response; bytes: Uint8Array; text: string }> {
     const headers: Record<string, string> = {
       accept: "application/json",
       ...options.headers,
@@ -118,12 +133,12 @@ export function createHttpClient(options: {
       init.body = serializeJson(opts.body)
     }
     let response: Response
-    let text: string
+    let bytes: Uint8Array
     try {
       // The body is read inside the slot: the server holds the read until it is sent.
-      ;[response, text] = await limit(async () => {
+      ;[response, bytes] = await limit(async () => {
         const answer = await doFetch(url(path, opts.query), init)
-        return [answer, await answer.text()] as const
+        return [answer, new Uint8Array(await answer.arrayBuffer())] as const
       })
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") throw error
@@ -135,9 +150,19 @@ export function createHttpClient(options: {
         raw: error,
       })
     }
+    const text = new TextDecoder().decode(bytes)
     if (!response.ok && !(opts.okStatuses ?? []).includes(response.status)) {
       throw normalizeError(surface, response.status, text, response.headers)
     }
+    return { response, bytes, text }
+  }
+
+  async function request<T>(
+    method: "GET" | "POST",
+    path: string,
+    opts: RequestOptions & { body?: unknown } = {},
+  ): Promise<T> {
+    const { response, text } = await exchange(method, path, opts)
     if (response.status === 204 || text.trim() === "") return undefined as T
     try {
       return parseJsonLossless(text) as T
@@ -158,6 +183,10 @@ export function createHttpClient(options: {
     baseUrl: base,
     url,
     get: (path, opts) => request("GET", path, opts),
+    getRaw: async (path, opts) => {
+      const { bytes, text } = await exchange("GET", path, opts)
+      return { bytes, text }
+    },
     post: (path, opts) => request("POST", path, opts),
   }
 }

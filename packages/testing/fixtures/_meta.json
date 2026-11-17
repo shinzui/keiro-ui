@@ -572,6 +572,30 @@
       "status": 200,
       "contentType": "application/json; charset=utf-8"
     },
+    "keiro/topology-show.json": {
+      "surface": "keiro",
+      "slug": "topology-show",
+      "variant": "default",
+      "method": "GET",
+      "template": "/topology/show",
+      "query": {},
+      "params": {},
+      "request": "/topology/show",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8"
+    },
+    "keiro/topology-summary.json": {
+      "surface": "keiro",
+      "slug": "topology-summary",
+      "variant": "default",
+      "method": "GET",
+      "template": "/topology/summary",
+      "query": {},
+      "params": {},
+      "request": "/topology/summary",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8"
+    },
     "keiro/workflow-awakeables.json": {
       "surface": "keiro",
       "slug": "workflow-awakeables",

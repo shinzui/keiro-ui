@@ -4,3 +4,11 @@
 // "@keiro-ui/testing/scenario" (useScenario, feedScript, pins, kirokuLog).
 export { fixtureMeta, fixtureText, manifests } from "./fixtures"
 export type { FileMeta, Manifest, MetaFile, Surface } from "./types"
+export {
+  syntheticTopologySummary,
+  topologyGolden,
+  topologyGoldenNames,
+  topologyGoldenText,
+  topologySha256,
+  type TopologyGoldenName,
+} from "./topology"

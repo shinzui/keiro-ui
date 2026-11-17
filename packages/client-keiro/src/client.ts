@@ -1,4 +1,4 @@
-import { createHttpClient, type HttpClient } from "@keiro-ui/client-core"
+import { createHttpClient, type HttpClient, parseJsonLossless } from "@keiro-ui/client-core"
 import type { z } from "zod"
 
 import type {
@@ -45,6 +45,19 @@ import {
   WorkflowInstance,
   WorkflowListPage,
 } from "./schemas"
+import {
+  indexTopology,
+  isTopologySchemaId,
+  type LoadedTopology,
+  parseTopologyDocument,
+  type ShownTopology,
+  TopologyChanging,
+  type TopologyDigestPair,
+  topologyDigest,
+  TopologyDocumentInvalid,
+  TopologySummary,
+  UnsupportedTopologySchema,
+} from "./topology"
 
 /** Page sizes are 1–500 everywhere; anything else is refused before sending. */
 function checkLimit(limit: number | undefined): number | undefined {
@@ -113,8 +126,77 @@ export function createKeiroClient(options: {
     }
   }
 
+  const topologySummary = (signal?: AbortSignal) =>
+    read(TopologySummary, ["topology", "summary"], [], {}, signal)
+
+  /** The mounted bytes exactly as served, their digest computed here, parsed and validated. */
+  async function topologyShow(signal?: AbortSignal): Promise<ShownTopology> {
+    const route = commandRoute(["topology", "show"], [], {})
+    let raw
+    try {
+      raw = await http.getRaw(route.path, { query: route.query, signal })
+    } catch (error) {
+      throw classifyError(error, route.word)
+    }
+    const digest = topologyDigest(raw.bytes)
+    let parsed: unknown
+    try {
+      parsed = parseJsonLossless(raw.text)
+    } catch {
+      throw new TopologyDocumentInvalid("the body is not JSON")
+    }
+    return { bytes: raw.bytes, digest, document: parseTopologyDocument(parsed) }
+  }
+
+  // One verified document, kept for this client instance (one connection session, ADR-15), so
+  // /topology/show is requested once per digest: each read takes a host admission slot.
+  let loadedTopology: LoadedTopology | undefined
+
+  /** One summary/document pair: the verified document, or the two digests that disagreed. */
+  async function topologyPair(signal?: AbortSignal): Promise<LoadedTopology | TopologyDigestPair> {
+    const summary = await topologySummary(signal)
+    if (!isTopologySchemaId(summary.schema_id))
+      throw new UnsupportedTopologySchema(summary.schema_id)
+    if (loadedTopology?.digest === summary.document_sha256) {
+      loadedTopology = { ...loadedTopology, summary }
+      return loadedTopology
+    }
+    const shown = await topologyShow(signal)
+    if (shown.digest !== summary.document_sha256)
+      return { advertised: summary.document_sha256, received: shown.digest }
+    loadedTopology = {
+      summary,
+      digest: shown.digest,
+      document: shown.document,
+      index: indexTopology(shown.document),
+    }
+    return loadedTopology
+  }
+
+  /**
+   * The read order of keiro's handoff: the summary is the mount probe and names the digest;
+   * the document is used only when its bytes hash to that digest. A mismatch means the
+   * deployment changed between the two requests, so the pair is read once more.
+   */
+  async function topologyLoad(signal?: AbortSignal): Promise<LoadedTopology> {
+    const first = await topologyPair(signal)
+    if ("index" in first) return first
+    const second = await topologyPair(signal)
+    if ("index" in second) return second
+    throw new TopologyChanging([first, second])
+  }
+
   return {
     http,
+    /**
+     * Hook-gated: a host that mounts no document, and one too old to know the command, both
+     * refuse with RouteUnavailable (`word` "topology").
+     */
+    topology: {
+      summary: topologySummary,
+      show: topologyShow,
+      load: topologyLoad,
+    },
     health: {
       /** 503 bodies (`schema_drift`, `unavailable`, `inspection_busy`) are the health answer, not a failure. */
       get: async (signal?: AbortSignal) =>

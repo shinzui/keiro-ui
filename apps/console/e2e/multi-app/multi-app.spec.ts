@@ -427,3 +427,42 @@ test("each application shows its own service topology, late reads stay out, and 
   await expect(page.getByTestId("topology-not-configured")).toBeVisible()
   expect((await topologyReads("billing")).length).toBe(before)
 })
+
+test("a document is compared only with its own deployment's catalogue", async ({
+  page,
+  request,
+}) => {
+  // Orders' host mounts what its document declares; Billing's does not.
+  await page.goto("topology?target=prod-orders")
+  await expect(page.getByTestId("agreement-agrees")).toContainText(
+    "The mounted aggregates match the document",
+  )
+  await page.goto("topology/aggregate/Surge?target=prod-orders")
+  await expect(page.getByRole("link", { name: "Instances of surge" })).toHaveAttribute(
+    "href",
+    /aggregates\/surge\?target=prod-orders/,
+  )
+
+  await page.goto("topology?target=prod-billing")
+  const section = page.getByRole("region", { name: "Document and host" })
+  await expect(section).toContainText("Document and host disagree.")
+  await expect(section).not.toContainText("The mounted aggregates match the document")
+  // Billing's own document against Billing's own catalogue: nothing of Orders' on either side.
+  await expect(section).not.toContainText("Surge")
+  await expect(section).not.toContainText("surge")
+  await expect(section.getByRole("list", { name: "Mounted but not declared" })).toContainText(
+    "order",
+  )
+
+  // A slow Orders catalogue that answers after the switch must not be paired with Billing's
+  // document: Billing must never report the agreement that is true only of Orders.
+  await request.post(fixture("orders", "/__control"), { data: { delayMs: 1000 } })
+  await page.goto("topology?target=prod-orders")
+  await page.getByRole("combobox", { name: "Application" }).selectOption("prod-billing")
+  await page.goto("topology?target=prod-billing")
+  await expect(section).toContainText("Document and host disagree.")
+  await page.waitForTimeout(1500)
+  await expect(section).toContainText("Document and host disagree.")
+  await expect(page.getByTestId("agreement-agrees")).toHaveCount(0)
+  await request.post(fixture("orders", "/__control"), { data: { delayMs: 0 } })
+})

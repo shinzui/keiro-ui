@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
 
 import { PageHeader } from "@/components/page-header"
+import { Agreement } from "@/features/topology/Agreement"
 import { Inventory } from "@/features/topology/Inventory"
 import { useServiceTopology } from "@/features/topology/queries"
 import { topologySearch } from "@/features/topology/search"
@@ -25,6 +26,7 @@ function TopologyPage() {
         <div className="flex flex-col gap-6 p-6">
           {topology.stale && <StaleNotice error={topology.staleError} refetch={topology.refetch} />}
           <TopologyHeader topology={topology.topology} />
+          <Agreement index={topology.topology.index} />
           <Inventory index={topology.topology.index} q={q} kind={kind} />
         </div>
       ) : (

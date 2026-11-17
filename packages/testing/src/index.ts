@@ -4,6 +4,7 @@
 // "@keiro-ui/testing/scenario" (useScenario, feedScript, pins, kirokuLog).
 export { fixtureMeta, fixtureText, manifests } from "./fixtures"
 export type { FileMeta, Manifest, MetaFile, Surface } from "./types"
+export { joinedAggregateTypes, joinedProcessManagerTypes } from "./joined"
 export {
   syntheticTopologySummary,
   topologyGolden,

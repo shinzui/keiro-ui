@@ -8,6 +8,7 @@ import {
   manifests,
   rawResponse,
 } from "./fixtures"
+import { joinedResponse } from "./joined"
 import { fieldText } from "./json-text"
 import { categoryOf, kirokuLog } from "./kiroku-log"
 import { scenarioState } from "./scenario"
@@ -215,6 +216,10 @@ export function surfaceHandlers(surface: Surface): HttpHandler[] {
         if (surface === "kiroku") {
           const live = kirokuLogResponse(shape, url, values)
           if (live) return live
+        }
+        if (surface === "keiro" && scenarioState.joined) {
+          const joined = joinedResponse(url)
+          if (joined) return joined
         }
         const matching = candidates.filter((c) => sameList(orderedParams(c.meta), values))
         if (matching.length === 0) {

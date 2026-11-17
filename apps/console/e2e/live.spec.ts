@@ -235,3 +235,34 @@ test("the service map draws the mounted document and a machine diagram", async (
   await expect(diagram.locator("[data-transition]")).toHaveCount(6)
   expect(errors).toEqual([])
 })
+
+test("the default stack's document and host disagree, and the console says how", async ({
+  page,
+  request,
+}) => {
+  // Jitsurei is hand-written and serves a document about another service, by design.
+  const mounted = (
+    (await (await request.get("/keiro/aggregate/types")).json()) as { items: { name: string }[] }
+  ).items.map((item) => item.name)
+  expect(mounted.length).toBeGreaterThan(0)
+  await page.goto("/topology")
+  const section = page.getByRole("region", { name: "Document and host" })
+  await expect(section).toContainText("Document and host disagree.")
+  await expect(
+    section.getByRole("list", { name: "Mounted but not declared" }).getByRole("listitem"),
+  ).toHaveText(mounted)
+  await expect(
+    section.getByRole("list", { name: "Declared but not mounted" }).getByRole("listitem"),
+  ).toHaveCount(5)
+
+  await page.goto("/topology/aggregate/Reservation")
+  await expect(page.getByTestId("live-no-match")).toContainText(
+    "No mounted aggregate type is named reservation",
+  )
+  await page.goto("/topology/workqueue/reservation_work")
+  await expect(page.getByTestId("live-unjoinable")).toContainText("Not linked.")
+  // The live screens are as before: no panel, since nothing declared here is running.
+  await page.goto(`/aggregates/${mounted[0]}`)
+  await expect(page.getByRole("grid", { name: "Aggregate instances" })).toBeVisible()
+  await expect(page.getByTestId("declaration-panel")).toHaveCount(0)
+})

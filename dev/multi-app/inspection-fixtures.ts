@@ -119,6 +119,18 @@ for (const [app, port] of [
         return Response.json({ status: "ok", schema_drift: [], mutations_enabled: true })
       if (path === "/keiro/wf/inspect/list") return Response.json(workflowPage())
       if (path === "/keiro/topology/summary") return Response.json(topologies[app].summary)
+      // SYNTHETIC: Orders mounts aggregate types named by its document's categories, so its
+      // document and host agree. Billing keeps the recorded Jitsurei types, which do not match
+      // its document.
+      if (path === "/keiro/aggregate/types" && app === "orders")
+        return Response.json({
+          items: ["capacity", "hospital", "reservation", "supply", "surge"].map((name) => ({
+            category: name,
+            name,
+            snapshot_policy: "never",
+            snapshots_configured: false,
+          })),
+        })
       if (path === "/keiro/topology/show")
         return new Response(topologies[app].bytes, {
           headers: { "content-type": "application/json; charset=utf-8" },

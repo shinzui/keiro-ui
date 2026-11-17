@@ -6,6 +6,7 @@ import { CursorPager } from "@/components/CursorPager"
 import { PageHeader } from "@/components/page-header"
 import { Timestamp } from "@/components/timestamp"
 import { useCursorTrail } from "@/features/streams/useCursorTrail"
+import { WorkflowDeclaration } from "@/features/topology/DeclarationPanel"
 import { WorkflowCountsSummary } from "@/features/workflows/components/WorkflowCountsSummary"
 import { WorkflowFilters } from "@/features/workflows/components/WorkflowFilters"
 import { WorkflowTable } from "@/features/workflows/components/WorkflowTable"
@@ -78,6 +79,7 @@ function WorkflowsPage() {
       </PageHeader>
       <div className="flex flex-col gap-3 p-6">
         <WorkflowCountsSummary workflowName={search.workflow_name} />
+        <WorkflowDeclaration workflowName={search.workflow_name} />
         {page.isError && !staleCursor && (
           <p className="text-sm text-destructive">{page.error.message}</p>
         )}

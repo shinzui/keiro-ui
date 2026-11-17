@@ -8,6 +8,7 @@ import { createFileRoute, Link } from "@tanstack/react-router"
 import { EmptyState } from "@/components/empty-state"
 import { PageHeader } from "@/components/page-header"
 import { Timestamp } from "@/components/timestamp"
+import { WorkflowDeclaration } from "@/features/topology/DeclarationPanel"
 import {
   AwakeablesTable,
   ChildrenTable,
@@ -105,6 +106,7 @@ function WorkflowPage() {
         ) : (
           <>
             {header.isError && <p className="text-sm text-destructive">{header.error.message}</p>}
+            <WorkflowDeclaration workflowName={name} />
             <Tabs
               selectedKey={tab}
               onSelectionChange={(key) =>

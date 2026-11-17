@@ -43,3 +43,23 @@ test("the synthetic summary of the hospital golden equals the recorded one", () 
   expect(other.service).toBe("renamed")
   expect((other.edge_counts as Record<string, number>).feeds).toBeGreaterThan(0)
 })
+
+test("the synthetic joined catalogues match the recorded hospital topology", async () => {
+  const { joinedAggregateTypes, joinedProcessManagerTypes, joinedResponse } =
+    await import("../src/joined")
+  const document = JSON.parse(fixtureText("keiro/topology-show.json")) as {
+    nodes: { kind: string; details: { category?: string; saga?: { category: string } } }[]
+  }
+  const categories = document.nodes
+    .filter((node) => node.kind === "aggregate")
+    .map((node) => node.details.category)
+  expect(joinedAggregateTypes.map((type) => type.name)).toEqual(categories)
+  const saga = document.nodes.find((node) => node.kind === "process")!.details.saga!.category
+  expect(joinedProcessManagerTypes.map((type) => type.category)).toEqual([saga])
+  // Routes it does not answer fall through to the recorded fixtures.
+  expect(joinedResponse(new URL("http://localhost/keiro/aggregate/types"))).toBeDefined()
+  expect(
+    joinedResponse(new URL("http://localhost/keiro/aggregate/list?name=order")),
+  ).toBeUndefined()
+  expect(joinedResponse(new URL("http://localhost/keiro/wf/inspect/list"))).toBeUndefined()
+})

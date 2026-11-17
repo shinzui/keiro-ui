@@ -19,6 +19,7 @@ import { aggregatePageSearch } from "@/features/aggregates/search"
 import { NotMountedState } from "@/features/shared/NotMountedState"
 import { SkippedCaption } from "@/features/shared/SkippedCaption"
 import { useCursorTrail } from "@/features/streams/useCursorTrail"
+import { AggregateTypeDeclaration } from "@/features/topology/DeclarationPanel"
 import { links } from "@/lib/links"
 
 export const Route = createFileRoute("/_shell/aggregates/$type/")({
@@ -58,6 +59,7 @@ function AggregateKindPage() {
         ) : (
           <>
             {page.isError && <p className="text-sm text-destructive">{page.error.message}</p>}
+            <AggregateTypeDeclaration type={type} />
             {data && (
               <SkippedCaption
                 skipped={data.skipped}

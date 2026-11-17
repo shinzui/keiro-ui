@@ -25,6 +25,7 @@ import { positionDistance } from "@/features/projections/distance"
 import { DistanceCell } from "@/features/projections/distance-cell"
 import { AccessBadges, PhaseBadge, RebuildProgress } from "@/features/projections/projection-table"
 import { useProjectionGroup, useProjectionPosition } from "@/features/projections/queries"
+import { SubscriptionDeclarations } from "@/features/topology/DeclarationPanel"
 import { formatInt } from "@/lib/format"
 import { hrefOf, links } from "@/lib/links"
 import { useRecordVisit } from "@/shell/recent"
@@ -141,6 +142,10 @@ function ProjectionGroupPage() {
               void navigate({ search: (prev) => ({ ...prev, subscription }) })
             }
           />
+        )}
+        {/* Only what the host reports as feeding the group is matched, never the group's name. */}
+        {row?.group.feeding_subscriptions && (
+          <SubscriptionDeclarations subscriptions={row.group.feeding_subscriptions} />
         )}
         <p className="text-xs text-muted-foreground">
           Rebuild and promotion are operator-CLI actions in this release.

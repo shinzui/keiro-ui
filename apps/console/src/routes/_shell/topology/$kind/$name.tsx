@@ -7,6 +7,7 @@ import { AggregateMachineSection } from "@/features/topology/AggregateMachineSec
 import { DiagramBoundary } from "@/features/topology/graph/DiagramBoundary"
 import { ServiceMap } from "@/features/topology/graph/ServiceMap"
 import { kindLabel } from "@/features/topology/labels"
+import { LiveLinks } from "@/features/topology/LiveLinks"
 import { NodeDetails } from "@/features/topology/NodeDetails"
 import { NodeRelations } from "@/features/topology/NodeRelations"
 import { useServiceTopology } from "@/features/topology/queries"
@@ -89,6 +90,7 @@ function TopologyNodePage() {
       <div className="flex flex-col gap-6 p-6">
         {topology.stale && <StaleNotice error={topology.staleError} refetch={topology.refetch} />}
         <NodeDetails node={node} />
+        <LiveLinks node={node} />
         {node.kind === "aggregate" && <AggregateMachineSection node={node} />}
         <NodeRelations index={index} kind={node.kind} name={node.name} />
         <section aria-label="Neighbourhood" className="flex flex-col gap-2">

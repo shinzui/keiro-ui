@@ -18,6 +18,7 @@ import { useInstancePage } from "@/features/process-managers/queries"
 import { NotMountedState } from "@/features/shared/NotMountedState"
 import { SkippedCaption } from "@/features/shared/SkippedCaption"
 import { useCursorTrail } from "@/features/streams/useCursorTrail"
+import { ProcessManagerDeclaration } from "@/features/topology/DeclarationPanel"
 import { links } from "@/lib/links"
 
 export const Route = createFileRoute("/_shell/process-managers/$name/")({
@@ -47,6 +48,7 @@ function ManagerPage() {
         ) : (
           <>
             {page.isError && <p className="text-sm text-destructive">{page.error.message}</p>}
+            <ProcessManagerDeclaration name={name} />
             {page.data && (
               <SkippedCaption
                 skipped={page.data.skipped}

@@ -46,22 +46,35 @@ export interface ScenarioState {
   recorded: Partial<Record<Surface, string[]>>
   feeds: Partial<Record<Surface, FeedOptions>>
   mutations: MutationScenario
+  /** SYNTHETIC: keiro's catalogues answer as a host running the recorded topology's service. */
+  joined: boolean
 }
 
-export const scenarioState: ScenarioState = { fail: {}, recorded: {}, feeds: {}, mutations: {} }
+export const scenarioState: ScenarioState = {
+  fail: {},
+  recorded: {},
+  feeds: {},
+  mutations: {},
+  joined: false,
+}
 
 /**
  * Swaps routes for their recorded error fixture (`fail`) or swaps a derived default for its
- * recorded original (`recorded`). Applies until the mock server or worker is reset.
+ * recorded original (`recorded`). `joined` is synthetic: keiro's aggregate and process-manager
+ * catalogues answer with types that match the recorded `hospital-capacity` topology
+ * (src/joined.ts), which no recorded host does. Applies until the mock server or worker is
+ * reset.
  */
 export function useScenario(scenario: {
   fail?: Partial<Record<Surface, string[]>>
   recorded?: Partial<Record<Surface, string[]>>
   mutations?: MutationScenario
+  joined?: boolean
 }): void {
   if (scenario.fail) Object.assign(scenarioState.fail, scenario.fail)
   if (scenario.recorded) Object.assign(scenarioState.recorded, scenario.recorded)
   if (scenario.mutations) Object.assign(scenarioState.mutations, scenario.mutations)
+  if (scenario.joined !== undefined) scenarioState.joined = scenario.joined
 }
 
 /** Configures the scripted WebSocket feed of a surface for subsequent connections. */
@@ -78,6 +91,7 @@ export function resetScenario(): void {
   scenarioState.fail = {}
   scenarioState.recorded = {}
   scenarioState.feeds = {}
+  scenarioState.joined = false
   scenarioState.mutations = {}
   kirokuLog.reset()
 }

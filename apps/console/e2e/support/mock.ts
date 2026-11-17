@@ -49,6 +49,8 @@ export function scenario(
     fail?: Partial<Record<Surface, string[]>>
     recorded?: Partial<Record<Surface, string[]>>
     mutations?: Record<string, string | undefined>
+    /** SYNTHETIC catalogues matching the recorded topology (packages/testing/src/joined.ts). */
+    joined?: boolean
   },
 ) {
   return page.evaluate((v) => window.__keiroUiMock!.useScenario(v), value)

@@ -179,6 +179,19 @@ test("any other failure shows its message, not the form", async () => {
 test("a name absent from the catalog still goes to the server, which answers for it", async () => {
   const paths: string[] = []
   mock.use(
+    // No topology is served, so nothing on the page has a reason to read the catalog.
+    http.get("*/keiro/topology/summary", () =>
+      HttpResponse.json(
+        {
+          error: {
+            code: "invalid_request",
+            message: "no topology",
+            details: { arguments: ["topology", "summary"] },
+          },
+        },
+        { status: 400 },
+      ),
+    ),
     http.get("*/keiro/pm/types", ({ request }) => {
       paths.push(new URL(request.url).pathname)
       return HttpResponse.json({ items: [] })
@@ -195,4 +208,26 @@ test("a name absent from the catalog still goes to the server, which answers for
   expect(await screen.findByText(/unknown process manager/)).toBeInTheDocument()
   expect(paths.some((path) => path.includes("name=not-in-the-catalog"))).toBe(true)
   expect(paths.some((path) => path.endsWith("/pm/types"))).toBe(false)
+})
+
+test("with a topology that declares a process, the catalog is read for the declaration panel only", async () => {
+  // The default mock serves a document with one process. The page still answers from the
+  // server for a name the catalog lacks; the catalog read never gates the instances.
+  const paths: string[] = []
+  mock.use(
+    http.get("*/keiro/pm/types", ({ request }) => {
+      paths.push(new URL(request.url).pathname)
+      return HttpResponse.json({ items: [] })
+    }),
+    http.get("*/keiro/pm/list", () =>
+      HttpResponse.json(
+        { error: { code: "command_failed", message: "unknown process manager" } },
+        { status: 422 },
+      ),
+    ),
+  )
+  await renderRoute("/process-managers/not-in-the-catalog")
+  expect(await screen.findByText(/unknown process manager/)).toBeInTheDocument()
+  await waitFor(() => expect(paths.some((path) => path.endsWith("/pm/types"))).toBe(true))
+  expect(screen.queryByTestId("declaration-panel")).not.toBeInTheDocument()
 })

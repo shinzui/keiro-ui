@@ -1,4 +1,4 @@
-import { expect, jump, open, test } from "../support/mock"
+import { expect, jump, open, scenario, test } from "../support/mock"
 
 test("the section is reachable from the rail and the palette, and shows the mounted document", async ({
   page,
@@ -154,4 +154,68 @@ test("no box overlaps another on the drawn map, and a machine's selection reache
     "data-selected",
     "true",
   )
+})
+
+test("the recorded host disagrees with its document; a declaration says why it has no link", async ({
+  page,
+}) => {
+  await open(page, "/topology")
+  const section = page.getByRole("region", { name: "Document and host" })
+  await expect(section).toContainText("Document and host disagree.")
+  await expect(section.getByRole("list", { name: "Declared but not mounted" })).toContainText(
+    "Reservation",
+  )
+  await expect(
+    section.getByRole("list", { name: "Mounted but not declared" }).getByRole("listitem"),
+  ).toHaveText(["credit-limit", "incident", "order"])
+  await section.getByRole("link", { name: "Reservation" }).click()
+  await expect(page.getByTestId("live-no-match")).toContainText(
+    "No mounted aggregate type is named reservation",
+  )
+  await open(page, "/topology/workqueue/reservation_work")
+  await expect(page.getByTestId("live-unjoinable")).toContainText("Not linked.")
+})
+
+test("SYNTHETIC joined host: from a declaration to its live screen and back through the panel", async ({
+  page,
+}) => {
+  // The scenario lives in the page, so it is set before any catalogue is read and every
+  // step after it navigates client-side.
+  await open(page, "/settings/connections")
+  await scenario(page, { joined: true })
+  await jump(page, "Service Topology")
+  await expect(page.getByTestId("agreement-agrees")).toContainText(
+    "The mounted aggregates match the document",
+  )
+  await page
+    .getByRole("grid", { name: "Aggregates" })
+    .getByRole("link", { name: "Reservation" })
+    .click()
+  await page.getByRole("link", { name: "Instances of reservation" }).click()
+  await expect(page).toHaveURL("/aggregates/reservation?target=same-origin")
+
+  const panel = page.getByTestId("declaration-panel")
+  await expect(panel).toContainText("Aggregate Reservation")
+  await panel.getByRole("button", { name: "Show the declared state machine" }).click()
+  await expect(panel.getByTestId("machine-diagram").locator("[data-graph-node]")).toHaveCount(6)
+  await panel.getByRole("link", { name: "Reservation" }).click()
+  await expect(page).toHaveURL("/topology/aggregate/Reservation?target=same-origin")
+
+  // The process links to the manager the host built with its saga category, and back.
+  await jump(page, "Service Topology")
+  await page
+    .getByRole("grid", { name: "Processes" })
+    .getByRole("link", { name: "HospitalSurge" })
+    .click()
+  await page.getByRole("link", { name: "Instances of hospital-surge" }).click()
+  await expect(page).toHaveURL("/process-managers/hospital-surge?target=same-origin")
+  await expect(page.getByTestId("declaration-panel")).toContainText("Process HospitalSurge")
+  await page.getByTestId("declaration-panel").getByRole("link", { name: "HospitalSurge" }).click()
+  await expect(page).toHaveURL("/topology/process/HospitalSurge?target=same-origin")
+})
+
+test("live screens of the recorded host carry no declaration panel", async ({ page }) => {
+  await open(page, "/aggregates/order")
+  await expect(page.getByRole("grid", { name: "Aggregate instances" })).toBeVisible()
+  await expect(page.getByTestId("declaration-panel")).toHaveCount(0)
 })

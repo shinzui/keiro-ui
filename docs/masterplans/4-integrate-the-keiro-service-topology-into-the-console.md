@@ -116,7 +116,7 @@ Integration Points).
 | # | Title | Path | Hard Deps | Soft Deps | Status |
 |---|-------|------|-----------|-----------|--------|
 | 27 | Read and verify the served service topology in the Keiro client | docs/plans/27-read-and-verify-the-served-service-topology-in-the-keiro-client.md | None | None | Complete |
-| 28 | Browse a service's declared topology in the console | docs/plans/28-browse-a-service-s-declared-topology-in-the-console.md | EP-27 | None | Not Started |
+| 28 | Browse a service's declared topology in the console | docs/plans/28-browse-a-service-s-declared-topology-in-the-console.md | EP-27 | None | Complete |
 | 29 | Draw the service map and aggregate state machines | docs/plans/29-draw-the-service-map-and-aggregate-state-machines.md | EP-28 | None | Not Started |
 | 30 | Join topology declarations to live inspection screens | docs/plans/30-join-topology-declarations-to-live-inspection-screens.md | EP-28 | EP-29 | Not Started |
 
@@ -212,7 +212,9 @@ than show an error when it is absent.
 ## Progress
 
 EP-27 is Complete (2026-11-17): the client reads and verifies the document, the default stack mounts
-one, and ADR-16 is recorded. EP-28 is ready. EP-29 and EP-30 are blocked on EP-28.
+one, and ADR-16 is recorded. EP-28 is Complete (2026-11-17): the Service Topology section browses the
+document as text, with every absent or unusable state named. EP-29 and EP-30 are both ready and
+independent of each other.
 
 Integration gate, outside any single child: with all four children complete, the read-only live browser
 suite (`cd apps/console && KEIRO_UI_LIVE=1 bunx playwright test --config playwright.live.config.ts`)
@@ -247,6 +249,20 @@ real-service check was accepted, with a workflow declaration linking to live ins
 - 2026-11-17 (EP-27): on the machine this was implemented on, a process outside the stack holds port
   9091, so the stack's `kiroku-inspect` cannot start and `just stack-check` fails on the kiroku
   WebSocket probes (FRIC-12). The live browser suite named in the integration gate needs that port free.
+
+- 2026-11-17 (EP-28): anything that serves a topology in tests must pass the bytes through untouched.
+  The multi-deployment fixture host re-serialised recorded JSON, which would have read as a changing
+  deployment; it now serves each application's golden as exact bytes. EP-30's synthetic "joined"
+  scenario must do the same and compute its summary from the bytes it serves.
+
+- 2026-11-17 (EP-28): a definite answer about the host (not served, unsupported, invalid, too large)
+  replaces a document loaded earlier; only an indefinite failure keeps it as stale. The reverse panels
+  EP-30 adds to live screens therefore see `not-served` after a redeploy without a topology and must
+  stay silent for it, as the Version skew note requires.
+
+- 2026-11-17 (EP-28): a new `apps/console/e2e/<section>/` directory runs only when it is added to the
+  `screens` project in `apps/console/playwright.config.ts`; `topology` is now listed, so EP-29 and
+  EP-30 specs under `e2e/topology/` run.
 
 
 ## Decision Log

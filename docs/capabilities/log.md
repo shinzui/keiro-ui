@@ -1,5 +1,8 @@
 # Bundle Update Log
 
+## 2026-11-17
+* **Addition**: Add CAP-12: browse the service topology a keiro host mounts, by declaration kind, with details, relations and aggregate state machines.
+
 ## 2026-11-05
 * **Update**: Record a bounded catalog-metadata review for every capability so the existing recommended review requirement passes strict validation; no independent behavioral approval is claimed.
 * **Update**: CAP-1, CAP-5 and CAP-2 expose exact workflow totals and scoped category consumer declarations.

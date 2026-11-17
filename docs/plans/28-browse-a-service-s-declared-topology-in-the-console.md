@@ -11,6 +11,12 @@ provenance:
     model: "claude-fable-5-2"
     harness: "claude-code"
     at: 2026-11-17T21:49:45Z
+  revisions:
+    - model: "claude-fable-5-2"
+      harness: "claude-code"
+      at: 2026-11-17T22:26:49Z
+      mode: "implement"
+      note: "Milestones 1 to 4 implemented and accepted"
 ---
 
 # Browse a service's declared topology in the console
@@ -38,15 +44,37 @@ a host that mounts no topology and the section says so instead of showing an emp
 
 ## Progress
 
-- [ ] M1: `/topology` exists in the navigation and command palette and shows the mounted document's header and members, with every non-ready state (not configured, not served, unsupported schema, invalid, too large, changing, failed) rendered distinctly and tested.
-- [ ] M2: The declarations inventory groups all nodes by kind with counts, filters by text and kind through the URL, and each row opens `/topology/$kind/$name`.
-- [ ] M3: The node detail page shows details, source location, outgoing and incoming relations with links, the aggregate machine as a transitions table, and the read models an aggregate feeds; unknown nodes say so.
-- [ ] M4: Browser, multi-deployment and live checks pass; the capability page and console reference are written and validate.
+- [x] M1 (2026-11-17): `/topology` is in the rail, the sidebar and the palette ("Go to Service Topology › Declarations") and shows the mounted document's header and members. Not configured, not served, unsupported schema, invalid, too large, changing and failed each render distinctly; `apps/console/src/features/topology/topology.test.tsx` covers every one, including that an unsupported schema never requests the document and a deployment without keiro sends nothing.
+- [x] M2 (2026-11-17): The inventory groups all 25 nodes of the recorded document under 15 kind headings in the contract's order with counts; `q` and `kind` are URL search parameters; each row opens `/topology/$kind/$name`. Tested in the component suite and in `apps/console/e2e/topology/topology.spec.ts` (filter survives a reload).
+- [x] M3 (2026-11-17): The node page shows details, `member:line`, outgoing and incoming relations with links, the aggregate machine as a transitions table, and the read models an aggregate feeds; an unknown node says so. Against the live stack the `Reservation` aggregate shows six states and six transitions, as in the golden.
+- [x] M4 (2026-11-17): `bun run check`, `bun run test` (767 passed, 15 skipped), `bun run build`, `bun run test:e2e` (64 passed), `MULTI_APP_PORT=18081 bun run test:e2e:multi-app` (11 passed) and the live suite `KEIRO_UI_LIVE=1 bunx playwright test --config playwright.live.config.ts` (7 passed, 2 skipped as before) pass. `docs/capabilities/service-topology.md` (CAP-12) and the Service Topology section of `docs/user/console-reference.md` validate strictly. Screenshots of the index and of the `Reservation` aggregate at 1440 by 1000 were inspected. Live checks: a hook-less `keiro-ops-http` answers `/topology/summary` with `400 invalid_request` and the client reports `RouteUnavailable`; a page left idle for 130 seconds read the summary at 0, 61 and 121 seconds and the document once.
 
 
 ## Surprises & Discoveries
 
-(None yet.)
+- 2026-11-17: The shell already builds a palette command for every sidebar page ("Go to <section> ›
+  <page>", `apps/console/src/shell/shell-commands.tsx`). Adding the section gave the palette command, so
+  no `register.ts` was needed.
+
+- 2026-11-17: `dev/multi-app/inspection-fixtures.ts` answers unknown paths from the recorded fixtures
+  through `Response.json(JSON.parse(...))`, which re-serialises the body. For `/topology/show` that
+  changes the bytes, so the console would have reported a changing deployment. The fixture host now
+  serves each application's golden as exact bytes with a summary computed from them. Any host or mock
+  that serves a topology must pass bytes through untouched.
+
+- 2026-11-17: TanStack Router's `Link` manages `aria-current` itself, so the selected kind chip is
+  marked with `data-selected` and its filled badge instead.
+
+- 2026-11-17: On the machine this was implemented on, port 18080 (the multi-deployment suite's Caddy)
+  was held by a `kubectl` port-forward outside this repository. The suite ran with the documented
+  override `MULTI_APP_PORT=18081`. Port 9091 is also held by a foreign process (FRIC-12 in
+  `docs/friction-log/`), so the live suite's kiroku checks ran against that server, not the stack's
+  `kiroku-inspect`; the topology case reads keiro only and is unaffected.
+
+- 2026-11-17: Adding a section changes the rail's link count, which
+  `apps/console/e2e/shell/layout.spec.ts` asserts (8, now 9), and a new `e2e/<section>/` directory must
+  be added to the `screens` project's `testMatch` in `apps/console/playwright.config.ts` or its specs
+  are silently not run.
 
 
 ## Decision Log
@@ -74,9 +102,51 @@ a host that mounts no topology and the section says so instead of showing an emp
   Date: 2026-11-17
 
 
+- Decision: A definite answer replaces a document loaded earlier; only a failure without a definite
+  answer keeps it as stale.
+  Rationale: This plan said any failed refetch keeps the loaded document. But when the host now answers
+  that it mounts nothing, serves an unsupported schema, an invalid document or one too large, showing
+  the old document would describe a host that no longer serves it. Network failures, 5xx, busy and a
+  changing deployment say nothing definite, so the verified document stays under a stale notice with
+  the failure. The `ready` state carries `staleError` for that notice.
+  Date: 2026-11-17
+
+- Decision: No `apps/console/src/features/topology/register.ts`.
+  Rationale: The shell derives the palette command from the section's sidebar page. A second command
+  would duplicate it. A later plan that needs a sheet or preset creates the file then.
+  Date: 2026-11-17
+
+- Decision: The kind filter is a row of link chips, one per kind present, each showing its count.
+  Rationale: The filter is a URL parameter, so a link is the plain control for it: shareable, keyboard
+  reachable and testable without a popover. An unknown `kind` value is ignored with a notice.
+  Date: 2026-11-17
+
+- Decision: The multi-deployment check removes keiro from the Billing target at run time instead of
+  adding a third target to `dev/multi-app/console-config.json`.
+  Rationale: That is how the suite already tests an optional surface, and a third catalog entry would
+  change the other cases' selectors.
+  Date: 2026-11-17
+
+
 ## Outcomes & Retrospective
 
-(To be filled during and after implementation.)
+Completed 2026-11-17. An operator can open Service Topology, see which service and specification the
+host mounted, find any of its declarations, and read a declaration's details, source location, relations
+in both directions and, for an aggregate, its state machine and the read models it feeds. Every way the
+document can be absent or unusable is named. The interfaces in the last section exist, with these
+additions: `kindPluralLabel`, `incomingRelationLabel`, `stableNameOf` and `shortDigest` in `labels.ts`;
+`DetailFields` and `DetailValue` in `NodeDetails.tsx`; an optional `refetch` prop on `TopologyStateView`;
+`StaleNotice`; and `topologyStateOf` and `describeFailure` in `queries.ts`.
+
+What remains for the later plans: diagrams (the tables here are their accessible equivalent) and links
+between declarations and live screens.
+
+No friction entry was recorded under this plan. The port collisions are covered by FRIC-12 and by the
+suite's documented port override.
+
+No new ADR: the one durable choice, that a definite answer replaces a stale document, is an application
+of [ADR-13](../adr/0013-honest-gates.md) and
+[ADR-16](../adr/0016-a-served-declaration-document-is-verified-and-rejected-whole-when-unknown.md).
 
 
 ## Context and Orientation
@@ -121,7 +191,7 @@ has `schema` (`keiro-dsl/service-topology/1` or `/2`), `service`, `source` (`kin
 `effectiveLanguageVersion`), `nodes` and `edges`. A node is one declaration: `kind`, `name`, `context`,
 `member` (the file declaring it), `line`, and `details`, whose fields depend on the kind. An edge is one
 relation: `from` and `to` (each a `{kind, name}`), `relation`, and `attributes`. There are 17 node kinds
-and 23 relations; DOC-35 tables "Node kinds" and "Relations" define every one, and this plan's screens
+and 23 relations (22 under `/1`, plus `feeds` under `/2`); DOC-35 tables "Node kinds" and "Relations" define every one, and this plan's screens
 must show them all.
 
 An aggregate node's `details.machine`, when present, describes its state machine: `ownership` (`generated`
@@ -181,17 +251,17 @@ on the file locations and component names in the last section of this plan.
 Add `"topology"` to `SectionId` and a section titled "Service Topology" to `sections` in
 `apps/console/src/shell/navigation.ts`, placed after Overview, with the `Network` icon, link `/topology`,
 prefix `/topology`, and one page "Declarations". Add `links.topology()` and `links.topologyNode(kind,
-name)` to `apps/console/src/lib/links.ts`. Register a feature in a new
-`apps/console/src/features/topology/register.ts` contributing a palette command "Go to Service topology",
-and call it from `apps/console/src/features/index.ts`.
+name)` to `apps/console/src/lib/links.ts`. The shell derives the palette command "Go to Service Topology
+› Declarations" from the sidebar page, so no feature registration is needed (see Decision Log).
 
 Create `apps/console/src/features/topology/queries.ts` with `useServiceTopology()`. It calls
 `useSurfaceQuery` with `surface: "keiro"`, `queryKey: keiroKeys.topology.loaded()`, `queryFn: ({ signal })
 => keiro.topology.load(signal)` and `poll: 60_000`. It returns a discriminated state for screens:
 `not-configured` (the deployment has no keiro surface; no request is sent), `loading`, `ready` (with the
 loaded topology), `not-served`, `unsupported-schema` (with the schema id), `invalid` (with the reason),
-`too-large`, `changing`, and `failed` (with the error). A failed refetch after a successful load keeps the
-loaded document and adds a stale flag, never an empty result.
+`too-large`, `changing`, and `failed` (with the error). A refetch that fails without a definite answer
+after a successful load keeps the loaded document and adds a stale flag, never an empty result; a
+definite answer (not served, unsupported schema, invalid, too large) replaces it (see Decision Log).
 
 Create `apps/console/src/features/topology/TopologyStates.tsx` rendering each non-ready state. Wording
 follows ADR-13. Not served: "This keiro host serves no service topology", explaining that a host serves
@@ -352,7 +422,7 @@ What later plans rely on:
 // apps/console/src/features/topology/queries.ts
 type ServiceTopologyState =
   | { status: "not-configured" } | { status: "loading" }
-  | { status: "ready"; topology: LoadedTopology; stale: boolean }
+  | { status: "ready"; topology: LoadedTopology; stale: boolean; staleError?: unknown }
   | { status: "not-served" } | { status: "unsupported-schema"; schemaId: string }
   | { status: "invalid"; reason: string } | { status: "too-large" } | { status: "changing" }
   | { status: "failed"; error: unknown }
@@ -370,7 +440,7 @@ function relationLabel(relation: TopologyRelation): string
 function AggregateMachineSection(props: { node: TopologyNode }): JSX.Element
 
 // apps/console/src/features/topology/TopologyStates.tsx
-function TopologyStateView(props: { state: Exclude<ServiceTopologyState, { status: "ready" }> }): JSX.Element
+function TopologyStateView(props: { state: Exclude<ServiceTopologyState, { status: "ready" }>; refetch?: () => void }): JSX.Element
 ```
 
 Route files `apps/console/src/routes/_shell/topology/index.tsx` and

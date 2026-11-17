@@ -13,8 +13,8 @@ yet exist is an improvement request, not a record.
 keiro-ui is a static browser application that reads each project's own inspection endpoints;
 it has no backend. It is pre-1.0: every capability below is **experimental** in its
 compatibility promise, and that uniformity is the project's single stability policy, not a
-missing distinction. Everything except the gated operator actions shipped in 0.1.0, the
-read-only release.
+missing distinction. Everything except the gated operator actions and the service topology
+shipped in 0.1.0, the read-only release.
 
 ## What keiro-ui provides
 
@@ -31,6 +31,7 @@ read-only release.
 | [Projection and shard monitoring](projection-monitoring.md) | CAP-9 | 0.1.0 | Exact projection distance, rebuild progress, failures, shard ownership |
 | [Static deployment at any base path](static-deployment.md) | CAP-10 | 0.1.0 | A release bundle for any base path, on one origin or separate origins |
 | [Gated operator actions](gated-operator-actions.md) | CAP-11 | unreleased | Pause/resume, timer requeue/cancel, dead-letter redrive behind server gates |
+| [Service topology](service-topology.md) | CAP-12 | unreleased | The declarations of a service's specification, their relations and aggregate state machines, as a keiro host mounts them |
 
 ## Deliberately excluded
 

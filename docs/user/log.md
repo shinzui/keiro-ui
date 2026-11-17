@@ -1,5 +1,8 @@
 # Bundle Update Log
 
+## 2026-11-17
+* **Update**: Document the Service Topology section: the mounted document's header, the declarations inventory and its filters, a declaration's page, and every state in which there is nothing to show.
+
 ## 2026-11-05
 * **Update**: Document exact retained workflow counts and category consumer metadata, coverage, manual refresh and unavailable hosts.
 

@@ -8,6 +8,11 @@ import {
   TableHeader,
   TableRow,
 } from "@keiro-ui/ui/components/table"
+import { cn } from "cn"
+import { useState } from "react"
+
+import { DiagramBoundary } from "./graph/DiagramBoundary"
+import { MachineDiagram, transitionId } from "./graph/MachineDiagram"
 
 /**
  * An aggregate's state machine as the specification declares it: the single place a machine
@@ -17,6 +22,7 @@ import {
  * reordered, so it is shown and never used as an identity.
  */
 export function AggregateMachineSection({ node }: { node: TopologyNode }) {
+  const [selected, setSelected] = useState<string>()
   const details = aggregateDetails(node)
   const machine = details?.machine
   const heading = <h2 className="text-sm font-semibold">State machine</h2>
@@ -48,6 +54,17 @@ export function AggregateMachineSection({ node }: { node: TopologyNode }) {
           hand-written and is not proven to match them.
         </p>
       )}
+      <DiagramBoundary
+        key={`${node.name}:${machine.edges.length}`}
+        testId="machine-diagram-failed"
+        fallback="The diagram could not be drawn. The states and transitions below are complete."
+      >
+        <MachineDiagram
+          machine={machine}
+          selected={selected}
+          onSelect={(id) => setSelected((current) => (current === id ? undefined : id))}
+        />
+      </DiagramBoundary>
       <ol aria-label="States" className="flex flex-wrap gap-1.5">
         {machine.states.map((state) => (
           <li key={state.name}>
@@ -79,8 +96,16 @@ export function AggregateMachineSection({ node }: { node: TopologyNode }) {
         >
           {machine.edges.map((edge) => (
             <TableRow
-              key={`${edge.source}#${edge.edgeIndex}`}
-              id={`${edge.source}#${edge.edgeIndex}`}
+              key={transitionId(edge)}
+              id={transitionId(edge)}
+              data-transition-row={transitionId(edge)}
+              data-transition-selected={selected === transitionId(edge)}
+              className={cn("cursor-pointer", selected === transitionId(edge) && "bg-accent")}
+              onAction={() =>
+                setSelected((current) =>
+                  current === transitionId(edge) ? undefined : transitionId(edge),
+                )
+              }
             >
               <TableCell className="font-medium">{edge.source}</TableCell>
               <TableCell className="font-mono text-xs">{edge.command}</TableCell>

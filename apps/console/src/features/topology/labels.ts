@@ -24,6 +24,41 @@ const KIND_LABELS: Record<TopologyNodeKind, { one: string; many: string }> = {
   "external-read": { one: "External read", many: "External reads" },
 }
 
+/** The five groups the map tints and filters by. Every kind belongs to exactly one. */
+export const KIND_GROUPS = [
+  { id: "messaging", label: "Messaging", kinds: ["contract", "intake", "emit", "publisher"] },
+  {
+    id: "coordination",
+    label: "Coordination",
+    kinds: ["process", "router", "workflow", "operation"],
+  },
+  { id: "state", label: "State", kinds: ["aggregate"] },
+  { id: "queues", label: "Queues", kinds: ["dispatch", "workqueue"] },
+  {
+    id: "projections",
+    label: "Projections",
+    kinds: [
+      "projection-owner",
+      "projection-target",
+      "rebuild-group",
+      "projection-revision",
+      "read-model",
+      "external-read",
+    ],
+  },
+] as const satisfies readonly { id: string; label: string; kinds: readonly TopologyNodeKind[] }[]
+
+export type KindGroupId = (typeof KIND_GROUPS)[number]["id"]
+export type KindGroup = (typeof KIND_GROUPS)[number]
+
+export const KIND_GROUP_IDS: readonly KindGroupId[] = KIND_GROUPS.map((group) => group.id)
+
+export function kindGroupOf(kind: TopologyNodeKind | string): KindGroup {
+  return (
+    KIND_GROUPS.find((group) => (group.kinds as readonly string[]).includes(kind)) ?? KIND_GROUPS[1]
+  )
+}
+
 /** "Read model" for `read-model`. An unknown kind (never in a validated document) is itself. */
 export function kindLabel(kind: TopologyNodeKind | string): string {
   return KIND_LABELS[kind as TopologyNodeKind]?.one ?? kind

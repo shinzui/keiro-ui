@@ -6,6 +6,7 @@ import {
   GitBranch,
   Inbox,
   LayoutDashboard,
+  Map as MapIcon,
   Network,
   Rows3,
   Settings,
@@ -60,7 +61,10 @@ export const sections: readonly Section[] = [
     icon: Network,
     href: "/topology",
     matchPrefixes: ["/topology"],
-    pages: [{ id: "topology", title: "Declarations", href: "/topology", icon: Network }],
+    pages: [
+      { id: "topology", title: "Declarations", href: "/topology", icon: Network },
+      { id: "topology-map", title: "Map", href: "/topology/map", icon: MapIcon },
+    ],
   },
   {
     id: "aggregates",

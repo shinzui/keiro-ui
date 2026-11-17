@@ -217,3 +217,21 @@ test("the service topology section shows the document the stack's keiro host mou
   await expect(page.getByRole("list", { name: "States" }).getByRole("listitem")).toHaveCount(6)
   await expect(page.getByRole("grid", { name: "Transitions" }).getByRole("row")).toHaveCount(7)
 })
+
+test("the service map draws the mounted document and a machine diagram", async ({ page }) => {
+  const errors: string[] = []
+  page.on("pageerror", (error) => errors.push(error.message))
+  await page.goto("/topology/map")
+  const map = page.getByTestId("service-map")
+  await expect(map.locator("[data-graph-node]")).toHaveCount(25)
+  await expect(page.getByTestId("map-counts")).toContainText(
+    "Drawing 25 of 25 declarations and 27 of 27 relations",
+  )
+  await page.goto("/topology/map?focus=aggregate:Reservation")
+  await expect(map.locator("[data-graph-node]")).toHaveCount(2)
+  await page.goto("/topology/aggregate/Reservation")
+  const diagram = page.getByTestId("machine-diagram")
+  await expect(diagram.locator("[data-graph-node]")).toHaveCount(6)
+  await expect(diagram.locator("[data-transition]")).toHaveCount(6)
+  expect(errors).toEqual([])
+})

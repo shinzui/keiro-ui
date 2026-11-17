@@ -31,6 +31,7 @@ import { Route as ShellSubscriptionsIndexRouteImport } from './routes/_shell/sub
 import { Route as ShellSubscriptionsNameRouteImport } from './routes/_shell/subscriptions/$name'
 import { Route as ShellTimersIndexRouteImport } from './routes/_shell/timers/index'
 import { Route as ShellTopologyIndexRouteImport } from './routes/_shell/topology/index'
+import { Route as ShellTopologyMapRouteImport } from './routes/_shell/topology/map'
 import { Route as ShellWorkflowsIndexRouteImport } from './routes/_shell/workflows/index'
 import { Route as ShellAggregatesTypeIndexRouteImport } from './routes/_shell/aggregates/$type/index'
 import { Route as ShellAggregatesTypeIdRouteImport } from './routes/_shell/aggregates/$type/$id'
@@ -153,6 +154,11 @@ const ShellTopologyIndexRoute = ShellTopologyIndexRouteImport.update({
   path: '/topology/',
   getParentRoute: () => ShellRoute,
 } as any)
+const ShellTopologyMapRoute = ShellTopologyMapRouteImport.update({
+  id: '/topology/map',
+  path: '/topology/map',
+  getParentRoute: () => ShellRoute,
+} as any)
 const ShellWorkflowsIndexRoute = ShellWorkflowsIndexRouteImport.update({
   id: '/workflows/',
   path: '/workflows/',
@@ -218,6 +224,7 @@ export interface FileRoutesByFullPath {
   '/settings/connections': typeof ShellSettingsConnectionsRoute
   '/streams/$name': typeof ShellStreamsNameRoute
   '/subscriptions/$name': typeof ShellSubscriptionsNameRoute
+  '/topology/map': typeof ShellTopologyMapRoute
   '/aggregates/': typeof ShellAggregatesIndexRoute
   '/categories/': typeof ShellCategoriesIndexRoute
   '/events/': typeof ShellEventsIndexRoute
@@ -251,6 +258,7 @@ export interface FileRoutesByTo {
   '/settings/connections': typeof ShellSettingsConnectionsRoute
   '/streams/$name': typeof ShellStreamsNameRoute
   '/subscriptions/$name': typeof ShellSubscriptionsNameRoute
+  '/topology/map': typeof ShellTopologyMapRoute
   '/aggregates': typeof ShellAggregatesIndexRoute
   '/categories': typeof ShellCategoriesIndexRoute
   '/events': typeof ShellEventsIndexRoute
@@ -286,6 +294,7 @@ export interface FileRoutesById {
   '/_shell/settings/connections': typeof ShellSettingsConnectionsRoute
   '/_shell/streams/$name': typeof ShellStreamsNameRoute
   '/_shell/subscriptions/$name': typeof ShellSubscriptionsNameRoute
+  '/_shell/topology/map': typeof ShellTopologyMapRoute
   '/_shell/aggregates/': typeof ShellAggregatesIndexRoute
   '/_shell/categories/': typeof ShellCategoriesIndexRoute
   '/_shell/events/': typeof ShellEventsIndexRoute
@@ -321,6 +330,7 @@ export interface FileRouteTypes {
     | '/settings/connections'
     | '/streams/$name'
     | '/subscriptions/$name'
+    | '/topology/map'
     | '/aggregates/'
     | '/categories/'
     | '/events/'
@@ -354,6 +364,7 @@ export interface FileRouteTypes {
     | '/settings/connections'
     | '/streams/$name'
     | '/subscriptions/$name'
+    | '/topology/map'
     | '/aggregates'
     | '/categories'
     | '/events'
@@ -388,6 +399,7 @@ export interface FileRouteTypes {
     | '/_shell/settings/connections'
     | '/_shell/streams/$name'
     | '/_shell/subscriptions/$name'
+    | '/_shell/topology/map'
     | '/_shell/aggregates/'
     | '/_shell/categories/'
     | '/_shell/events/'
@@ -573,6 +585,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShellTopologyIndexRouteImport
       parentRoute: typeof ShellRoute
     }
+    '/_shell/topology/map': {
+      id: '/_shell/topology/map'
+      path: '/topology/map'
+      fullPath: '/topology/map'
+      preLoaderRoute: typeof ShellTopologyMapRouteImport
+      parentRoute: typeof ShellRoute
+    }
     '/_shell/workflows/': {
       id: '/_shell/workflows/'
       path: '/workflows'
@@ -655,6 +674,7 @@ interface ShellRouteChildren {
   ShellSettingsConnectionsRoute: typeof ShellSettingsConnectionsRoute
   ShellStreamsNameRoute: typeof ShellStreamsNameRoute
   ShellSubscriptionsNameRoute: typeof ShellSubscriptionsNameRoute
+  ShellTopologyMapRoute: typeof ShellTopologyMapRoute
   ShellAggregatesIndexRoute: typeof ShellAggregatesIndexRoute
   ShellCategoriesIndexRoute: typeof ShellCategoriesIndexRoute
   ShellEventsIndexRoute: typeof ShellEventsIndexRoute
@@ -689,6 +709,7 @@ const ShellRouteChildren: ShellRouteChildren = {
   ShellSettingsConnectionsRoute: ShellSettingsConnectionsRoute,
   ShellStreamsNameRoute: ShellStreamsNameRoute,
   ShellSubscriptionsNameRoute: ShellSubscriptionsNameRoute,
+  ShellTopologyMapRoute: ShellTopologyMapRoute,
   ShellAggregatesIndexRoute: ShellAggregatesIndexRoute,
   ShellCategoriesIndexRoute: ShellCategoriesIndexRoute,
   ShellEventsIndexRoute: ShellEventsIndexRoute,

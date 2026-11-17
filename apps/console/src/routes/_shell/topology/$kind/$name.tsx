@@ -4,6 +4,8 @@ import { createFileRoute, Link } from "@tanstack/react-router"
 import { EmptyState } from "@/components/empty-state"
 import { PageHeader } from "@/components/page-header"
 import { AggregateMachineSection } from "@/features/topology/AggregateMachineSection"
+import { DiagramBoundary } from "@/features/topology/graph/DiagramBoundary"
+import { ServiceMap } from "@/features/topology/graph/ServiceMap"
 import { kindLabel } from "@/features/topology/labels"
 import { NodeDetails } from "@/features/topology/NodeDetails"
 import { NodeRelations } from "@/features/topology/NodeRelations"
@@ -89,6 +91,30 @@ function TopologyNodePage() {
         <NodeDetails node={node} />
         {node.kind === "aggregate" && <AggregateMachineSection node={node} />}
         <NodeRelations index={index} kind={node.kind} name={node.name} />
+        <section aria-label="Neighbourhood" className="flex flex-col gap-2">
+          <h2 className="text-sm font-semibold">Neighbourhood</h2>
+          <p className="text-sm text-muted-foreground">
+            This declaration and the ones it relates to directly, as listed under Relations.{" "}
+            <Link
+              {...links.topologyMap({ focus: topologyNodeKey(node.kind, node.name) })}
+              className="underline-offset-2 hover:underline"
+            >
+              Open in the map
+            </Link>
+          </p>
+          <DiagramBoundary
+            key={topologyNodeKey(node.kind, node.name)}
+            testId="neighbourhood-failed"
+            fallback="The neighbourhood could not be drawn. The Relations tables above are complete."
+          >
+            <ServiceMap
+              index={index}
+              focus={topologyNodeKey(node.kind, node.name)}
+              depth={1}
+              maxHeight={420}
+            />
+          </DiagramBoundary>
+        </section>
         {node.kind === "aggregate" && <ReadModelsFed index={index} node={node} />}
       </div>
     </>

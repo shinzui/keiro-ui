@@ -169,6 +169,14 @@
     url = "https://registry.npmjs.org/@csstools/css-tokenizer/-/css-tokenizer-4.0.2.tgz";
     hash = "sha512-OoKoR0f76dCY666JlcbhmVTs2drYj1GUXZTYTcbUgJjh9Nv41aFfZ21bPQTERm5+L5cBDo466NltB2lplS5GBw==";
   };
+  "@dagrejs/dagre@3.1.3" = fetchurl {
+    url = "https://registry.npmjs.org/@dagrejs/dagre/-/dagre-3.1.3.tgz";
+    hash = "sha512-X4aUTwOReZvthaZWOVHqlJ52/ZdhZFEM4+Lh/uR4XooUSLE6p71bcy7MPGzYnNUcNh+nj+i/qJQpCMIdQnSmrg==";
+  };
+  "@dagrejs/graphlib@4.0.6" = fetchurl {
+    url = "https://registry.npmjs.org/@dagrejs/graphlib/-/graphlib-4.0.6.tgz";
+    hash = "sha512-Hjv7hbfmSBMP4nVXMFt4gusqWWHghQF0qNT4V5KHo4Jatvd+2L5VHKFnnIjXVuDnaHIRz7ZuHSnlf0RuZkOwWA==";
+  };
   "@dotenvx/dotenvx@1.75.1" = fetchurl {
     url = "https://registry.npmjs.org/@dotenvx/dotenvx/-/dotenvx-1.75.1.tgz";
     hash = "sha512-/BITOC9dmS/edY2zQwZNicQ059O6RKabtQfyEafV0nGtfYRNHYy1DIPiYVcov40+tob9hfmBnbR963dS+EQ1DQ==";

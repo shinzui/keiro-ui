@@ -10,3 +10,14 @@ export const topologySearch = shellSearchSchema.extend({
   kind: z.string().optional().catch(undefined),
 })
 export type TopologySearch = z.infer<typeof topologySearch>
+
+/** The map's view: which kind groups are drawn, and an optional focus and its reach. */
+export const topologyMapSearch = shellSearchSchema.extend({
+  /** Comma-separated kind group ids; absent means every group. */
+  groups: z.string().optional().catch(undefined),
+  /** A node key (`kind:name`): only its neighbourhood is drawn. */
+  focus: z.string().optional().catch(undefined),
+  /** How many relations away from the focus to draw. */
+  depth: z.coerce.number().int().min(1).max(2).optional().catch(undefined),
+})
+export type TopologyMapSearch = z.infer<typeof topologyMapSearch>

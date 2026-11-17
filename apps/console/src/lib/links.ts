@@ -10,6 +10,11 @@ export const links = {
   overview: () => ({ to: "/" as const }),
   /** The Service Topology section: the mounted document's header and declarations. */
   topology: (search?: { q?: string; kind?: string }) => ({ to: "/topology" as const, search }),
+  /** The drawn service: `groups` is comma-separated kind groups, `focus` a node key. */
+  topologyMap: (search?: { groups?: string; focus?: string; depth?: 1 | 2 }) => ({
+    to: "/topology/map" as const,
+    search,
+  }),
   /** One declaration of the mounted document, addressed by its kind and name. */
   topologyNode: (kind: string, name: string) => ({
     to: "/topology/$kind/$name" as const,

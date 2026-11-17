@@ -44,11 +44,19 @@ export interface FileMeta {
   cursor?: string
   derived?: boolean
   derived_from?: string
+  /**
+   * When this file was recorded and from which source commits. Absent on files recorded before
+   * per-file provenance existed: `MetaFile.recorded_at` and `MetaFile.sources` describe those.
+   */
+  recorded_at?: string
+  sources?: Record<string, { commit: string }>
 }
 
 export interface MetaFile {
+  /** The last whole-surface recording; recording selected entries leaves it unchanged. */
   recorded_at: string
   seed: string
+  /** Source commits of the last whole-surface recording of each source. */
   sources: Record<string, { commit: string }>
   files: Record<string, FileMeta>
 }

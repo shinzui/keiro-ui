@@ -73,6 +73,14 @@ tests rely on what a single seed produces, such as how many pages a list has:
   and run `bash dev/seed-queues.sh`, so that `dlq_orders` holds the oldest message and `console_demo` the
   most visible ones.
 
+The recorder takes surfaces (`bun run fixtures:record keiro`) or single manifest entries
+(`bun run fixtures:record keiro:topology-show`, every variant of that slug). A run limited to
+selected entries needs no reseed when the entries are new or read data the seed does not move, and it
+leaves the surface's `recorded_at` and `sources` unchanged. A recording never replaces a derived
+fixture: the live body goes to its `<slug>.recorded.json` sibling, and the derived file changes only
+when `derive` runs. The recorder rewrites a manifest only when it resolved a blank pin, and formats it
+with oxfmt.
+
 ### Workflow counts and declared consumers
 
 Build Keiro 0.24.0.0 or later and restart the host before recording the new reads.
@@ -112,12 +120,10 @@ The routes need a keiro checkout at or after commit `0ec5a7bb` (they are not in 
 is an older build or was started without `--topology`: run `just stack-build keiro` and restart
 the stack.
 
-To re-record the two topology fixtures (`topology-summary`, `topology-show`), run
-`bun run fixtures:record keiro` without reseeding. That command re-records every keiro entry,
-which changes `observed_at` values and replaces derived fixtures with fresh recordings, so
-afterwards restore every keiro fixture and `_meta.json` entry other than the two topology ones
-from git (`git checkout -- packages/testing/fixtures`, then put back the two files and their
-entries). The recorded `topology-show.json` must be byte-identical to the golden;
+To re-record the two topology fixtures, run
+`bun run fixtures:record keiro:topology-summary keiro:topology-show` without reseeding. It
+records only those entries and changes only their files and `_meta.json` entries; each entry gets
+its own `recorded_at` and `sources`. The recorded `topology-show.json` must be byte-identical to the golden;
 `packages/testing/test/topology.test.ts` checks that, and that the summary a host would
 compute for those bytes equals the recorded `topology-summary.json`. When keiro changes its
 goldens, also refresh the copies in `packages/testing/topology/` as its `SOURCE.md` describes.

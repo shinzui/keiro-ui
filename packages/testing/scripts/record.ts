@@ -1,11 +1,22 @@
-// Records every manifest entry from the local runtime stack (dev/README.md) into
+// Records manifest entries from the local runtime stack (dev/README.md) into
 // packages/testing/fixtures/<surface>/<slug>[.<variant>].json, byte for byte, and writes
-// fixtures/_meta.json. Usage: bun run fixtures:record [surface...]
+// fixtures/_meta.json. Usage: bun run fixtures:record [surface | surface:slug ...]
+//
+//   bun run fixtures:record                      every entry of every surface
+//   bun run fixtures:record keiro                every keiro entry
+//   bun run fixtures:record keiro:topology-show  only that entry (all of its variants)
+//
+// Recording selected entries touches only their files and _meta.json entries, and leaves the
+// surface's recorded_at and sources alone; each recorded file carries its own provenance.
+//
+// A derived fixture (scripts/derive.ts) is never replaced by a recording: the live body goes to
+// its <slug>.recorded.json sibling and the derived file stays until derive runs again. A derived
+// fixture without that sibling is left alone.
 //
 // Bodies are written exactly as received (never JSON.parse + stringify): ids and positions
 // are int64 and may exceed 2^53.
 import { execFileSync } from "node:child_process"
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs"
 import { dirname, join } from "node:path"
 
 import {
@@ -103,7 +114,43 @@ async function fetchRaw(url: string, method: string) {
   }
 }
 
+const startedAt = new Date().toISOString()
+
+/** The source repositories a surface's recordings come from, keyed as in `_meta.json` sources. */
+const surfaceRepos: Record<Surface, string[]> = {
+  kiroku: ["kiroku"],
+  pgmq: ["pgmq-hs"],
+  shibuya: ["shibuya", "shibuya-pgmq-adapter"],
+  keiro: ["keiro"],
+}
+
+const repoPaths: Record<string, string | undefined> = {
+  kiroku: env.KIROKU_REPO,
+  "pgmq-hs": env.PGMQ_HS_REPO,
+  shibuya: env.SHIBUYA_REPO,
+  "shibuya-pgmq-adapter": env.SHIBUYA_PGMQ_ADAPTER_REPO,
+  keiro: env.KEIRO_REPO,
+}
+
+const commits = new Map<string, string>()
+
+function sourcesOf(surface: Surface): Record<string, { commit: string }> {
+  return Object.fromEntries(
+    surfaceRepos[surface].map((name) => {
+      if (!commits.has(name)) commits.set(name, gitHead(repoPaths[name]))
+      return [name, { commit: commits.get(name)! }]
+    }),
+  )
+}
+
 let written = 0
+/** Recordings of derived fixtures, written to their `.recorded.json` siblings instead. */
+const intoRecorded: string[] = []
+
+/** True when the recorder itself derives `relative` this run (recordDerivedEvents). */
+function derivedByRecorder(relative: string): boolean {
+  return derivedEventPins.some(({ slug }) => relative === `kiroku/${slug}.json`)
+}
 
 function write(
   surface: Surface,
@@ -111,11 +158,31 @@ function write(
   variant: FileMeta["variant"],
   body: string,
   entry: Omit<FileMeta, "surface" | "slug" | "variant">,
-) {
-  const relative = `${surface}/${fileName(slug, variant)}`
+): string | null {
+  let relative = `${surface}/${fileName(slug, variant)}`
+  let fileVariant = variant
+  if (meta.files[relative]?.derived && !derivedByRecorder(relative)) {
+    const sibling = relative.replace(/\.json$/, ".recorded.json")
+    if (!meta.files[sibling]) {
+      console.log(
+        `${surface.padEnd(8)} keep ${relative} (derived, and no ${sibling} to record into)`,
+      )
+      return null
+    }
+    relative = sibling
+    fileVariant = "recorded"
+    intoRecorded.push(relative)
+  }
   mkdirSync(join(fixturesDir, surface), { recursive: true })
   writeFileSync(join(fixturesDir, relative), body)
-  meta.files[relative] = { surface, slug, variant, ...entry }
+  meta.files[relative] = {
+    surface,
+    slug,
+    variant: fileVariant,
+    ...entry,
+    recorded_at: startedAt,
+    sources: sourcesOf(surface),
+  }
   written += 1
   return relative
 }
@@ -149,10 +216,19 @@ async function recordEntry(manifest: Manifest, entry: ManifestEntry, pins: Recor
     contentType: response.contentType,
   })
   console.log(
-    `${manifest.surface.padEnd(8)} ${method} ${request.padEnd(60)} ${response.status}  ${relative}`,
+    `${manifest.surface.padEnd(8)} ${method} ${request.padEnd(60)} ${response.status}  ${relative ?? "(not written)"}`,
   )
 
   const cursor = entry.follow_next_cursor ? nextCursorOf(response.body) : undefined
+  if (entry.follow_next_cursor && cursor === undefined) {
+    // The list now fits on one page: an earlier recording's second page no longer applies.
+    const stale = `${manifest.surface}/${fileName(entry.slug, "page2")}`
+    if (!meta.files[stale]?.derived && existsSync(join(fixturesDir, stale))) {
+      unlinkSync(join(fixturesDir, stale))
+      delete meta.files[stale]
+      console.log(`${manifest.surface.padEnd(8)} removed ${stale} (no next_cursor)`)
+    }
+  }
   if (cursor !== undefined) {
     const pageQuery = { ...query, [manifest.cursor_param]: cursor }
     const pageRequest = `${path}?${new URLSearchParams(pageQuery).toString()}`
@@ -168,7 +244,7 @@ async function recordEntry(manifest: Manifest, entry: ManifestEntry, pins: Recor
       cursor,
     })
     console.log(
-      `${manifest.surface.padEnd(8)} ${method} ${pageRequest.padEnd(60)} ${page.status}  ${pageFile}`,
+      `${manifest.surface.padEnd(8)} ${method} ${pageRequest.padEnd(60)} ${page.status}  ${pageFile ?? "(not written)"}`,
     )
   }
 }
@@ -301,8 +377,9 @@ const resolvers: Record<Surface, (m: Manifest, pins: Record<string, string>) => 
 }
 
 /** Writes the derived single-event fixtures the kiroku resolver asked for. */
-function recordDerivedEvents() {
+function recordDerivedEvents(only: Set<string> | null) {
   for (const { slug, from, causation } of derivedEventPins) {
+    if (only && !only.has(slug)) continue
     const relative = `kiroku/${slug}.json`
     const original = readFileSync(join(fixturesDir, relative), "utf8")
     const body = original.replace(
@@ -319,63 +396,101 @@ function recordDerivedEvents() {
   }
 }
 
+/**
+ * Parses `surface` (every entry) and `surface:slug` (that entry) arguments; no arguments selects
+ * every surface. A value of null selects the whole surface.
+ */
+function parseSelection(args: string[]): Map<Surface, Set<string> | null> {
+  const selection = new Map<Surface, Set<string> | null>()
+  if (args.length === 0) for (const surface of surfaces) selection.set(surface, null)
+  for (const arg of args) {
+    const [name, slug] = arg.split(":", 2) as [string, string | undefined]
+    if (!(surfaces as readonly string[]).includes(name))
+      throw new Error(`unknown surface ${name} in ${arg}; expected one of ${surfaces.join(", ")}`)
+    const surface = name as Surface
+    if (slug === undefined || slug === "") selection.set(surface, null)
+    else if (selection.get(surface) !== null)
+      selection.set(surface, (selection.get(surface) ?? new Set()).add(slug))
+  }
+  return selection
+}
+
+/** Writes a manifest in the repository's formatting (oxfmt), so a pin change is the only diff. */
+function writeManifest(path: string, manifest: Manifest) {
+  const text = `${JSON.stringify(manifest, null, 2)}\n`
+  try {
+    const formatted = execFileSync(
+      join(repoRoot, "node_modules/.bin/oxfmt"),
+      [`--stdin-filepath=${path}`],
+      { cwd: repoRoot, input: text },
+    ).toString()
+    writeFileSync(path, formatted)
+  } catch {
+    writeFileSync(path, text)
+    console.log(`could not run oxfmt; format ${path} with bun run format`)
+  }
+}
+
 async function main() {
-  const requested = process.argv.slice(2) as Surface[]
-  const selected = requested.length ? requested : [...surfaces]
+  const selection = parseSelection(process.argv.slice(2))
   // kiroku first: keiro's stream pin reuses kiroku's.
-  const ordered = selected.toSorted((a, b) => surfaces.indexOf(a) - surfaces.indexOf(b))
+  const ordered = [...selection.keys()].toSorted(
+    (a, b) => surfaces.indexOf(a) - surfaces.indexOf(b),
+  )
 
   for (const surface of ordered) {
+    const only = selection.get(surface)!
     const manifestPath = join(manifestsDir, `${surface}.json`)
     const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as Manifest
-    for (const key of Object.keys(meta.files)) {
-      if (meta.files[key]!.surface === surface && !meta.files[key]!.derived) delete meta.files[key]
+    if (only) {
+      const unknown = [...only].filter((slug) => !manifest.entries.some((e) => e.slug === slug))
+      if (unknown.length) throw new Error(`${surface} manifest has no entry ${unknown.join(", ")}`)
+    } else {
+      // A whole-surface recording replaces the surface's recordings; derived fixtures and the
+      // recorded bodies derive.ts keeps beside them stay.
+      for (const key of Object.keys(meta.files)) {
+        const file = meta.files[key]!
+        if (file.surface === surface && !file.derived && file.variant !== "recorded")
+          delete meta.files[key]
+      }
     }
     const pins = { ...manifest.pins }
     await resolvers[surface](manifest, pins)
-    manifest.pins = pins
-    writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
-    for (const entry of manifest.entries) await recordEntry(manifest, entry, pins)
-    if (surface === "kiroku") recordDerivedEvents()
+    if (JSON.stringify(pins) !== JSON.stringify(manifest.pins)) {
+      manifest.pins = pins
+      writeManifest(manifestPath, manifest)
+    }
+    for (const entry of manifest.entries) {
+      if (!only || only.has(entry.slug)) await recordEntry(manifest, entry, pins)
+    }
+    if (surface === "kiroku") recordDerivedEvents(only)
   }
 
-  const repos: Record<string, string | undefined> = {
-    kiroku: env.KIROKU_REPO,
-    "pgmq-hs": env.PGMQ_HS_REPO,
-    shibuya: env.SHIBUYA_REPO,
-    "shibuya-pgmq-adapter": env.SHIBUYA_PGMQ_ADAPTER_REPO,
-    keiro: env.KEIRO_REPO,
-  }
-  // A targeted recording must not claim new provenance for untouched surfaces.
-  const selectedRepos = new Set(
-    ordered.flatMap((surface) =>
-      surface === "pgmq"
-        ? ["pgmq-hs"]
-        : surface === "shibuya"
-          ? ["shibuya", "shibuya-pgmq-adapter"]
-          : [surface],
-    ),
-  )
+  // Only a whole-surface recording moves the surface's provenance: selected entries carry their
+  // own, and untouched surfaces keep theirs.
+  const wholeSurfaces = ordered.filter((surface) => selection.get(surface) === null)
   meta.sources = {
     ...meta.sources,
-    ...Object.fromEntries(
-      Object.entries(repos)
-        .filter(([name]) => selectedRepos.has(name))
-        .map(([name, repo]) => [name, { commit: gitHead(repo) }]),
-    ),
+    ...Object.fromEntries(wholeSurfaces.flatMap((surface) => Object.entries(sourcesOf(surface)))),
   }
-  meta.recorded_at = new Date().toISOString()
+  if (wholeSurfaces.length) meta.recorded_at = startedAt
   // Recording one surface does not imply that the database was seeded again.
-  if (!meta.seed || selected.length === surfaces.length)
+  if (!meta.seed || wholeSurfaces.length === surfaces.length)
     meta.seed = `keiro just jitsurei-all (keiro ${gitHead(env.KEIRO_REPO)}) + dev/seed-queues.sh`
   meta.files = Object.fromEntries(
     Object.entries(meta.files).toSorted(([a], [b]) => a.localeCompare(b)),
   )
   writeFileSync(metaPath, `${JSON.stringify(meta, null, 2)}\n`)
-  const commits = Object.entries(meta.sources)
+  const surfaceSources = Object.entries(meta.sources)
     .map(([name, s]) => `${name} ${s.commit}`)
     .join(", ")
-  console.log(`wrote ${written} fixtures; _meta.json updated (${commits}; seed jitsurei-all)`)
+  console.log(
+    `wrote ${written} fixtures; _meta.json updated (${surfaceSources}; seed jitsurei-all)`,
+  )
+  if (intoRecorded.length)
+    console.log(
+      `${intoRecorded.length} recordings of derived fixtures went to their .recorded.json siblings (${intoRecorded.join(", ")}); run derive to refresh the derived bodies`,
+    )
 }
 
 await main()

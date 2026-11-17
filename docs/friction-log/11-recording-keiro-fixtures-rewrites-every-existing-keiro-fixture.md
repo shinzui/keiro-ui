@@ -6,13 +6,18 @@ generated:
   by: "claude-code/claude-fable-5-2"
   at: "2026-11-17T22:10:31Z"
 frictionId: FRIC-11
-status: logged
+status: "resolved"
 impact: detour
 kind: tooling
 origin: "mori://shinzui/keiro-ui"
 affects: "mori://shinzui/keiro-ui"
 plan: "docs/plans/27-read-and-verify-the-served-service-topology-in-the-keiro-client.md"
 workaround: "Saved the two new _meta.json entries, ran git checkout -- packages/testing/fixtures, re-inserted the two entries, and kept the two new fixture files; did not run derive. dev/README.md now describes this."
+resolution: "fixtures:record accepts surface:slug to record selected entries, which touch only their files and _meta.json entries and carry per-file provenance; recordings of derived fixtures go to their .recorded.json siblings, and a manifest is rewritten only on a pin change, formatted with oxfmt."
+amended:
+  - by: "claude-code/claude-opus-5-5"
+    at: "2026-11-17T23:30:00Z"
+    change: "Resolve by recording selected entries without touching other fixtures, derived bodies, surface provenance or manifest formatting."
 tags:
   - "fixtures"
 ---
@@ -33,3 +38,15 @@ The recorder re-requested all 47 keiro entries. 23 existing fixtures changed (fr
 ## Workaround
 
 Saved the two new _meta.json entries, ran git checkout -- packages/testing/fixtures, re-inserted the two entries, and kept the two new fixture files; did not run derive. dev/README.md now describes this.
+
+## Resolution
+
+`packages/testing/scripts/record.ts` now accepts `surface:slug` arguments. Recording selected
+entries writes only their fixtures and `_meta.json` entries, stamps each with its own
+`recorded_at` and `sources`, and leaves the surface's `recorded_at` and `sources` alone. Whole-
+surface recordings keep the `.recorded.json` entries derive.ts made, and send the live body of a
+derived fixture to that sibling instead of replacing the derived file. The manifest is written
+only when a blank pin was resolved, through oxfmt, so the committed formatting survives.
+Replaying the committed fixtures through a mock stack, `fixtures:record keiro:topology-summary
+keiro:topology-show` changed only those two `_meta.json` entries, and `fixtures:record keiro`
+changed no fixture body and dropped no derived or recorded entry.

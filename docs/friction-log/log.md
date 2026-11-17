@@ -2,6 +2,9 @@
 
 ## 2026-11-17
 
+* **Update**: FRIC-11 resolved: Record selected entries without touching other fixtures, derived bodies, surface provenance or manifest formatting.
+
+
 * **Update**: FRIC-13 accepted: Accepted: an environment mismatch between two other repositories' versions, documented with its workaround.
 
 

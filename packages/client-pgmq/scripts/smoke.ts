@@ -1,7 +1,9 @@
 // Prints the service descriptor and the first page of the first queue (bun run --filter @keiro-ui/client-pgmq smoke).
+import { stackOrigin } from "@keiro-ui/testing/stack"
+
 import { createPgmqClient } from "../src/client"
 
-const pgmq = createPgmqClient({ baseUrl: process.env.PGMQ_URL ?? "http://127.0.0.1:9095" })
+const pgmq = createPgmqClient({ baseUrl: process.env.PGMQ_URL ?? stackOrigin("pgmq") })
 console.log(await pgmq.service())
 const [first] = await pgmq.queues.list()
 if (first) {

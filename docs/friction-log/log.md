@@ -2,6 +2,9 @@
 
 ## 2026-11-17
 
+* **Update**: FRIC-12 resolved: Resolved: a preflight names the holder of a busy stack port, stack-check refuses foreign listeners, and STACK_*_PORT in dev/.env moves a surface for every consumer; verified with kiroku on 19091 beside the foreign 9091 holder.
+
+
 * **Update**: FRIC-11 resolved: Record selected entries without touching other fixtures, derived bodies, surface provenance or manifest formatting.
 
 

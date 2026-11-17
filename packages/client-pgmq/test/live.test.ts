@@ -1,3 +1,4 @@
+import { stackOrigin } from "@keiro-ui/testing/stack"
 import { describe, expect, test } from "vitest"
 import { WebSocket as WsClient } from "ws"
 
@@ -5,10 +6,10 @@ import { createPgmqClient } from "../src"
 
 // With the local stack (just stack-up): KEIRO_UI_LIVE=1 bun run --filter @keiro-ui/client-pgmq test
 const live = process.env.KEIRO_UI_LIVE === "1"
-const base = "http://127.0.0.1:9095"
+const base = stackOrigin("pgmq") // STACK_PGMQ_PORT in dev/.env, default 9095
 const pgmq = createPgmqClient({ baseUrl: base })
 
-describe.runIf(live)("pgmq-inspect on 9095", () => {
+describe.runIf(live)(`pgmq-inspect at ${base}`, () => {
   test("queues and the first queue's first page", async () => {
     const queues = await pgmq.queues.list()
     expect(queues.length).toBeGreaterThan(0)
@@ -25,7 +26,7 @@ describe.runIf(live)("pgmq-inspect on 9095", () => {
 
   test("/ws answers a subscribe with a snapshot", async () => {
     const queue = (await pgmq.queues.list())[0]!.queue_name
-    const socket = new WsClient(`ws://127.0.0.1:9095/ws`)
+    const socket = new WsClient(`${base.replace(/^http/, "ws")}/ws`)
     const first = await new Promise<string>((resolve, reject) => {
       socket.on("open", () => socket.send(JSON.stringify({ type: "subscribe", queue })))
       socket.on("message", (data) => resolve(String(data)))

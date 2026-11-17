@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
 
+import { stackOrigin } from "@keiro-ui/testing/stack"
 import { describe, expect, test } from "vitest"
 import { z } from "zod"
 
@@ -9,7 +10,8 @@ import { createKeiroClient, topologyDigest } from "../../src"
 
 // With the local stack (just stack-up): KEIRO_UI_LIVE=1 bun run --filter @keiro-ui/client-keiro test
 const live = process.env.KEIRO_UI_LIVE === "1"
-const keiro = createKeiroClient({ baseUrl: "http://127.0.0.1:9093" })
+const base = stackOrigin("keiro") // STACK_KEIRO_PORT in dev/.env, default 9093
+const keiro = createKeiroClient({ baseUrl: base })
 
 /** The keiro checkout the stack was built from: KEIRO_REPO, or its value in dev/.env. */
 function keiroRepo(): string {
@@ -20,7 +22,7 @@ function keiroRepo(): string {
   return line[1]!.trim().replace(/^"(.*)"$/, "$1")
 }
 
-describe.runIf(live)("keiro-ops-http on 9093", () => {
+describe.runIf(live)(`keiro-ops-http at ${base}`, () => {
   // The representative producer/consumer check of
   // docs/masterplans/4-integrate-the-keiro-service-topology-into-the-console.md: the default
   // stack's host mounts keiro's hospital golden (dev/process-compose.yaml), and the client must
@@ -98,7 +100,7 @@ describe.runIf(live)("keiro-ops-http on 9093", () => {
   // schemas until the sibling plans add these to the client.
   test("the new routes answer in the documented shapes", async () => {
     const get = async (path: string) => {
-      const response = await fetch(`http://127.0.0.1:9093${path}`)
+      const response = await fetch(`${base}${path}`)
       expect(response.status).toBe(200)
       return (await response.json()) as unknown
     }

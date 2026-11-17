@@ -6,7 +6,7 @@ generated:
   by: "claude-code/claude-fable-5-2"
   at: "2026-11-17T22:10:33Z"
 frictionId: FRIC-12
-status: logged
+status: "resolved"
 impact: detour
 kind: environment
 origin: "mori://shinzui/keiro-ui"
@@ -15,6 +15,11 @@ plan: "docs/plans/27-read-and-verify-the-served-service-topology-in-the-keiro-cl
 workaround: "Accepted the milestone on the keiro probes alone, which all passed against the stack's own jitsurei-ops-http, and left the foreign process running."
 tags:
   - "stack"
+resolution: "just stack-up now runs dev/preflight.sh first and refuses to start while any port the profile binds is held, naming the port, its variable, and the holder's PID and command; just stack-check reports a listener that is not this stack's and skips its probes instead of passing against it; and every stack port is movable in dev/.env, read with the old numbers as defaults by the process-compose commands and readiness probes, the Vite proxy, the live client suites and smoke scripts, and the production smoke's Caddy."
+amended:
+  - by: "claude-code/claude-opus-5-5"
+    at: "2026-11-17T23:39:02Z"
+    change: "Resolved: a preflight names the holder of a busy stack port, stack-check refuses foreign listeners, and STACK_*_PORT in dev/.env moves a surface for every consumer; verified with kiroku on 19091 beside the foreign 9091 holder."
 ---
 # A foreign process on port 9091 makes stack-check fail and falsely pass kiroku probes
 

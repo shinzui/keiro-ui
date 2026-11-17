@@ -8,6 +8,7 @@
     "./node": "./src/node.ts",
     "./browser": "./src/browser.ts",
     "./scenario": "./src/scenario.ts",
+    "./stack": "./src/stack.ts",
     "./fixtures/*": "./fixtures/*",
     "./manifests/*": "./manifests/*"
   },

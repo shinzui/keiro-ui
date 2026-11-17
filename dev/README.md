@@ -1,15 +1,18 @@
 # Local runtime stack
 
 The console reads four inspection surfaces. This directory runs them locally against seeded
-databases on the fixed ports of
-[`docs/masterplans/2-build-the-keiro-runtime-console.md`](../docs/masterplans/2-build-the-keiro-runtime-console.md):
+databases on the default ports of
+[`docs/masterplans/2-build-the-keiro-runtime-console.md`](../docs/masterplans/2-build-the-keiro-runtime-console.md),
+each set by a variable in `dev/.env` (see "Moving a port"):
 
-| Surface | Process                 | Port | Database                           |
-| ------- | ----------------------- | ---- | ---------------------------------- |
-| shibuya | `shibuya-pgmq-consumer` | 9090 | `pgmq_dev` (pgmq-hs's dev cluster) |
-| kiroku  | `kiroku-inspect`        | 9091 | `jitsurei` (keiro's dev cluster)   |
-| pgmq    | `pgmq-inspect`          | 9095 | `pgmq_dev`                         |
-| keiro   | `jitsurei-ops-http`     | 9093 | `jitsurei`                         |
+| Surface | Process                 | Port | Variable             | Database                           |
+| ------- | ----------------------- | ---- | -------------------- | ---------------------------------- |
+| shibuya | `shibuya-pgmq-consumer` | 9090 | `STACK_SHIBUYA_PORT` | `pgmq_dev` (pgmq-hs's dev cluster) |
+| kiroku  | `kiroku-inspect`        | 9091 | `STACK_KIROKU_PORT`  | `jitsurei` (keiro's dev cluster)   |
+| pgmq    | `pgmq-inspect`          | 9095 | `STACK_PGMQ_PORT`    | `pgmq_dev`                         |
+| keiro   | `jitsurei-ops-http`     | 9093 | `STACK_KEIRO_PORT`   | `jitsurei`                         |
+
+The mori profile adds its daemon on 9191 (`STACK_MORI_METRICS_PORT`).
 
 pgmq uses 9095 rather than its upstream default 9092 (a local Kafka-compatible container
 holds 9092 on the machine this was set up on).
@@ -35,7 +38,8 @@ just stack-up                  # foreground; Ctrl-C (or `just stack-down`) stops
 just stack-check               # in another terminal: every probe and upgrade prints `ok`
 ```
 
-`stack-up` starts both socket-only PostgreSQL clusters (`stack-db-up`), then the processes in
+`stack-up` first checks that every port the profile binds is free (`just stack-preflight`), then
+starts both socket-only PostgreSQL clusters (`stack-db-up`), then the processes in
 `process-compose.yaml`. The shibuya example consumer installs the pgmq schema in `pgmq_dev`
 through pgmq-migration's pg-migrate ledger (no pgmq extension is needed) and creates its
 `orders`/`payments`/`notifications` queues; `pgmq-seed` then adds the console's demo queues
@@ -48,15 +52,42 @@ A simulator sends a small `orders` batch every 30 s so the processors have work.
 - keiro answers `{"status":"schema_drift",...}`: the jitsurei database was migrated by a
   different keiro checkout. Drop it (`dropdb -h "$STACK_PG_SOCKET_DIR" jitsurei`) and run
   `just stack-seed` from the checkout you built `jitsurei-ops-http` from.
-- Aggregates or Process managers say "not mounted on this keiro host": port 9093 is running
+- Aggregates or Process managers say "not mounted on this keiro host": the keiro port is running
   the hook-less `keiro-ops-http`. `dev/bin/jitsurei-ops-http` should be running there unless
   you started the mori profile, which is hook-less by design.
 - `just stack-check` fails on `keiro /topology/summary` with HTTP 400: see "The service
   topology" below.
-- A port is busy: `lsof -nP -iTCP:9090-9095 -sTCP:LISTEN`. process-compose's own control API
-  listens on `.dev/process-compose.sock`, not on TCP.
+- A port is busy: `just stack-up` stops before starting anything and names the port, its
+  variable, and the holder's PID and command line:
+
+  ```text
+  port 9091 (kiroku, STACK_KIROKU_PORT) is held by pid 1871: .../bin/rei worker kiroku
+  ```
+
+  If the holder is this stack from an earlier `just stack-up`, run `just stack-down`. Otherwise
+  stop that program or move the stack's port (below). `just stack-check` likewise refuses to
+  probe a port whose listener is not this stack's (`FAIL  kiroku listener ... not this stack`,
+  then `SKIP` for that surface's probes), so another server on a stack port cannot pass for the
+  stack. process-compose's own control API listens on `.dev/process-compose.sock`, not on TCP.
+
 - Start over on pgmq: stop the stack, `dropdb`/`createdb` `pgmq_dev` in
   `$STACK_PGMQ_SOCKET_DIR`, and start it again.
+
+## Moving a port
+
+To keep another program on a stack port, set that surface's variable in `dev/.env` (for
+example `STACK_KIROKU_PORT=19091`) and restart the stack. Everything that reaches the local
+stack reads the same variables, with the table's ports as defaults: `just stack-up` (the
+process-compose commands and readiness probes), `just stack-check`, the Vite dev and preview
+proxy (restart `bun run dev`), the `KEIRO_UI_LIVE=1` client suites and smoke scripts, the
+fixture recorder, and the production smoke's Caddy (`dev/caddy/Caddyfile`, which takes them
+from the environment; its Playwright config passes `dev/.env`'s values). A variable set in the
+shell wins over `dev/.env` for the TypeScript consumers. The browser suites go through the Vite
+proxy at `localhost:5173`, so they need no change. Set `STACK_MORI_METRICS_PORT` in `dev/.env`
+too, not in `dev/profiles/mori.env`, which is loaded after it.
+
+The multi-deployment suite has its own ports (`ORDERS_PORT`, `BILLING_PORT`, `MULTI_APP_PORT`;
+[`multi-app/README.md`](multi-app/README.md)).
 
 ## Re-recording fixtures
 
@@ -131,9 +162,10 @@ goldens, also refresh the copies in `packages/testing/topology/` as its `SOURCE.
 Check the producer by hand:
 
 ```bash
-curl -fsS http://127.0.0.1:9093/topology/summary
-curl -fsS http://127.0.0.1:9093/topology/show | cmp - "$KEIRO_REPO/keiro-dsl/test/fixtures/topology/hospital-capacity.topology.golden.json" && echo identical
-curl -fsS http://127.0.0.1:9093/topology/show | shasum -a 256   # the hex part of document_sha256
+. dev/.env   # STACK_KEIRO_PORT and KEIRO_REPO
+curl -fsS "http://127.0.0.1:$STACK_KEIRO_PORT/topology/summary"
+curl -fsS "http://127.0.0.1:$STACK_KEIRO_PORT/topology/show" | cmp - "$KEIRO_REPO/keiro-dsl/test/fixtures/topology/hospital-capacity.topology.golden.json" && echo identical
+curl -fsS "http://127.0.0.1:$STACK_KEIRO_PORT/topology/show" | shasum -a 256   # the hex part of document_sha256
 KEIRO_UI_LIVE=1 bun run --filter @keiro-ui/client-keiro test    # the client's check against this host
 ```
 
@@ -168,7 +200,7 @@ from the host's (`409 schema_drift`), and `/health` then answers 503, which make
 process-compose stop the host. That happens when the mori database was migrated by an older
 keiro than the checkout `dev/bin/keiro-ops-http` was built from. Build the host from the
 keiro version mori uses, or, to look at the topology only, start the host by hand with
-`--allow-schema-drift --topology .dev/mori.topology.json` on port 9093. The gated live case
+`--allow-schema-drift --topology .dev/mori.topology.json` on `$STACK_KEIRO_PORT`. The gated live case
 then runs with:
 
 ```bash
@@ -179,7 +211,7 @@ The shibuya baseline keeps consuming `pgmq_dev` in both profiles.
 
 ```bash
 just stack-seed-mori        # once: start mori's PostgreSQL, migrate, bootstrap and ingest its fixture repos
-just stack-up mori          # the stack plus mori's daemon (its live registry on :9191)
+just stack-up mori          # the stack plus mori's daemon (its live registry on :9191 by default)
 just stack-check mori       # every probe, plus the daemon's /subscriptions
 just stack-drive-mori       # push one change through mori's automations (repeatable)
 ```

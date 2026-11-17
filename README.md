@@ -84,7 +84,9 @@ the generated source.
 
 The Vite dev server proxies each surface prefix to its local port with the prefix
 stripped and WebSocket upgrades forwarded, so the console needs no CORS configuration.
-Application routes never start with one of these prefixes.
+Application routes never start with one of these prefixes. The ports are defaults: the
+proxy reads `STACK_*_PORT` from `dev/.env` (see "Moving a port" in
+[`dev/README.md`](dev/README.md)).
 
 | Surface | Dev server      | Port | Prefix     | WebSocket paths                           |
 | ------- | --------------- | ---- | ---------- | ----------------------------------------- |

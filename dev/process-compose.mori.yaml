@@ -24,9 +24,12 @@ processes:
   mori-daemon:
     command: >-
       bash -c 'cd "$MORI_REPO" && nix develop --quiet -c "$(nix develop --quiet -c cabal list-bin -v0 exe:mori | tail -n 1)"
-      automate daemon --metrics-port $STACK_MORI_METRICS_PORT'
+      automate daemon --metrics-port ${STACK_MORI_METRICS_PORT:-9191}'
     readiness_probe:
-      http_get: { host: 127.0.0.1, port: 9191, path: /health/live }
+      http_get:
+        host: 127.0.0.1
+        port: ${STACK_MORI_METRICS_PORT:-9191}
+        path: /health/live
       period_seconds: 5
       initial_delay_seconds: 10
     availability: { restart: on_failure, max_restarts: 3 }

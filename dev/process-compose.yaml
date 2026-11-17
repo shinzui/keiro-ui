@@ -1,6 +1,8 @@
-# The local runtime stack: four inspection surfaces on the fixed ports of
-# docs/masterplans/2-build-the-keiro-runtime-console.md. Started by `just stack-up`, which
-# passes dev/.env with `-e`; the databases are started by `just stack-db-up` first.
+# The local runtime stack: four inspection surfaces on the ports of dev/.env (STACK_*_PORT;
+# defaults in dev/.env.example). Started by `just stack-up`, which passes dev/.env with `-e`
+# after dev/preflight.sh has found every port free; the databases are started by
+# `just stack-db-up` first. process-compose substitutes the variables in the probes as in the
+# commands, so a comment here must not contain a dollar sign followed by a brace.
 version: "0.5"
 log_location: ./.dev/stack.log
 processes:
@@ -15,7 +17,10 @@ processes:
       --cors-origin http://localhost:8080 --cors-origin http://127.0.0.1:8080
       --cors-origin http://localhost:8088 --cors-origin http://127.0.0.1:8088
     readiness_probe:
-      http_get: { host: 127.0.0.1, port: 9091, path: /health/live }
+      http_get:
+        host: 127.0.0.1
+        port: ${STACK_KIROKU_PORT}
+        path: /health/live
       period_seconds: 5
     availability: { restart: on_failure, max_restarts: 3 }
 
@@ -33,7 +38,10 @@ processes:
       env PGMQ_INSPECT_DATABASE_URL="$STACK_PGMQ_DATABASE_URL"
       dev/bin/pgmq-inspect --port $STACK_PGMQ_PORT --cors-origin "$STACK_CONSOLE_ORIGIN"
     readiness_probe:
-      http_get: { host: 127.0.0.1, port: 9095, path: /health/live }
+      http_get:
+        host: 127.0.0.1
+        port: ${STACK_PGMQ_PORT}
+        path: /health/live
       period_seconds: 5
     availability: { restart: on_failure, max_restarts: 3 }
 
@@ -53,7 +61,10 @@ processes:
       --allow-origin "$STACK_CONSOLE_ORIGIN"
       --topology "$KEIRO_REPO/keiro-dsl/test/fixtures/topology/hospital-capacity.topology.golden.json"
     readiness_probe:
-      http_get: { host: 127.0.0.1, port: 9093, path: /health }
+      http_get:
+        host: 127.0.0.1
+        port: ${STACK_KEIRO_PORT}
+        path: /health
       period_seconds: 5
     availability: { restart: on_failure, max_restarts: 3 }
 
@@ -68,7 +79,10 @@ processes:
       env DATABASE_URL="$STACK_SHIBUYA_DATABASE_URL" METRICS_PORT=$STACK_SHIBUYA_PORT
       dev/bin/shibuya-pgmq-consumer
     readiness_probe:
-      http_get: { host: 127.0.0.1, port: 9090, path: /health/live }
+      http_get:
+        host: 127.0.0.1
+        port: ${STACK_SHIBUYA_PORT}
+        path: /health/live
       period_seconds: 5
     availability: { restart: on_failure, max_restarts: 3 }
 

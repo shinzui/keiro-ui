@@ -3,6 +3,8 @@
 #   VITE_BASE_PATH=/console/ bun run build
 #   caddy run --config dev/caddy/Caddyfile --adapter caddyfile      # from the repository root
 # CONSOLE_PORT overrides the listen port (8080 by default); CONSOLE_DIST the bundle directory.
+# STACK_*_PORT move the surfaces as in dev/.env; Caddy does not read that file, so export them
+# (the production smoke's Playwright config passes dev/.env's values).
 # dev/process-compose.yaml allow-lists ports 8080 and 8088 at kiroku, which refuses other browser
 # origins' upgrades.
 :{$CONSOLE_PORT:8080} {
@@ -22,15 +24,15 @@
 	}
 
 	handle_path /kiroku/* {
-		reverse_proxy 127.0.0.1:9091
+		reverse_proxy 127.0.0.1:{$STACK_KIROKU_PORT:9091}
 	}
 	handle_path /shibuya/* {
-		reverse_proxy 127.0.0.1:9090
+		reverse_proxy 127.0.0.1:{$STACK_SHIBUYA_PORT:9090}
 	}
 	handle_path /pgmq/* {
-		reverse_proxy 127.0.0.1:9095
+		reverse_proxy 127.0.0.1:{$STACK_PGMQ_PORT:9095}
 	}
 	handle_path /keiro/* {
-		reverse_proxy 127.0.0.1:9093
+		reverse_proxy 127.0.0.1:{$STACK_KEIRO_PORT:9093}
 	}
 }

@@ -1,3 +1,4 @@
+import { stackPortDefaults, stackPorts } from "@keiro-ui/testing/stack"
 import { defineConfig, devices } from "@playwright/test"
 
 // The production smoke: the console built for /console/ and served by dev/caddy/Caddyfile
@@ -11,6 +12,11 @@ if (!target.pathname.endsWith("/")) target.pathname += "/"
 if (externalURL && !process.env.CONSOLE_EXPECTED_REVISION)
   throw new Error("External production smoke requires CONSOLE_EXPECTED_REVISION")
 const baseURL = target.href
+// dev/caddy/Caddyfile proxies to the local stack's ports; Caddy cannot read dev/.env itself.
+const ports = stackPorts()
+const stackEnv = (["shibuya", "kiroku", "pgmq", "keiro"] as const)
+  .map((service) => `${stackPortDefaults[service].env}=${ports[service]}`)
+  .join(" ")
 
 export default defineConfig({
   testDir: "e2e/production",
@@ -22,7 +28,7 @@ export default defineConfig({
     ? undefined
     : {
         // Its own build directory: the `smoke` project's root build in dist never replaces it.
-        command: `VITE_BASE_PATH=/console/ bunx vite build --outDir dist-production --emptyOutDir && cd ../.. && CONSOLE_PORT=${port} CONSOLE_DIST=apps/console/dist-production caddy run --config dev/caddy/Caddyfile --adapter caddyfile`,
+        command: `VITE_BASE_PATH=/console/ bunx vite build --outDir dist-production --emptyOutDir && cd ../.. && CONSOLE_PORT=${port} CONSOLE_DIST=apps/console/dist-production ${stackEnv} caddy run --config dev/caddy/Caddyfile --adapter caddyfile`,
         url: baseURL,
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,

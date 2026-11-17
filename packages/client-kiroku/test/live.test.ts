@@ -1,3 +1,4 @@
+import { stackOrigin } from "@keiro-ui/testing/stack"
 import { describe, expect, test } from "vitest"
 import { WebSocket as WsClient } from "ws"
 
@@ -5,9 +6,10 @@ import { createKirokuClient } from "../src"
 
 // With the local stack (just stack-up): KEIRO_UI_LIVE=1 bun run --filter @keiro-ui/client-kiroku test
 const live = process.env.KEIRO_UI_LIVE === "1"
-const kiroku = createKirokuClient({ baseUrl: "http://127.0.0.1:9091" })
+const base = stackOrigin("kiroku") // STACK_KIROKU_PORT in dev/.env, default 9091
+const kiroku = createKirokuClient({ baseUrl: base })
 
-describe.runIf(live)("kiroku-inspect on 9091", () => {
+describe.runIf(live)(`kiroku-inspect at ${base}`, () => {
   test("capabilities, paging $all to the end, and one event by id", async () => {
     const capabilities = await kiroku.capabilities()
     console.log(`kiroku ${capabilities.package} ${capabilities.version}`)
@@ -25,7 +27,7 @@ describe.runIf(live)("kiroku-inspect on 9091", () => {
   })
 
   test("/ws/events starts at the current head", async () => {
-    const socket = new WsClient("ws://127.0.0.1:9091/ws/events")
+    const socket = new WsClient(`${base.replace(/^http/, "ws")}/ws/events`)
     const first = await new Promise<string>((resolve, reject) => {
       socket.on("open", () => socket.send('{"type":"subscribe_events"}'))
       socket.on("message", (data) => resolve(String(data)))

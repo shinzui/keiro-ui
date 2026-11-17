@@ -1,6 +1,7 @@
 import { execSync } from "node:child_process"
 
 import { parseJsonLossless } from "@keiro-ui/client-core"
+import { stackOrigin } from "@keiro-ui/testing/stack"
 import { describe, expect, test } from "vitest"
 import { WebSocket as WsClient } from "ws"
 
@@ -13,7 +14,8 @@ import { type FeedState, mergeFeedFrame, workflowKey, workflowOrder } from "../.
 //     bun run --filter @keiro-ui/client-keiro test -- test/live/workflows-feed.live.test.ts
 const live = process.env.KEIRO_UI_LIVE === "1"
 const trigger = process.env.KEIRO_UI_LIVE_TRIGGER
-const keiro = createKeiroClient({ baseUrl: "http://127.0.0.1:9093" })
+const base = stackOrigin("keiro") // STACK_KEIRO_PORT in dev/.env, default 9093
+const keiro = createKeiroClient({ baseUrl: base })
 
 const ids = (items: WorkflowInstance[]) => items.map((item) => workflowKey(item))
 
@@ -21,7 +23,7 @@ describe.runIf(live)("workflows feed reconcile", () => {
   test("snapshot and updates equal the list read", async () => {
     let state: FeedState<WorkflowInstance> | undefined
     let updates = 0
-    const socket = new WsClient("ws://127.0.0.1:9093/ws")
+    const socket = new WsClient(`${base.replace(/^http/, "ws")}/ws`)
     socket.on("message", (data) => {
       const frame = parseJsonLossless(String(data)) as { type: string; feed?: string } & Record<
         string,

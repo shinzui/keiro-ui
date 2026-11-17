@@ -2,6 +2,7 @@ import { execSync } from "node:child_process"
 import { readFileSync, existsSync } from "node:fs"
 import { resolve } from "node:path"
 
+import { stackPorts } from "@keiro-ui/testing/stack"
 import tailwindcss from "@tailwindcss/vite"
 import { tanstackRouter } from "@tanstack/router-plugin/vite"
 import react from "@vitejs/plugin-react"
@@ -25,8 +26,10 @@ function gitCommit(): string {
 
 // The four inspection surfaces, reached under the prefixes keiro's composeSurfaces uses
 // (docs/masterplans/2-build-the-keiro-runtime-console.md, "Local ports and the
-// composed-prefix convention"). Application routes must never start with one of them.
-const surfaces = { shibuya: 9090, kiroku: 9091, pgmq: 9095, keiro: 9093 } as const
+// composed-prefix convention"). Application routes must never start with one of them. The
+// ports are the local stack's (STACK_*_PORT in dev/.env, defaults 9090/9091/9095/9093).
+const { shibuya, kiroku, pgmq, keiro } = stackPorts()
+const surfaces = { shibuya, kiroku, pgmq, keiro }
 
 const surfaceProxy = Object.fromEntries(
   Object.entries(surfaces).map(([name, port]) => [

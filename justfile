@@ -73,7 +73,8 @@ stack-build target="all":
 
 # Run all four surfaces under process-compose (foreground; Ctrl-C stops them).
 # `just stack-up mori` points them at the mori dev database and runs mori's daemon.
-stack-up profile="jitsurei": stack-db-up
+# Refuses to start while another program holds a stack port (stack-preflight).
+stack-up profile="jitsurei": (stack-preflight profile) stack-db-up
     mkdir -p .dev
     if [ "{{profile}}" = "mori" ]; then \
       bash dev/mori.sh db-up && \
@@ -91,6 +92,10 @@ stack-seed-mori:
 # Push one change through mori's automations (signals, reactions, timers, job queues)
 stack-drive-mori:
     bash dev/mori.sh drive
+
+# Fail, naming the holder's PID and command, if any port the profile binds is taken
+stack-preflight profile="jitsurei":
+    bash dev/preflight.sh {{profile}}
 
 # Stop a stack started by stack-up from another terminal
 stack-down:

@@ -290,6 +290,67 @@ curl -s http://127.0.0.1:9090/health/ready       # the worker's processors
 Then open `/console/`. All four health dots should be green, and the Aggregates card should
 list rei's aggregate types instead of "not mounted".
 
+## Serving the service topology
+
+The console's Service Topology section shows what the service's specification declares: its
+aggregates, processes, workflows, intakes, emits, queues, projections and read models, how
+they relate, and each aggregate's state machine. It reads one JSON document, the service
+topology, from the keiro host. Without it the section says the host serves no service
+topology, and the rest of the console is unaffected. The document's contract and the serving
+guide are `mori://shinzui/keiro/okf/user-documentation/concepts/DOC-35` and
+`mori://shinzui/keiro/okf/guides/concepts/DOC-30`.
+
+The topology routes were added to keiro after 0.25.1.0. An application on that release or
+earlier cannot serve one yet.
+
+**1. Commit the document.** It is written from the specification by `keiro-dsl`, which an
+application built with keiro-dsl already runs to scaffold code:
+
+```bash
+keiro-dsl topology service.keiro-workspace --format json > topology.json
+```
+
+An application that scaffolds on every specification change can add `--topology-out
+topology.json` to that command instead. Commit the file.
+
+**2. Keep it fresh.** The host serves the committed file and never checks that it matches the
+binary. Add this to the gate that already checks generated code; it exits non-zero and names
+what changed when the file is stale:
+
+```bash
+keiro-dsl topology service.keiro-workspace --check topology.json
+```
+
+**3. Mount it.** A standalone host takes `--topology FILE`. A composed host sets
+`AppHooks.serviceTopology` in code, beside the hooks from Step 3. The host refuses a document
+whose schema id, node kinds or relations it does not know, and a standalone host refuses at
+startup a file larger than its response limit (`inspectionLimits.maxResponseBytes`).
+
+**4. Verify.**
+
+```bash
+curl -s http://127.0.0.1:9093/keiro/topology/summary    # your service name and schema id, not 400
+curl -s http://127.0.0.1:9093/keiro/topology/show | shasum -a 256   # the hex part of document_sha256
+```
+
+Then open `/console/topology`.
+
+**What makes declarations link to live screens.** The console links a declaration to live
+state only where keiro guarantees the two names are equal, so each link depends on how the
+host is built:
+
+| To link | The host must |
+| --- | --- |
+| An aggregate to its instances, and to compare document and host | Mount the generated `aggregateInspectorCatalog` as `AppHooks.aggregates`. It names each aggregate by its stream category, which is the `category` the document carries. A hand-written catalog under other names does not join, and the index then reports that document and host disagree. |
+| A process to its process manager | Build the manager's inspector from the generated `<process>Category`. The manager's `name` stays your choice; the console finds it by category and links only when exactly one mounted manager has it. |
+| A workflow to its instances | Run the workflow under the generated `workflowName` binding. There is nothing to mount. |
+| A projection owner to its subscription | Run the generated projection catalog, which uses the declared subscription text as the durable subscription name. An owner delivered inline has no subscription and no link. |
+
+Work queues, intakes and emits are never linked: keiro does not guarantee a join for them.
+
+A document produced by an older keiro-dsl lacks aggregate categories and state machines.
+Regenerate the committed file to get them.
+
 ## Turning on operator actions
 
 The first release is read-only, and every action stays off until the server that owns it
@@ -315,3 +376,5 @@ opens its gate:
 - [ ] A proxy that serves the bundle, routes `/shibuya` to the worker and everything else to
       the inspection host, keeps `Host`, forwards upgrades, and authenticates.
 - [ ] Process manager names entered in the console's connection profile.
+- [ ] Optional: a committed `topology.json`, checked with `keiro-dsl topology --check` in the
+      gate and mounted with `--topology` or `AppHooks.serviceTopology`.

@@ -11,6 +11,12 @@ provenance:
     model: "claude-fable-5-2"
     harness: "claude-code"
     at: 2026-11-17T21:49:45Z
+  revisions:
+    - model: "claude-fable-5-2"
+      harness: "claude-code"
+      at: 2026-11-17T23:00:43Z
+      mode: "implement"
+      note: "Milestones 1 to 4 implemented; the real-service positive-join check discarded with its reason"
 ---
 
 # Join topology declarations to live inspection screens
@@ -38,15 +44,47 @@ suites, or the mori profile, where a workflow declaration links to that workflow
 
 ## Progress
 
-- [ ] M1: The four joins are pure, tested functions, and each joinable declaration's page shows a link to its live screen or the exact reason there is none; unjoinable kinds state why.
-- [ ] M2: The topology index shows the document-versus-host comparison for aggregates, in all of its states (agree, disagree, cannot compare).
-- [ ] M3: Live aggregate, process-manager, workflow and projection-group screens show their declaration when one joins, and stay silent when no topology is served.
-- [ ] M4: A real keiro-dsl service proves at least one positive join live (mori profile), or the check is discarded with its reason recorded; documentation and the ADR amendment are complete and the full suites pass.
+- [x] M1 (2026-11-17): The four joins are pure functions in `apps/console/src/features/topology/joins.ts`, covered in every state by `joins.test.ts` (11 tests). Each joinable declaration's page has a Live section with a link and its caveat or the exact reason there is none; `workqueue`, `intake` and `emit` state why they are not linked; other kinds have no Live section and read no catalogue.
+- [x] M2 (2026-11-17): The topology index compares declared aggregate categories with mounted aggregate types and shows agreement, disagreement (declared but not mounted, mounted but not declared, declared and mounted), or that it cannot compare. On the default stack it reports disagreement and lists Jitsurei's `credit-limit`, `incident` and `order` as mounted but not declared (live case passes).
+- [x] M3 (2026-11-17): The live aggregate type, process-manager, workflow list, workflow instance and projection-group screens show the joining declaration, with the machine or declared steps. With no topology served they are unchanged and ask only for the summary (tested: three pages, three summary requests, no document, no `/pm/types`).
+- [x] M4 (2026-11-17): The positive-join check against a real service is discarded, with the reason under Surprises: mori's specification declares nothing that can link on its host. What was kept: the mori profile generates and mounts mori's own document, and a gated live case passes against that real 152-declaration document on a hand-started host. Positive joins rest on the synthetic "joined" scenario. Documentation and the ADR-16 amendment are complete. `bun run check`, `bun run test` (839 passed, 15 skipped), `bun run build`, `nix build`, `bun run test:e2e` (69 passed), `MULTI_APP_PORT=18081 bun run test:e2e:multi-app` (12 passed), the live suite on the default stack (9 passed, 3 skipped) and strict validation of the three bundles pass. `just stack-check` passes every keiro probe and fails only the two kiroku WebSocket probes (FRIC-12).
 
 
 ## Surprises & Discoveries
 
-(None yet.)
+- 2026-11-17: Mori cannot prove a positive join. `keiro-dsl topology` accepts mori's workspace and
+  writes 152 declarations, but they are 15 aggregates, 28 projection owners, 90 projection targets, 12
+  rebuild groups, 6 read models and one contract. There is no workflow and no process; all 28 projection
+  owners are delivered inline (`subscription` is `null`); and the mori profile's standalone host mounts
+  no aggregate hooks. Every join on that host therefore answers "not mounted" or "inline", which is
+  correct and is what the gated live case asserts. This plan expected a workflow declaration to link
+  there; mori has none.
+
+- 2026-11-17: The mori profile's host does not stay up on this machine, independently of this plan.
+  The mori database's keiro schema is older than the keiro checkout the host is built from, so the host
+  answers `409 schema_drift` for every read, the topology included, and `503` for `/health`, and
+  process-compose stops it (FRIC-13 in `docs/friction-log/`). The real-document evidence was taken from
+  the same binary started by hand with `--allow-schema-drift`. `just stack-check mori` was not accepted.
+
+- 2026-11-17: Generating mori's topology takes about 35 seconds of CPU. The mori profile's host waits
+  for it. It first looked like a hang under process-compose.
+
+- 2026-11-17: Starting the mori profile runs mori's own `just migrate up`, which applied one pending
+  migration (`20261117200703_namespace_push_policy`) to the local mori development database. That is
+  the profile's documented start-up, not something this plan added.
+
+- 2026-11-17: An existing test asserts that a process manager's page does not read `/pm/types`. The
+  declaration panel needs the manager's category, which only that catalogue gives (the instance list
+  does not report it). The panel reads the catalogue only when a mounted document declares a process;
+  the test now serves no topology for its original assertion, and a second test covers the other case.
+
+- 2026-11-17: An aggregate type has both a `name` and a `category`, and on Jitsurei they differ
+  (`credit-limit` and `creditLimit`). The contract joins the document's `category` to the mounted
+  `name`, so the join compares against `name` only; a type whose category matches but whose name does
+  not is not linked, and a test pins that.
+
+- 2026-11-17: No fixtures were recorded for this plan. The "joined" scenario is synthetic by design, so
+  the recorder's rewriting of existing fixtures (FRIC-11) did not recur.
 
 
 ## Decision Log
@@ -76,9 +114,54 @@ suites, or the mori profile, where a workflow declaration links to that workflow
   Date: 2026-11-17
 
 
+- Decision: Discard the positive-join check against mori and keep the mori profile serving its own
+  topology.
+  Rationale: The discard criterion named a refused specification, an oversize document or an unavailable
+  database. None of those is what happened: generation works and the host accepts the document, but the
+  document contains nothing that can link on that host. The check's purpose cannot be met, so it is
+  discarded; the profile change is kept because it works and gives the stack a real service's document,
+  which the default profile cannot. If generation fails the host starts without a topology.
+  Date: 2026-11-17
+
+- Decision: One component per joinable kind reads only the catalogue its own join needs.
+  Rationale: A workflow's or read model's page must not cost the host an aggregate or process-manager
+  catalogue read, and a page with no topology must cost nothing beyond the summary.
+  Date: 2026-11-17
+
+- Decision: The "joined" scenario is a flag on the testing package's scenario state, answered by
+  `packages/testing/src/joined.ts`, and it also answers the instance lists of its synthetic types with
+  empty pages.
+  Rationale: Browser tests follow a link from a declaration to a live page; without a list answer that
+  page would show an unrelated recorded error.
+  Date: 2026-11-17
+
+- Decision: When two declarations share a join value, the reverse lookup returns none.
+  Rationale: The same rule as for two process managers sharing a saga category: the console does not
+  choose.
+  Date: 2026-11-17
+
+
 ## Outcomes & Retrospective
 
-(To be filled during and after implementation.)
+Completed 2026-11-17. Declarations and live screens are connected in both directions through the four
+joins keiro guarantees, each stating when it holds. The three kinds keiro does not guarantee say why
+they are not linked. The topology index shows whether document and host agree about aggregates, and on
+the default stack it reports the disagreement that stack exists to demonstrate. Live screens are silent
+when no topology is served.
+
+What was not achieved: a positive join observed against a real running service. No such service is
+available. Jitsurei has no specification, and mori's specification declares nothing that can link on
+its host. Positive joins are proven against synthetic catalogues that match the recorded document,
+named synthetic wherever they appear. The first real proof will come from a keiro-dsl service whose
+host mounts the generated aggregate inspector catalog.
+
+Friction: FRIC-13 (schema drift stops the mori profile's host) is `accepted`; it ends when mori adopts
+a keiro release with the topology routes, and `dev/README.md` documents the hand-started host until
+then. FRIC-12 (a foreign process on port 9091) recurred as a failing `just stack-check` and stays
+`logged`.
+
+Durable context went to [ADR-16](../adr/0016-a-served-declaration-document-is-verified-and-rejected-whole-when-unknown.md),
+which now carries the join rule and the rule that disagreement is shown.
 
 
 ## Context and Orientation

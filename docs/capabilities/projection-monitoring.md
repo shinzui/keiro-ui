@@ -1,7 +1,7 @@
 ---
 title: Projection and shard monitoring
 type: Capability
-timestamp: 2026-11-05T22:16:00Z
+timestamp: 2026-11-17T23:55:00Z
 reviews:
   - kind: model
     reviewer: codex-cli/gpt-6.1-sol
@@ -13,6 +13,16 @@ reviews:
     provider: openai
     model: gpt-6.1-sol
     effort: high
+  - kind: model
+    reviewer: claude-code/claude-fable-5-2
+    reviewed_at: 2026-11-17T23:55:00Z
+    document_timestamp: 2026-11-17T23:55:00Z
+    scope: catalog-metadata
+    outcome: commented
+    context: Checked the CAP handle, owning provider, workspace package names and evidence resource paths after adding the service topology declaration panel, by the model that made the change; this is not an independent behavioral review.
+    provider: anthropic
+    model: claude-fable-5-2
+    effort: unspecified
 description: See each keiro projection group's exact distance behind the store, its rebuild progress and failures, and which shard owns which bucket.
 generated:
   by: claude-code/claude-opus-5-5
@@ -43,6 +53,9 @@ evidence:
   - kind: test
     resource: apps/console/src/features/projections/projections.test.tsx
     proves: The distance column, live feed updates, overflow re-reads, the group page's reported, empty, and unreported feeding subscription states, and shard bucket ownership.
+  - kind: test
+    resource: apps/console/src/features/topology/live.test.tsx
+    proves: A projection group shows the owner declared for a subscription the host reports as feeding it, and is not matched by group name.
 ---
 
 # Projection and shard monitoring
@@ -66,4 +79,8 @@ a sharded subscription.
   for inline-only and unmanaged groups.
 - The position of one subscription is read at a time, the selected one, to stay inside keiro's inspection budget.
 - A distance reads n/a when either position is unknown.
+- When the host also mounts a service topology, a group's page shows the projection owner declared
+  for each feeding subscription the host reports ([Service topology](service-topology.md)). A group is
+  never matched to a declaration by its name, and a host that does not report feeding subscriptions
+  shows no declaration.
 - Read-only: the console does not start, stop, or rebuild projections.

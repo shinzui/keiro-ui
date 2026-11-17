@@ -1,11 +1,11 @@
 ---
 type: Architecture Decision Record
 title: A served declaration document is verified and rejected whole when unknown
-description: The console uses a declaration document a host serves only after hashing the exact bytes it received to the digest the host advertised, rejects it whole when its schema id, a node kind or a relation is unknown, and treats it as a statement about a committed specification, never as runtime state.
+description: The console uses a declaration document a host serves only after hashing the exact bytes it received to the digest the host advertised, rejects it whole when its schema id, a node kind or a relation is unknown, treats it as a statement about a committed specification and never as runtime state, and links a declaration to live state only through a field the owning project guarantees.
 docId: ADR-16
 status: Accepted
 date: 2026-11-17
-timestamp: 2026-11-17T22:15:00Z
+timestamp: 2026-11-17T23:55:00Z
 generated:
   by: claude-code/claude-fable-5-2
   at: 2026-11-17T22:15:00Z
@@ -76,6 +76,29 @@ place a served declaration document is read, and it applies four rules.
    freshness, and show disagreement they can observe between the document and the host
    instead of hiding it.
 
+5. **Join only on what the owning project guarantees.** A declaration links to live state
+   only through a field for which the owning project names the code that makes the two values
+   equal. For the keiro topology these are an aggregate's category against a mounted aggregate
+   type's name, a process's saga category against exactly one mounted process manager's
+   category, a workflow's stable name, and a projection owner's subscription name
+   (`apps/console/src/features/topology/joins.ts`). Every link states the condition under
+   which it holds, because each depends on the host running the generated catalogue. A
+   relation the owning project does not guarantee (work queue, intake, emit, an instance's
+   state label against a machine state) is stated as unlinked with its reason, never linked
+   on a plausible name match. When several live things match, none is chosen. When the
+   catalogue a join is checked against is not mounted, the console says it cannot check,
+   which is never reported as "not running".
+
+6. **Show disagreement.** Where the console can observe that the document and the host
+   differ (declared aggregate categories against mounted aggregate types) it shows both
+   sides. Disagreement is a finding, not an error: the document stays fully browsable. The
+   console claims no more than the comparison shows; matching names are not proof that the
+   binary was built from the specification.
+
+Screens outside the Service Topology section that use the document (the declaration panels on
+live screens) are silent when no document is served or nothing joins, since most hosts mount
+none and that absence is explained in one place.
+
 A host that mounts no document and a host too old to know the route refuse the command the
 same way, so the client reports one state, `RouteUnavailable`, and the console says the host
 serves no topology without guessing which ([ADR-13](0013-honest-gates.md)).
@@ -96,5 +119,9 @@ sharing everything but body handling with ordinary reads.
 
 Tests that exercise verification need exact bytes. keiro's golden documents are copied
 unchanged into `packages/testing/topology/`, excluded from formatting, and pinned by digest.
+
+A link that is absent with a stated reason costs an operator a search; a wrong link sends
+them to the wrong instance. Joins are therefore added only when the owning project documents
+the guarantee, and the unlinked kinds can gain links when it does.
 
 The same rules apply to any future document a host serves as a committed declaration.

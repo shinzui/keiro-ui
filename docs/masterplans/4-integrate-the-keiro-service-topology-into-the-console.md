@@ -118,7 +118,7 @@ Integration Points).
 | 27 | Read and verify the served service topology in the Keiro client | docs/plans/27-read-and-verify-the-served-service-topology-in-the-keiro-client.md | None | None | Complete |
 | 28 | Browse a service's declared topology in the console | docs/plans/28-browse-a-service-s-declared-topology-in-the-console.md | EP-27 | None | Complete |
 | 29 | Draw the service map and aggregate state machines | docs/plans/29-draw-the-service-map-and-aggregate-state-machines.md | EP-28 | None | Complete |
-| 30 | Join topology declarations to live inspection screens | docs/plans/30-join-topology-declarations-to-live-inspection-screens.md | EP-28 | EP-29 | Not Started |
+| 30 | Join topology declarations to live inspection screens | docs/plans/30-join-topology-declarations-to-live-inspection-screens.md | EP-28 | EP-29 | Complete |
 
 Status values: Not Started, In Progress, Complete, Cancelled.
 Rows use each child's repository plan number, so EP-27 means `docs/plans/27-...`.
@@ -211,16 +211,17 @@ than show an error when it is absent.
 
 ## Progress
 
-EP-27 is Complete (2026-11-17): the client reads and verifies the document, the default stack mounts
-one, and ADR-16 is recorded. EP-28 is Complete (2026-11-17): the Service Topology section browses the
-document as text, with every absent or unusable state named. EP-29 is Complete (2026-11-17): the
-service map, declaration neighbourhoods and aggregate machine diagrams are drawn. EP-30 is ready.
+All four child plans are Complete (2026-11-17). EP-27 reads and verifies the document, EP-28 browses
+it, EP-29 draws it, and EP-30 joins it to the live screens.
 
-Integration gate, outside any single child: with all four children complete, the read-only live browser
-suite (`cd apps/console && KEIRO_UI_LIVE=1 bunx playwright test --config playwright.live.config.ts`)
-passes against the default stack with `/topology` showing the mounted document, its map and a machine
-diagram, and the disagreement notice naming the host's aggregates; and against the mori profile, if EP-30's
-real-service check was accepted, with a workflow declaration linking to live instances.
+Integration gate, passed on the default stack on 2026-11-17 with all four children complete: the
+read-only live browser suite (`cd apps/console && KEIRO_UI_LIVE=1 bunx playwright test --config
+playwright.live.config.ts`) passes 9 cases, with `/topology` showing the mounted document, its map and a
+machine diagram, and the disagreement notice naming Jitsurei's mounted aggregates. The mori half of the
+gate is not met as written: EP-30's real-service check was discarded, because mori declares no workflow
+and nothing in its document can link on its host. A gated case against mori's real document passes on a
+hand-started host and asserts the honest answers instead (cannot compare, inline, too large to draw
+whole).
 
 
 ## Surprises & Discoveries
@@ -274,6 +275,16 @@ real-service check was accepted, with a workflow declaration linking to live ins
   aggregate and projection-owner joins, but not a workflow join as the integration gate hoped; the
   workflow and process joins rest on the synthetic "joined" scenario.
 
+- 2026-11-17 (EP-30): no real service can yet prove a positive join. Jitsurei has no specification;
+  mori's document has no workflow or process, all its projection owners are inline, and its host mounts
+  no aggregate hooks. Links in both directions are proven against synthetic catalogues that match the
+  recorded document.
+
+- 2026-11-17 (EP-30): the mori profile's keiro host is stopped by schema drift on the machine this was
+  implemented on (FRIC-13), so the mori profile was verified with a hand-started host. Port 9091 being
+  held by a foreign process cost effort under EP-27, EP-28 and EP-30 (FRIC-12): `just stack-check`
+  cannot pass and the live suite's kiroku cases run against a server that is not the stack's.
+
 
 ## Decision Log
 
@@ -305,6 +316,50 @@ real-service check was accepted, with a workflow declaration linking to live ins
   Date: 2026-11-17
 
 
+- Decision: Accept the initiative with the positive-join proof resting on synthetic catalogues.
+  Rationale: Every other acceptance is met against real hosts. The one that is not needs a keiro-dsl
+  service whose host mounts the generated catalogues, and none exists locally. The joins are pure,
+  tested in every state, and state their own conditions on screen, so a wrong join would show as a
+  missing link with a reason, not as a wrong link.
+  Date: 2026-11-17
+
+
 ## Outcomes & Retrospective
 
-(To be filled during and after implementation.)
+Completed 2026-11-17. The console has a Service Topology section. An operator sees which service and
+specification the selected host mounted, every declaration by kind, and for any declaration its details,
+source location and relations in both directions. A map draws the service or one declaration's
+neighbourhood, and each aggregate shows its state machine as a diagram and a table. Declarations link to
+the live screens they correspond to and live screens link back, through the four joins keiro guarantees.
+The console says when the mounted document and the running host disagree. A host that mounts no
+topology, or serves a document the console cannot read, is reported as exactly that.
+
+Against the vision, one thing fell short: a positive link was never observed on a real running service,
+because no local service both has a specification and mounts the generated catalogues. Everything else
+was verified against real hosts: the bytes and digest against keiro's golden, the screens against the
+default stack, the layout against a real 152-declaration document.
+
+What the decomposition got right: reading first. The byte-exact read, the digest and the fail-closed
+validation were proven against a real host before any screen existed, and no later plan had to revisit
+them. Text before drawing meant every diagram had a table to fall back to, which became the rule for
+diagram failures. Draw and join were independent as planned; the shared `AggregateMachineSection` gave
+the live aggregate screen the diagram with no extra work.
+
+What it got wrong: the plan assumed mori would supply a workflow to link. Reading mori's specification
+during planning would have shown it has none.
+
+Lessons that outlive the initiative are in ADR-16 (verify the bytes, reject whole, a declaration is not
+runtime state, join only on guaranteed fields, show disagreement). Two practical ones are in the child
+plans and `dev/README.md`: anything that serves a topology in tests must pass bytes through untouched,
+and a new `e2e/<section>/` directory runs only when the Playwright `screens` project lists it.
+
+Friction across the initiative. FRIC-12 (a foreign process on port 9091 makes `just stack-check` fail
+and lets kiroku probes pass against the wrong server) cost effort under three children and stays
+`logged`; it is the strongest candidate for an improvement request, to make the stack's check confirm
+that each port's listener is the stack's own process. FRIC-11 (recording keiro fixtures rewrites every
+existing keiro fixture) occurred once and stays `logged`. FRIC-13 (schema drift stops the mori profile's
+host) is `accepted`.
+
+Follow-ups outside this initiative: keiro's topology routes are unreleased, so a re-record of the two
+topology fixtures and a re-run of EP-27's producer/consumer check are due when keiro releases them; and
+the three unlinked kinds can gain links if keiro guarantees their joins.

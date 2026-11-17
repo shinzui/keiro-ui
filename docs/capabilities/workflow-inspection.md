@@ -12,7 +12,17 @@ reviews:
     provider: openai
     model: gpt-6.1-sol
     effort: high
-timestamp: 2026-11-05T22:10:00Z
+  - kind: model
+    reviewer: claude-code/claude-fable-5-2
+    reviewed_at: 2026-11-17T23:55:00Z
+    document_timestamp: 2026-11-17T23:55:00Z
+    scope: catalog-metadata
+    outcome: commented
+    context: Checked the CAP handle, owning provider, workspace package names and evidence resource paths after adding the service topology declaration panel, by the model that made the change; this is not an independent behavioral review.
+    provider: anthropic
+    model: claude-fable-5-2
+    effort: unspecified
+timestamp: 2026-11-17T23:55:00Z
 description: Find keiro durable-workflow instances by filter and read an instance's step-grouped journal, steps, children, and awakeables.
 generated:
   by: claude-code/claude-opus-5-5
@@ -44,6 +54,9 @@ evidence:
   - kind: test
     resource: packages/client-keiro/test/workflows.test.ts
     proves: The client pages instances by cursor, reads header, journal, steps, children, and awakeables, and keeps positions above 2^53 exact.
+  - kind: test
+    resource: apps/console/src/features/topology/live.test.tsx
+    proves: A workflow list filtered to a declared stable name, and an instance of it, show the declaration and its declared steps; other names show no panel.
 ---
 
 # Durable workflow inspection
@@ -69,4 +82,8 @@ usable and never become fabricated zeroes.
 
 - Only the first page of the list is live; later pages are read when opened.
 - Spans are derived by the browser, not traces recorded by keiro.
+- When the host also mounts a service topology that declares a workflow under the filtered or opened
+  workflow name, the list and the instance page show that declaration and its declared steps in order
+  ([Service topology](service-topology.md)). The steps are what the specification lists, not what an
+  instance has executed; the journal shows that.
 - Read-only: the console does not cancel, retry, or signal a workflow.

@@ -1,5 +1,5 @@
 ---
-timestamp: 2026-11-17T23:10:00Z
+timestamp: 2026-11-17T23:55:00Z
 type: Reference
 title: Console reference
 description: Every section of the keiro runtime console with its URLs and the surfaces it reads, plus keyboard shortcuts and connection-profile fields.
@@ -174,6 +174,8 @@ as `aggregate`, `read-model` or `projection-owner`. The page shows:
 
 - **Details**: every field the document carries for the declaration. A field with no value
   shows `none`. Fields the console does not recognise are shown as they are.
+- **Live**, for the kinds that have a live counterpart: where the declaration can be seen
+  running. See "Links to live screens" below.
 - **State machine**, for an aggregate: its states in declared order, marking the initial state
   and terminal states, and a table of transitions with source state, command, emitted events
   in order, target state, mode and edge index. A `replay only` transition serves no new
@@ -229,6 +231,57 @@ one line, and `×2` marks a relation that occurs twice.
 Nothing is shown only as a picture: the declarations list and each declaration's Relations
 tables carry the same information. If a diagram cannot be drawn, the page says so and keeps
 its tables.
+
+**Document and host.** Under the header, the index compares the aggregates the document
+declares with the aggregate types the host mounts. It is the one disagreement the console can
+observe; the host itself never checks.
+
+- "The mounted aggregates match the document": every declared aggregate's category is the name
+  of a mounted type and the host mounts no others. This compares names only and does not show
+  that the binary was built from this specification.
+- "Document and host disagree", with three lists: declared but not mounted, mounted but not
+  declared, and declared and mounted. Each entry links to its declaration or its live type. The
+  document describes a committed specification and may be for a different build or another
+  service. Nothing has failed; what is declared may not be what is running.
+- "Cannot compare": the host does not mount aggregate inspection, so the console cannot see
+  which aggregates it runs. This is not agreement and not an empty host.
+
+Aggregates declared without a category (older documents) are listed apart as not comparable.
+
+**Links to live screens.** A declaration links to live state only where keiro guarantees the
+two names are the same. Each link states the condition under which it holds.
+
+| Declaration | Links to | Joined by | Holds when |
+| --- | --- | --- | --- |
+| Aggregate | Instances of the aggregate type | Its category equals the name of a mounted aggregate type | The host mounts the aggregate inspector catalog keiro generates |
+| Process | Instances of the process manager | Its saga category equals the category of exactly one mounted process manager | The host builds the manager's inspector from the generated category; the manager's name is the host's choice |
+| Workflow | The instance list filtered to its stable name, with exact totals | Its stable name | The application runs the workflow under that name; the host has no list of names to check |
+| Projection owner | Its subscription | Its subscription name | The host runs the generated projection catalog |
+
+When there is no link the Live section says why: the document lacks the field (older
+documents), the owner is delivered inline and has no subscription, the host does not mount
+the hooks that list its aggregate types or process managers, nothing mounted matches the
+declared value, or several process managers share the saga category and the console does not
+choose one. Not being able to check is never reported as "not running".
+
+Work queues, intakes and emits are not linked, and their pages say why. keiro's only routes
+for a job queue change it. An intake has no field that is the inbox source. An emit's outbox
+source is supplied by the application at run time and is not enforced by generated code.
+
+**Declarations on live screens.** When the host mounts a topology and a declaration joins, a
+"Declared in specification" panel appears with the declaration's kind, name, file and line,
+and a link to its page:
+
+- on an aggregate type's page, with its declared state machine on request;
+- on a process manager's page, with the saga aggregate it keeps its progress in and that
+  aggregate's machine on request;
+- on the workflow list when filtered to one name, and on a workflow instance, with the
+  declared steps in order;
+- on a projection group's page, for each feeding subscription the host reports.
+
+The machine shown beside instances is the declared one. An instance's current state is not
+marked on it. A host that mounts no topology, and a screen whose subject no declaration
+joins, show no panel and no message.
 
 **When there is nothing to show**, the section says which of these applies:
 

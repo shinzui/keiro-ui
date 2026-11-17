@@ -1,12 +1,12 @@
 ---
 title: Service topology
 type: Capability
-timestamp: 2026-11-17T23:10:00Z
+timestamp: 2026-11-17T23:55:00Z
 reviews:
   - kind: model
     reviewer: claude-code/claude-fable-5-2
-    reviewed_at: 2026-11-17T23:10:00Z
-    document_timestamp: 2026-11-17T23:10:00Z
+    reviewed_at: 2026-11-17T23:55:00Z
+    document_timestamp: 2026-11-17T23:55:00Z
     scope: catalog-metadata
     outcome: commented
     context: Checked the unique CAP handle, owning provider, workspace package names and evidence resource paths by the model that wrote the page; this is not an independent behavioral review.
@@ -39,6 +39,12 @@ evidence:
   - kind: test
     resource: apps/console/src/features/topology/graph/graph.test.tsx
     proves: The machine diagram draws one node per state and one label per transition with initial, terminal and replay-only marked as text; diagram and table selection stay in step; the map applies groups, focus and depth from the URL and states what is hidden; a service above the threshold is not drawn whole; a diagram that cannot be drawn leaves the tables.
+  - kind: test
+    resource: apps/console/src/features/topology/joins.test.ts
+    proves: Each of the four joins in every state (linked, no field, inline, not mounted, no match, ambiguous, pending, failed), the reasons for the three unlinked kinds, the document-versus-host comparison, and the lookups from live state back to a declaration.
+  - kind: test
+    resource: apps/console/src/features/topology/live.test.tsx
+    proves: Against the recorded host the index reports disagreement with both sides listed and declarations say why they have no link; against a synthetic matching host it reports agreement and links both ways; a host without hooks cannot be compared; a host without a topology leaves live screens unchanged.
   - kind: test
     resource: apps/console/e2e/topology/topology.spec.ts
     proves: The section is reachable from the rail and the palette, a filter survives a reload, and a relation leads to a declaration whose page shows the same edge reversed.
@@ -78,6 +84,13 @@ URL. Each declaration opens its own page: its details, the file and line that de
 relations in both directions with links to the other declaration, and for an aggregate its
 state machine as a table of transitions and the read models its events reach.
 
+Declarations and live screens are connected. A declaration's page has a Live section that
+links an aggregate to its mounted type's instances, a process to its process manager, a
+workflow to its instance list and totals, and a projection owner to its subscription. The live
+aggregate, process-manager, workflow and projection-group screens show the declaration they
+correspond to. The index says whether the document and the running host agree about which
+aggregates exist.
+
 The document's contract is `mori://shinzui/keiro/okf/user-documentation/concepts/DOC-35`.
 
 ## Limits
@@ -105,7 +118,17 @@ The document's contract is `mori://shinzui/keiro/okf/user-documentation/concepts
   own relations.
 - Guards, register writes and output fields are not in the document, so a machine diagram
   shows states, commands and events only.
-- Declarations do not link to live instances, and live screens do not link to declarations.
+- A declaration links to live state only through a field keiro guarantees: an aggregate by its
+  category, a process by its saga category when exactly one mounted manager has it, a workflow
+  by its stable name, a projection owner by its subscription. Each link states when it holds.
+  Otherwise the page gives the reason there is no link.
+- Work queues, intakes and emits are not linked, and their pages say why: keiro does not
+  guarantee a join for them.
+- The only disagreement between document and host the console can see is declared aggregate
+  categories against mounted aggregate types. It shows that comparison and nothing stronger:
+  agreement of names is not proof the binary was built from the specification, and a host
+  without aggregate hooks cannot be compared at all.
+- An instance's current state is not marked on a machine diagram.
 - The host serves no specification source text, so a declaration's location is shown as
   `member:line` and cannot be opened.
 - Documents written by older keiro-dsl versions carry no state machine and no aggregate

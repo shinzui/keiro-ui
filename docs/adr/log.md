@@ -1,6 +1,9 @@
 # Bundle Update Log
 
 ## 2026-11-17
+
+* **Update**: ADR-16 adds the join rule: a declaration links to live state only through a field the owning project guarantees, unguaranteed relations are stated and not linked, and disagreement between document and host is shown.
+
 * **Addition**: Add ADR-16: a served declaration document is verified against its digest and rejected whole when its schema id, a node kind or a relation is unknown
 
 ## 2026-11-04

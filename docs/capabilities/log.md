@@ -2,6 +2,9 @@
 
 ## 2026-11-17
 
+* **Update**: CAP-12 links declarations to live screens and compares document and host; CAP-5, CAP-6, CAP-7 and CAP-9 show the joining declaration on their live screens.
+
+
 * **Update**: CAP-12 gains the service map, declaration neighbourhoods and the aggregate machine diagram.
 
 * **Addition**: Add CAP-12: browse the service topology a keiro host mounts, by declaration kind, with details, relations and aggregate state machines.

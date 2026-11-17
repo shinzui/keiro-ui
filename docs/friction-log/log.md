@@ -2,6 +2,12 @@
 
 ## 2026-11-17
 
+* **Update**: FRIC-13 accepted: Accepted: an environment mismatch between two other repositories' versions, documented with its workaround.
+
+
+* **Addition**: FRIC-13 records detour environment friction with mori://shinzui/keiro-ui: Schema drift stops the mori profile's keiro host
+
+
 * **Addition**: FRIC-12 records detour environment friction with mori://shinzui/keiro-ui: A foreign process on port 9091 makes stack-check fail and falsely pass kiroku probes
 
 * **Addition**: FRIC-11 records detour tooling friction with mori://shinzui/keiro-ui: Recording keiro fixtures rewrites every existing keiro fixture

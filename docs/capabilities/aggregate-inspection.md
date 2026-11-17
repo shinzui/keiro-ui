@@ -1,7 +1,7 @@
 ---
 title: Aggregate inspection
 type: Capability
-timestamp: 2026-11-05T22:16:00Z
+timestamp: 2026-11-17T23:55:00Z
 reviews:
   - kind: model
     reviewer: codex-cli/gpt-6.1-sol
@@ -13,6 +13,16 @@ reviews:
     provider: openai
     model: gpt-6.1-sol
     effort: high
+  - kind: model
+    reviewer: claude-code/claude-fable-5-2
+    reviewed_at: 2026-11-17T23:55:00Z
+    document_timestamp: 2026-11-17T23:55:00Z
+    scope: catalog-metadata
+    outcome: commented
+    context: Checked the CAP handle, owning provider, workspace package names and evidence resource paths after adding the service topology declaration panel, by the model that made the change; this is not an independent behavioral review.
+    provider: anthropic
+    model: claude-fable-5-2
+    effort: unspecified
 description: Browse the aggregate kinds a keiro host registers and open an instance as its raw events beside the state keiro folded from them, its registers, and on request what its stored snapshot holds.
 generated:
   by: claude-code/claude-opus-5-5
@@ -42,6 +52,9 @@ evidence:
   - kind: test
     resource: packages/client-keiro/test/hook-gated.test.ts
     proves: A host without the hooks answers 400 invalid_request, which the client surfaces as an unavailable route rather than a failure.
+  - kind: test
+    resource: apps/console/src/features/topology/live.test.tsx
+    proves: With a host whose catalogue matches the mounted topology (synthetic), an aggregate type's page shows its declaration and machine; without a match or without a topology it shows no panel.
 ---
 
 # Aggregate inspection
@@ -65,5 +78,10 @@ the other the state keiro folded from them, how it was hydrated, and the snapsho
 - Works only on a keiro host that mounts its aggregate inspection hooks. Many hosts do not
   (the mori dev profile is one); the page then names the probed path and says the inspection
   is not mounted.
+- When the host also mounts a service topology whose aggregate is declared with this type's name as
+  its category, the type's page shows that declaration, where the specification declares it, and its
+  state machine on request ([Service topology](service-topology.md)). It is the declared machine: the
+  page does not mark an instance's current state on it, because nothing guarantees an instance's state
+  label equals a declared state name. No topology, or no matching declaration, shows nothing.
 - The recorded fixtures come from keiro's jitsurei demo host, the local stack's default
   profile.

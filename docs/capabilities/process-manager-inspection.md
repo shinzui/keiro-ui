@@ -1,7 +1,7 @@
 ---
 title: Process manager inspection
 type: Capability
-timestamp: 2026-11-05T22:16:00Z
+timestamp: 2026-11-17T23:55:00Z
 reviews:
   - kind: model
     reviewer: codex-cli/gpt-6.1-sol
@@ -13,6 +13,16 @@ reviews:
     provider: openai
     model: gpt-6.1-sol
     effort: high
+  - kind: model
+    reviewer: claude-code/claude-fable-5-2
+    reviewed_at: 2026-11-17T23:55:00Z
+    document_timestamp: 2026-11-17T23:55:00Z
+    scope: catalog-metadata
+    outcome: commented
+    context: Checked the CAP handle, owning provider, workspace package names and evidence resource paths after adding the service topology declaration panel, by the model that made the change; this is not an independent behavioral review.
+    provider: anthropic
+    model: claude-fable-5-2
+    effort: unspecified
 description: List a keiro host's mounted process managers and open an instance to see its state, what it waits for, its last reaction, pending timers, and journal.
 generated:
   by: claude-code/claude-opus-5-5
@@ -38,6 +48,9 @@ evidence:
   - kind: test
     resource: apps/console/e2e/aggregates/not-mounted.spec.ts
     proves: A host without the inspection hooks gets an explicit "not mounted" state.
+  - kind: test
+    resource: apps/console/src/features/topology/live.test.tsx
+    proves: With a host whose catalogue matches the mounted topology (synthetic), a process manager's page shows its declared process and saga aggregate machine; without a topology the page reads nothing more than before.
 ---
 
 # Process manager inspection
@@ -60,3 +73,8 @@ reaction with provenance when keiro recorded it, its pending timers, and its jou
 - Instances work only on a keiro host that mounts its process-manager inspection hooks; otherwise the
   page says the inspection is not mounted.
 - Provenance appears only when the host recorded it.
+- When the host also mounts a service topology that declares exactly one process whose saga category
+  is this manager's category, the manager's page shows that process and, on request, the state machine
+  of the saga aggregate it keeps its progress in ([Service topology](service-topology.md)). The
+  manager's category comes from the host's catalogue, which this page reads only when a mounted
+  document declares a process.

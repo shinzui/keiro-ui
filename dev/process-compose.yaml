@@ -43,10 +43,15 @@ processes:
   # --enable-mutations. --port is mandatory: the host's own default (9092) is pgmq-inspect's
   # upstream default. --allow-origin is required in development because the Vite proxy rewrites
   # Host, and keiro admits a WebSocket upgrade only from an allow-listed Origin or its own Host.
+  # --topology mounts a committed service topology, served at /topology/summary and
+  # /topology/show. Jitsurei is hand-written and has no specification, so the document is
+  # keiro's hospital-capacity golden and describes another service by design: none of its
+  # declarations match Jitsurei's data (dev/README.md, "The service topology").
   keiro-ops-http:
     command: >-
       dev/bin/jitsurei-ops-http --database-url "$STACK_DATABASE_URL" --port $STACK_KEIRO_PORT
       --allow-origin "$STACK_CONSOLE_ORIGIN"
+      --topology "$KEIRO_REPO/keiro-dsl/test/fixtures/topology/hospital-capacity.topology.golden.json"
     readiness_probe:
       http_get: { host: 127.0.0.1, port: 9093, path: /health }
       period_seconds: 5

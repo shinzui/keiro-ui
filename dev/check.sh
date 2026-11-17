@@ -42,6 +42,9 @@ if [ "${1:-jitsurei}" != "mori" ]; then
   probe "keiro category consumers" "http://127.0.0.1:$STACK_KEIRO_PORT/projection/consumers?category=order&limit=100"
   probe "keiro /aggregate/types" "http://127.0.0.1:$STACK_KEIRO_PORT/aggregate/types"
   probe "keiro /pm/types" "http://127.0.0.1:$STACK_KEIRO_PORT/pm/types"
+  # The default profile mounts a service topology (dev/process-compose.yaml); a 400 here means
+  # an old jitsurei-ops-http binary or a host started without --topology.
+  probe "keiro /topology/summary" "http://127.0.0.1:$STACK_KEIRO_PORT/topology/summary"
 fi
 upgrade "ws kiroku /ws/events" "http://127.0.0.1:$STACK_KIROKU_PORT/ws/events"
 upgrade "ws kiroku /ws/metrics" "http://127.0.0.1:$STACK_KIROKU_PORT/ws/metrics"

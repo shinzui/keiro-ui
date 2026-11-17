@@ -51,6 +51,8 @@ A simulator sends a small `orders` batch every 30 s so the processors have work.
 - Aggregates or Process managers say "not mounted on this keiro host": port 9093 is running
   the hook-less `keiro-ops-http`. `dev/bin/jitsurei-ops-http` should be running there unless
   you started the mori profile, which is hook-less by design.
+- `just stack-check` fails on `keiro /topology/summary` with HTTP 400: see "The service
+  topology" below.
 - A port is busy: `lsof -nP -iTCP:9090-9095 -sTCP:LISTEN`. process-compose's own control API
   listens on `.dev/process-compose.sock`, not on TCP.
 - Start over on pgmq: stop the stack, `dropdb`/`createdb` `pgmq_dev` in
@@ -90,6 +92,44 @@ statuses: five successes must be 200 and the invalid cursor must be 400. The exa
 reports projection coverage available and durable metadata unavailable; an empty
 `creditLimit` result means no matches in that reported metadata. A `limit=1` response
 need not have another page. Synthetic tests supply multi-page cases.
+
+### The service topology
+
+The default profile's keiro host is started with `--topology`, pointing at keiro's golden
+document `keiro-dsl/test/fixtures/topology/hospital-capacity.topology.golden.json` in
+`$KEIRO_REPO`. It then serves that file unchanged at `/topology/show` and a header for it at
+`/topology/summary` (contract: `mori://shinzui/keiro/okf/user-documentation/concepts/DOC-35`).
+`just stack-check` probes `/topology/summary` for the default profile.
+
+The document does not describe Jitsurei. Jitsurei is hand-written and has no specification, so
+the host serves a document about another service, `hospital-capacity`, and none of its
+declarations match Jitsurei's aggregates, process managers or workflows. This is deliberate:
+the default stack gives real bytes over real HTTP, and is a standing example of a document that
+disagrees with its host. The mori profile mounts no topology.
+
+The routes need a keiro checkout at or after commit `0ec5a7bb` (they are not in keiro
+0.25.1.0). If `/topology/summary` answers `400 invalid_request`, `dev/bin/jitsurei-ops-http`
+is an older build or was started without `--topology`: run `just stack-build keiro` and restart
+the stack.
+
+To re-record the two topology fixtures (`topology-summary`, `topology-show`), run
+`bun run fixtures:record keiro` without reseeding. That command re-records every keiro entry,
+which changes `observed_at` values and replaces derived fixtures with fresh recordings, so
+afterwards restore every keiro fixture and `_meta.json` entry other than the two topology ones
+from git (`git checkout -- packages/testing/fixtures`, then put back the two files and their
+entries). The recorded `topology-show.json` must be byte-identical to the golden;
+`packages/testing/test/topology.test.ts` checks that, and that the summary a host would
+compute for those bytes equals the recorded `topology-summary.json`. When keiro changes its
+goldens, also refresh the copies in `packages/testing/topology/` as its `SOURCE.md` describes.
+
+Check the producer by hand:
+
+```bash
+curl -fsS http://127.0.0.1:9093/topology/summary
+curl -fsS http://127.0.0.1:9093/topology/show | cmp - "$KEIRO_REPO/keiro-dsl/test/fixtures/topology/hospital-capacity.topology.golden.json" && echo identical
+curl -fsS http://127.0.0.1:9093/topology/show | shasum -a 256   # the hex part of document_sha256
+KEIRO_UI_LIVE=1 bun run --filter @keiro-ui/client-keiro test    # the client's check against this host
+```
 
 ## The mori profile
 

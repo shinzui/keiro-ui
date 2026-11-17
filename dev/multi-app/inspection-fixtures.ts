@@ -1,4 +1,5 @@
 // Disposable composed inspection hosts. No database access; journals contain fixture data only.
+import { createHash } from "node:crypto"
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { fileURLToPath } from "node:url"
@@ -7,6 +8,35 @@ const fixtures = fileURLToPath(new URL("../../packages/testing/fixtures/", impor
 const meta = JSON.parse(readFileSync(resolve(fixtures, "_meta.json"), "utf8"))
 const read = (name: string) => JSON.parse(readFileSync(resolve(fixtures, name), "utf8"))
 const timer = read("keiro/timers-pending.json").items[0]
+// Each app mounts a different service topology: keiro's golden documents, served as their
+// exact bytes because the console verifies them against the summary's digest. The summaries
+// are synthetic (computed here as a host would), not recorded from a host.
+const topologyDir = fileURLToPath(new URL("../../packages/testing/topology/", import.meta.url))
+const topologyOf = (file: string) => {
+  const bytes = readFileSync(resolve(topologyDir, file))
+  const document = JSON.parse(bytes.toString("utf8"))
+  const countBy = (values: string[]) => {
+    const counts: Record<string, number> = {}
+    for (const value of values.toSorted()) counts[value] = (counts[value] ?? 0) + 1
+    return counts
+  }
+  const summary = {
+    document_bytes: bytes.byteLength,
+    document_sha256: `sha256:${createHash("sha256").update(bytes).digest("hex")}`,
+    edge_counts: countBy(document.edges.map((edge: any) => edge.relation)),
+    generator_version: document.generator.version,
+    members: document.members.map((m: any) => ({ path: m.path, sha256: m.sha256 })),
+    node_counts: countBy(document.nodes.map((node: any) => node.kind)),
+    schema_id: document.schema,
+    service: document.service,
+    source: document.source,
+  }
+  return { bytes, summary }
+}
+const topologies = {
+  orders: topologyOf("hospital-capacity.topology.golden.json"),
+  billing: topologyOf("incident-command.topology.golden.json"),
+}
 const servers = []
 for (const [app, port] of [
   ["orders", Number(process.env.ORDERS_PORT ?? 19193)],
@@ -88,6 +118,11 @@ for (const [app, port] of [
       if (path === "/keiro/health")
         return Response.json({ status: "ok", schema_drift: [], mutations_enabled: true })
       if (path === "/keiro/wf/inspect/list") return Response.json(workflowPage())
+      if (path === "/keiro/topology/summary") return Response.json(topologies[app].summary)
+      if (path === "/keiro/topology/show")
+        return new Response(topologies[app].bytes, {
+          headers: { "content-type": "application/json; charset=utf-8" },
+        })
       if (path === "/keiro/wf/inspect/counts") {
         const counts = read("keiro/workflow-counts.json")
         counts.counts.running = app === "orders" ? 101 : 202

@@ -49,7 +49,7 @@ test("/settings redirects to /settings/connections", async ({ page }) => {
 test("the rail highlights the section and switches sidebar entries", async ({ page }) => {
   await page.goto("/")
   const rail = page.getByRole("navigation", { name: "Sections" })
-  await expect(rail.getByRole("link")).toHaveCount(8)
+  await expect(rail.getByRole("link")).toHaveCount(9)
   await rail.getByRole("link", { name: "Streams & Subscriptions" }).click()
   await expect(page).toHaveURL(/\/streams\?target=same-origin$/)
   await expect(rail.getByRole("link", { name: "Streams & Subscriptions" })).toHaveAttribute(

@@ -182,3 +182,38 @@ test("exact workflow counts and category declarations use the released reads", a
   await expect(panel).toContainText("No matching consumers in the reported metadata")
   await expect(panel).toContainText("Durable subscriber metadata: unavailable")
 })
+
+test("the service topology section shows the document the stack's keiro host mounts", async ({
+  page,
+  request,
+}) => {
+  const reads: string[] = []
+  page.on("request", (req) => {
+    const path = new URL(req.url()).pathname
+    if (path.startsWith("/keiro/topology/")) reads.push(`${req.method()} ${path}`)
+  })
+  await page.goto("/topology")
+  // dev/process-compose.yaml mounts keiro's hospital-capacity golden, which describes another
+  // service than Jitsurei by design.
+  await expect(page.getByTestId("topology-service")).toHaveText("hospital-capacity")
+  const api = await (await request.get("/keiro/topology/summary")).json()
+  await expect(page.getByTestId("topology-schema")).toHaveText(api.schema_id)
+  const digest = api.document_sha256 as string
+  await expect(page.getByTestId("topology-digest").locator("code")).toHaveAttribute("title", digest)
+  for (const [kind, count] of Object.entries(api.node_counts as Record<string, number>))
+    await expect(page.getByTestId(`topology-count-${kind}`)).toHaveText(String(count))
+  await expect(page.getByTestId("topology-node-total")).toHaveText(
+    String(Object.values(api.node_counts as Record<string, number>).reduce((a, b) => a + b, 0)),
+  )
+  // Only GETs, and the document itself is fetched once (twice under the dev server's StrictMode).
+  expect(reads.every((read) => read.startsWith("GET "))).toBe(true)
+  expect(reads).toContain("GET /keiro/topology/summary")
+  expect(reads.filter((read) => read.endsWith("/show")).length).toBeLessThanOrEqual(2)
+
+  await page
+    .getByRole("grid", { name: "Aggregates" })
+    .getByRole("link", { name: "Reservation" })
+    .click()
+  await expect(page.getByRole("list", { name: "States" }).getByRole("listitem")).toHaveCount(6)
+  await expect(page.getByRole("grid", { name: "Transitions" }).getByRole("row")).toHaveCount(7)
+})

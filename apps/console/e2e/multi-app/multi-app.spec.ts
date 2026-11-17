@@ -369,3 +369,61 @@ test("workflow counts and category consumers follow target selection and reject 
   ).length
   expect(after).toBe(before)
 })
+
+test("each application shows its own service topology, late reads stay out, and no keiro means no request", async ({
+  page,
+  request,
+}) => {
+  const topologyReads = async (app: keyof typeof ports) =>
+    (await (await request.get(fixture(app, "/__journal"))).json()).filter((r: any) =>
+      r.path.startsWith("/keiro/topology/"),
+    ) as { path: string }[]
+
+  await page.goto("topology?target=prod-orders")
+  await expect(page.getByTestId("topology-service")).toHaveText("hospital-capacity")
+  await expect(page.getByTestId("topology-shown")).toHaveText("25 declarations")
+  const link = page.getByRole("grid", { name: "Aggregates" }).getByRole("link", { name: "Surge" })
+  await expect(link).toHaveAttribute("href", /topology\/aggregate\/Surge\?target=prod-orders/)
+
+  // Billing mounts another document: nothing of Orders' may remain.
+  await page.goto("topology?target=prod-billing")
+  await expect(page.getByTestId("topology-service")).toHaveText("incident-command")
+  await expect(page.getByTestId("topology-shown")).toHaveText("27 declarations")
+  await expect(page.getByRole("main")).not.toContainText("hospital-capacity")
+  // A declaration only Orders has is absent here, under the same URL shape.
+  await page.goto("topology/aggregate/Surge?target=prod-billing")
+  await expect(page.getByTestId("topology-no-such-node")).toContainText(
+    "incident-command declares no Aggregate named Surge",
+  )
+  await page.goto("topology/aggregate/Surge?target=prod-orders")
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Aggregate Surge")
+
+  // A slow Orders read that finishes after switching must not enter Billing.
+  await request.post(fixture("orders", "/__control"), { data: { delayMs: 1000 } })
+  await page.goto("topology?target=prod-orders")
+  await expect.poll(async () => (await topologyReads("orders")).length).toBeGreaterThan(2)
+  await page.goto("topology?target=prod-billing")
+  await expect(page.getByTestId("topology-service")).toHaveText("incident-command")
+  await page.waitForTimeout(1500)
+  await expect(page.getByTestId("topology-service")).toHaveText("incident-command")
+  await request.post(fixture("orders", "/__control"), { data: { delayMs: 0 } })
+
+  // Billing was loaded three times above (each `goto` is a full page load), and each load
+  // asked for the document exactly once, never once per poll.
+  const shows = (await topologyReads("billing")).filter((r) => r.path.endsWith("/show"))
+  expect(shows).toHaveLength(3)
+
+  // A deployment without a keiro surface: the section says so and asks nothing.
+  const config = JSON.parse(originalConfig)
+  delete config.targets[1].surfaces.keiro
+  writeFileSync(configPath(), JSON.stringify(config))
+  await page.reload()
+  const before = (await topologyReads("billing")).length
+  await page.goto("topology?target=prod-billing")
+  await expect(page.getByTestId("topology-not-configured")).toContainText(
+    "Keiro inspection is not configured for this deployment",
+  )
+  await page.goto("topology/aggregate/Surge?target=prod-billing")
+  await expect(page.getByTestId("topology-not-configured")).toBeVisible()
+  expect((await topologyReads("billing")).length).toBe(before)
+})

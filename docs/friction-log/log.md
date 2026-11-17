@@ -1,5 +1,11 @@
 # Bundle Update Log
 
+## 2026-11-17
+
+* **Addition**: FRIC-12 records detour environment friction with mori://shinzui/keiro-ui: A foreign process on port 9091 makes stack-check fail and falsely pass kiroku probes
+
+* **Addition**: FRIC-11 records detour tooling friction with mori://shinzui/keiro-ui: Recording keiro fixtures rewrites every existing keiro fixture
+
 ## 2026-11-05
 * **Update**: FRIC-10 resolved: Resolve the missing review metadata through a verified, explicitly scoped catalog review.
 * **Update**: FRIC-9 accepted: Accept the existing derivation scope for this plan; preserve unrelated fixtures and pins.

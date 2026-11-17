@@ -11,6 +11,12 @@ provenance:
     model: "claude-fable-5-2"
     harness: "claude-code"
     at: 2026-11-17T21:49:45Z
+  revisions:
+    - model: "claude-fable-5-2"
+      harness: "claude-code"
+      at: 2026-11-17T22:11:20Z
+      mode: "implement"
+      note: "Milestones 1 to 3 implemented and accepted"
 ---
 
 # Read and verify the served service topology in the Keiro client
@@ -36,14 +42,32 @@ advertised and equal keiro's own golden file byte for byte, and confirm the docu
 
 ## Progress
 
-- [ ] M1: The representative check passes against a locally built host: both routes decode, the `show` bytes hash to the summary's `document_sha256` and equal keiro's golden file, and the document validates. Any difference from this plan's description is corrected here first.
-- [ ] M2: The client surface is complete (`topology.summary`, `topology.show`, `topology.load`, the index, typed errors, query keys) with unit tests covering every refusal and all five golden documents; fixtures are recorded.
-- [ ] M3: The default stack mounts the document with a probe in `just stack-check`, the READMEs describe it, the new ADR is recorded, and the full check suite passes.
+- [x] M1 (2026-11-17): The representative check passes against `jitsurei-ops-http` built from keiro `43c9cdcb`. `curl` showed the summary for `hospital-capacity` under `keiro-dsl/service-topology/1`, `cmp` printed `identical`, and `shasum` gave `d34a4e15…`, the hex part of `document_sha256`. `KEIRO_UI_LIVE=1` ran `packages/client-keiro/test/live/reads.live.test.ts` with 5 of 5 tests passing and none skipped: the `show` bytes equal the golden, hash to the advertised digest, validate (25 nodes, 27 edges, per-kind counts equal `node_counts`) and `load` returns the same digest. The real bodies matched this plan; the only difference is recorded under Surprises.
+- [x] M2 (2026-11-17): `topology.summary`, `topology.show`, `topology.load`, the index, the typed errors and the query keys exist. `packages/client-keiro/test/topology.test.ts` covers all five goldens, every refusal, the cache (second `load`: one summary request, no `show`), one corrupted byte (`TopologyChanging` after exactly two `show` requests) and a byte-order mark. `packages/client-core/test/http.test.ts` covers `getRaw`. The two fixtures are recorded; the recorded `show` is byte-identical to the golden and the synthetic summary equals the recorded one byte for byte (`packages/testing/test/topology.test.ts`). `bun run test`: 740 passed, 15 skipped.
+- [x] M3 (2026-11-17): The default stack mounts the document and `just stack-check` prints `ok    keiro /topology/summary` with every other keiro probe. The recipe as a whole exited 1 on the two kiroku WebSocket probes, because a process outside this stack holds port 9091 (FRIC-12 in `docs/friction-log/`); that is unrelated to this plan and was left alone. `bun run check`, `bun run test`, `bun run build`, `nix build`, `bun run test:e2e` (60 passed) and strict ADR validation (16 concepts) pass. [ADR-16](../adr/0016-a-served-declaration-document-is-verified-and-rejected-whole-when-unknown.md), `dev/README.md` and `packages/client-keiro/README.md` are written.
 
 
 ## Surprises & Discoveries
 
-(None yet.)
+- 2026-11-17: The served summary's `generator_version`, and the document's `generator.version`, are the
+  literal text `<version>` for every golden. keiro's test suite substitutes the version so the goldens
+  survive version bumps. A real service's document carries a real version. Screens must show the value as
+  given and not parse it.
+
+- 2026-11-17: `bun run fixtures:record keiro` cannot record selected entries. It re-requested all 47
+  keiro entries, changed 23 existing fixtures and dropped their derived metadata (FRIC-11 in
+  `docs/friction-log/`). The new fixtures were kept and everything else restored from git, so `derive`
+  was not run and `_meta.json` gained exactly two entries. `_meta.json`'s `sources.keiro.commit` therefore
+  still names the commit of the older recordings; the topology fixtures come from keiro `43c9cdcb`, as
+  `packages/testing/topology/SOURCE.md` records. The steps below and `dev/README.md` describe this.
+
+- 2026-11-17: The synthetic summary helper reproduces the host's summary byte for byte for the hospital
+  golden, key order included. A test pins that, so the helper cannot drift from the recorded shape.
+
+- 2026-11-17: Vite's `?raw` import and the mock handler both carry fixtures as text. The goldens are
+  ASCII, so encoding the text reproduces the bytes and neither the recorder nor the handler needed a
+  change. A document with non-ASCII bytes or a byte-order mark could not be served exactly by the mock;
+  the byte-order-mark case is tested with a scripted `fetch` instead.
 
 
 ## Decision Log
@@ -72,9 +96,47 @@ advertised and equal keiro's own golden file byte for byte, and confirm the docu
   Date: 2026-11-17
 
 
+- Decision: Share one exchange in the HTTP client for `get`, `post` and `getRaw`, reading every body as
+  bytes and decoding with `TextDecoder`.
+  Rationale: One implementation of URL, headers, slot, abort and error handling. `TextDecoder` decodes as
+  `Response.text()` does (byte-order mark dropped, invalid sequences replaced), so ordinary reads are
+  unchanged; the 740 unit tests and 60 browser tests pass unmodified.
+  Date: 2026-11-17
+
+- Decision: Validate the document's structure with zod using plain strings for kinds and relations, then
+  check the vocabulary, uniqueness and endpoints in code.
+  Rationale: The contract requires naming what was rejected. A zod enum would report a union mismatch
+  with a path; the explicit pass reports `unknown relation "feeds" for schema keiro-dsl/service-topology/1`.
+  Date: 2026-11-17
+
+- Decision: `TopologyChanging` carries both digest pairs as `attempts`, and `parseTopologyDocument`,
+  `topologyDigest`, `parseTopologyNodeKey`, `isTopologySchemaId` and `is…` predicates for the three
+  errors are exported beyond the interface this plan listed.
+  Rationale: Screens need to tell the errors apart without `instanceof` across package boundaries, and
+  tests validate documents without a client.
+  Date: 2026-11-17
+
+- Decision: A document that verifies but fails validation is not cached.
+  Rationale: Only a usable document is worth keeping. A host serving an invalid document costs one `show`
+  per poll, which is rare and visible, and avoids caching a rejection by digest.
+  Date: 2026-11-17
+
+
 ## Outcomes & Retrospective
 
-(To be filled during and after implementation.)
+Completed 2026-11-17. The keiro client reads, verifies, validates and indexes a served service topology,
+and reports each way it cannot. The interfaces in the last section exist as written, with the additions
+in the Decision Log. Nothing appears on screen, as intended.
+
+The representative check did its job cheaply: the real host's bodies matched the contract page, so no
+dependent plan needed correcting beyond noting the placeholder generator version.
+
+Friction: FRIC-11 (recording keiro fixtures rewrites every existing keiro fixture) is left `logged`; it
+recurs for every plan that adds a manifest entry and is a candidate for an improvement request to make
+the recorder take entry slugs. FRIC-12 (a foreign process on port 9091) is left `logged`; it will also
+block the live browser suite in the next plans until the port is free.
+
+Durable context went to [ADR-16](../adr/0016-a-served-declaration-document-is-verified-and-rejected-whole-when-unknown.md).
 
 
 ## Context and Orientation
@@ -341,8 +403,10 @@ okf validate docs/adr --strict --profile docs/adr/profile.dhall --profile-enforc
 ```
 
 After recording, review the fixture diff: only the two new keiro files and their `_meta.json` entries
-should change. Derivation rewrites other surfaces' files (recorded as FRIC-9 in `docs/friction-log/`);
-restore unrelated bytes.
+should change. Recording re-requests every keiro entry and rewrites the existing fixtures (FRIC-11 in
+`docs/friction-log/`), and derivation rewrites other surfaces' files (FRIC-9). As implemented: keep the
+two new files, save their two `_meta.json` entries, run `git checkout -- packages/testing/fixtures`, put
+the two entries back in key order, and skip `derive`, which has nothing to derive for these routes.
 
 Commits follow Conventional Commits and carry these trailers:
 

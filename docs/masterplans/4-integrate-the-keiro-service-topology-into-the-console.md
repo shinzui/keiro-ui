@@ -10,6 +10,12 @@ provenance:
     model: "claude-fable-5-2"
     harness: "claude-code"
     at: 2026-11-17T21:49:45Z
+  revisions:
+    - model: "claude-fable-5-2"
+      harness: "claude-code"
+      at: 2026-11-17T22:11:20Z
+      mode: "implement"
+      note: "EP-27 completed; registry, progress and discoveries updated"
 ---
 
 # Integrate the Keiro service topology into the console
@@ -109,7 +115,7 @@ Integration Points).
 
 | # | Title | Path | Hard Deps | Soft Deps | Status |
 |---|-------|------|-----------|-----------|--------|
-| 27 | Read and verify the served service topology in the Keiro client | docs/plans/27-read-and-verify-the-served-service-topology-in-the-keiro-client.md | None | None | Not Started |
+| 27 | Read and verify the served service topology in the Keiro client | docs/plans/27-read-and-verify-the-served-service-topology-in-the-keiro-client.md | None | None | Complete |
 | 28 | Browse a service's declared topology in the console | docs/plans/28-browse-a-service-s-declared-topology-in-the-console.md | EP-27 | None | Not Started |
 | 29 | Draw the service map and aggregate state machines | docs/plans/29-draw-the-service-map-and-aggregate-state-machines.md | EP-28 | None | Not Started |
 | 30 | Join topology declarations to live inspection screens | docs/plans/30-join-topology-declarations-to-live-inspection-screens.md | EP-28 | EP-29 | Not Started |
@@ -205,7 +211,8 @@ than show an error when it is absent.
 
 ## Progress
 
-No child plan has started. EP-27 is ready; EP-28, EP-29 and EP-30 are blocked on their hard dependencies.
+EP-27 is Complete (2026-11-17): the client reads and verifies the document, the default stack mounts
+one, and ADR-16 is recorded. EP-28 is ready. EP-29 and EP-30 are blocked on EP-28.
 
 Integration gate, outside any single child: with all four children complete, the read-only live browser
 suite (`cd apps/console && KEIRO_UI_LIVE=1 bunx playwright test --config playwright.live.config.ts`)
@@ -228,6 +235,18 @@ real-service check was accepted, with a workflow declaration linking to live ins
 
 - 2026-11-17: `crypto.subtle` exists only in secure contexts (HTTPS or localhost). A console served over
   plain HTTP inside a network would have no SHA-256, so EP-27 uses a pure implementation in every context.
+
+
+- 2026-11-17 (EP-27): the goldens carry the literal generator version `<version>`, so the default stack
+  and the default mock show that text as the generator version. Screens show it as given.
+
+- 2026-11-17 (EP-27): `bun run fixtures:record keiro` rewrites every existing keiro fixture (FRIC-11 in
+  `docs/friction-log/`). A plan that adds manifest entries keeps its new files and restores the rest from
+  git. EP-30 records again and should expect the same.
+
+- 2026-11-17 (EP-27): on the machine this was implemented on, a process outside the stack holds port
+  9091, so the stack's `kiroku-inspect` cannot start and `just stack-check` fails on the kiroku
+  WebSocket probes (FRIC-12). The live browser suite named in the integration gate needs that port free.
 
 
 ## Decision Log

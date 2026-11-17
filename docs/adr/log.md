@@ -1,5 +1,8 @@
 # Bundle Update Log
 
+## 2026-11-17
+* **Addition**: Add ADR-16: a served declaration document is verified against its digest and rejected whole when its schema id, a node kind or a relation is unknown
+
 ## 2026-11-04
 * **Update**: ADR-12 records that polling hides feed failures, so feed behaviour is tested at the socket.
 * **Update**: ADR-7 adds opt-in reads for data the display may withhold, and corrects item 4: the redaction seam does not yet exist.

@@ -1,6 +1,9 @@
 # Bundle Update Log
 
 ## 2026-11-17
+
+* **Update**: CAP-12 gains the service map, declaration neighbourhoods and the aggregate machine diagram.
+
 * **Addition**: Add CAP-12: browse the service topology a keiro host mounts, by declaration kind, with details, relations and aggregate state machines.
 
 ## 2026-11-05

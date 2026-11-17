@@ -11,6 +11,12 @@ provenance:
     model: "claude-fable-5-2"
     harness: "claude-code"
     at: 2026-11-17T21:49:45Z
+  revisions:
+    - model: "claude-fable-5-2"
+      harness: "claude-code"
+      at: 2026-11-17T22:40:36Z
+      mode: "implement"
+      note: "Milestones 1 to 4 implemented and accepted"
 ---
 
 # Draw the service map and aggregate state machines
@@ -37,15 +43,46 @@ it touches, open it, and see its six states and six transitions as a diagram abo
 
 ## Progress
 
-- [ ] M1 (prototype): The layout approach is accepted or replaced. All five golden documents and every aggregate machine in them lay out deterministically without overlapping nodes, within the time budget, and a screenshot of the largest is legible.
-- [ ] M2: Aggregate node pages show the machine diagram above the transitions table, with initial, terminal, replay-only and self-transitions distinguishable without colour.
-- [ ] M3: `/topology/map` draws the service with kind-group filters and a focus mode, and node pages show their neighbourhood; large documents open focused instead of drawing everything.
-- [ ] M4: Browser and live checks pass in light and dark themes, keyboard navigation works, and the documentation is updated.
+- [x] M1 (prototype, 2026-11-17): The approach is accepted: `@dagrejs/dagre` 3.1.3 for placement, repository-owned SVG for drawing, with edge ends and self-loops routed by this repository. `apps/console/src/features/topology/graph/layout.test.ts` shows, for the whole graph of all five goldens and every machine in them, that every node is placed, no two boxes overlap, no label sits on a node, no edge crosses a node other than its own ends, and the result is identical across runs. Timings: a synthetic 300-node graph in 64 ms; a real service, mori (152 declarations, 315 relations, from `keiro-dsl topology`), in 106 ms. Screenshots of the hospital map, the `projection-catalog` map and the twelve-transition `Incident` machine were inspected.
+- [x] M2 (2026-11-17): Aggregate pages draw the machine above the transitions table. The initial state has an entry arrow and the word `initial`; terminal states a double border and the word `terminal`; replay-only transitions the suffix `(replay only)` and a dashed arrow; self-transitions a loop between the state and its label. Selection in the diagram and the table stay in step.
+- [x] M3 (2026-11-17): `/topology/map` draws the service with kind-group chips, a focus and a depth, all in the URL, and states what the view hides. Declaration pages draw their neighbourhood. A view of more than 80 declarations is not drawn and offers groups and a search; checked with a synthetic 115-node document and on the real 152-node mori document.
+- [x] M4 (2026-11-17): `bun run check`, `bun run test` (801 passed, 15 skipped), `bun run build`, `nix build`, `bun run test:e2e` (66 passed) and the live suite (8 passed, 2 skipped as before) pass. A browser test confirms no drawn box overlaps another and every label fits its box in the real typeface. Light and dark screenshots of the map and of a machine were inspected. The map is operable by keyboard alone (browser test). Documentation is updated and validates strictly.
 
 
 ## Surprises & Discoveries
 
-(None yet.)
+- 2026-11-17: dagre's raw edge routes cut across neighbouring nodes. Nodes of one rank share a centre
+  and differ in width, so a line leaving a narrow node at an angle crosses a wider neighbour. The layout
+  module now replaces each edge's two ends: it leaves and enters square to the node's side and turns
+  only in a lane just outside its rank's widest node. dagre's interior points are kept. The layout tests
+  assert that no edge crosses a foreign node.
+
+- 2026-11-17: dagre draws a self-loop as a small curve that the edge's label then covers, so
+  self-transitions were invisible. They are drawn as a staple between the state and its label instead.
+
+- 2026-11-17: The theme's `--chart-1` to `--chart-5` tokens are a grey ramp and cannot tell five kind
+  groups apart. The map uses the palette hues the console already uses for status (sky, violet, emerald,
+  amber, rose), each with a dark-theme variant, and writes the group on every node.
+
+- 2026-11-17: No golden contains a `ReplayOnly` transition. The replay-only marking is covered by a
+  synthetic machine, named synthetic in `graph.test.tsx`.
+
+- 2026-11-17: react-aria's table rows set `data-selected` themselves, and TanStack Router's `Link`
+  manages `aria-current`. The transitions table marks its highlighted row with
+  `data-transition-selected`, and filter chips use `data-selected`.
+
+- 2026-11-17: The first lucide icon in a toolbar is also an `svg`, so tests must select the diagram with
+  `svg[role="group"]`.
+
+- 2026-11-17: Real-document evidence. `keiro-dsl topology` accepted mori's workspace and wrote 152
+  declarations and 315 relations: 15 aggregates, 28 projection owners, 90 projection targets, 12 rebuild
+  groups, 6 read models and one contract. Laid out whole it is 2061 by 11742 pixels, which confirms the
+  threshold: the map refuses it, the State group (15) draws, and the Projections group (136) is itself
+  too large and is reached through a focus. The file is `.dev/mori.topology.json`, git-ignored; the
+  layout test over it is skipped when the file is absent.
+
+- 2026-11-17: Routes are code-split, so dagre ships in a lazily loaded chunk (`ServiceMap-*.js`, 59.84
+  kB, about 20 kB gzipped) that loads only on topology pages that draw.
 
 
 ## Decision Log
@@ -70,9 +107,60 @@ it touches, open it, and see its six states and six transitions as a diagram abo
   Date: 2026-11-17
 
 
+- Decision: Keep dagre; route edge ends and self-loops in this repository's layout module.
+  Rationale: The prototype's assertions pass on every golden and on a real 152-node document within
+  the time budget, and the screenshots are legible once edges turn in rank lanes. `elkjs` was not needed.
+  No new ADR, because the approach in this Decision Log stands.
+  Date: 2026-11-17
+
+- Decision: The prototype was inspected on the real routes instead of a temporary route.
+  Rationale: The pure layout module and its tests came first; the components were then small enough to
+  build directly, and screenshots of them against the live stack and against other goldens (served by
+  intercepting the two topology requests) answered the legibility question. Nothing temporary was
+  committed.
+  Date: 2026-11-17
+
+- Decision: The 80-node threshold applies to the view, after groups and focus, not to the document.
+  Rationale: A large service narrowed to one small group or one neighbourhood is legible; a large group
+  is not. The page offers each group with its count and a declaration search.
+  Date: 2026-11-17
+
+- Decision: Zoom changes the drawn size inside a scrolling viewport; drag-to-pan scrolls it.
+  Rationale: Native scrolling gives panning, keyboard scrolling and touch for free, and keeps text at
+  the size the layout assumed at 100%. "Fit" scales the drawing to the viewport's width.
+  Date: 2026-11-17
+
+- Decision: Identical relations between the same two declarations are shown once with a count
+  (`dispatches ×2`), and lines may share a lane between columns.
+  Rationale: One label per relation instance made dense pairs unreadable. Every relation is still
+  counted in the "Drawing N of M relations" line, and selecting a declaration highlights its own lines.
+  Date: 2026-11-17
+
+- Decision: One shared `DiagramBoundary` wraps every diagram.
+  Rationale: The neighbourhood on a declaration's page can fail as the machine diagram can. Each
+  failure names the tables that still carry the information.
+  Date: 2026-11-17
+
+
 ## Outcomes & Retrospective
 
-(To be filled during and after implementation.)
+Completed 2026-11-17. An operator can open `/topology/map`, see the service drawn along its relations,
+narrow it by kind group or to a declaration's neighbourhood, and read each aggregate's machine as a
+diagram above its table. Every diagram repeats a table, and a diagram that cannot be drawn leaves the
+tables.
+
+Bundle: the main chunk went from 372.67 kB to 373.77 kB (114.31 kB gzipped before). dagre and the
+diagram code are a separate chunk of 59.84 kB loaded only by the topology pages that draw.
+
+Interfaces differ from the plan's sketch in small ways: `GraphLayout` nodes and edge labels carry their
+size; `layoutGraph` drops edges naming an absent node; `ServiceMap` takes `onFocus` and `maxHeight`;
+`MapPage` holds the route's controls; `mapView`, `relationLines`, `machineGraph`, `transitionId` and
+`MAP_NODE_THRESHOLD` are exported for tests and reuse. `AggregateMachineSection`'s props are unchanged.
+
+No friction entry was recorded under this plan.
+
+Known limits, stated in the capability page: lines that run the same way between two columns can share
+a path, and a group larger than the threshold is reachable only through a focus.
 
 
 ## Context and Orientation

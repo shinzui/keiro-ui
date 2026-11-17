@@ -1,19 +1,19 @@
 ---
 title: Service topology
 type: Capability
-timestamp: 2026-11-17T22:40:00Z
+timestamp: 2026-11-17T23:10:00Z
 reviews:
   - kind: model
     reviewer: claude-code/claude-fable-5-2
-    reviewed_at: 2026-11-17T22:40:00Z
-    document_timestamp: 2026-11-17T22:40:00Z
+    reviewed_at: 2026-11-17T23:10:00Z
+    document_timestamp: 2026-11-17T23:10:00Z
     scope: catalog-metadata
     outcome: commented
     context: Checked the unique CAP handle, owning provider, workspace package names and evidence resource paths by the model that wrote the page; this is not an independent behavioral review.
     provider: anthropic
     model: claude-fable-5-2
     effort: unspecified
-description: Browse the service topology a keiro host mounts — every declaration of the service's specification by kind, each declaration's details, source location and relations in both directions, and each aggregate's state machine.
+description: Browse the service topology a keiro host mounts — every declaration of the service's specification by kind, each declaration's details, source location and relations in both directions, a drawn map of the service or of one declaration's neighbourhood, and each aggregate's state machine as a diagram and a table.
 generated:
   by: claude-code/claude-fable-5-2
   at: "2026-11-17T22:40:00Z"
@@ -27,11 +27,18 @@ packages:
   - "@keiro-ui/client-keiro"
 interface:
   - /topology
+  - /topology/map
   - "/topology/<kind>/<name>"
 evidence:
   - kind: test
     resource: apps/console/src/features/topology/topology.test.tsx
     proves: The header, members and inventory of the mounted document; both filters; a declaration's details, machine, relations and fed read models; and every state in which there is no document to show.
+  - kind: test
+    resource: apps/console/src/features/topology/graph/layout.test.ts
+    proves: Every golden document's service graph and every aggregate machine in them lays out identically across runs with no overlapping boxes, no label on a node and no edge crossing a node other than its own ends.
+  - kind: test
+    resource: apps/console/src/features/topology/graph/graph.test.tsx
+    proves: The machine diagram draws one node per state and one label per transition with initial, terminal and replay-only marked as text; diagram and table selection stay in step; the map applies groups, focus and depth from the URL and states what is hidden; a service above the threshold is not drawn whole; a diagram that cannot be drawn leaves the tables.
   - kind: test
     resource: apps/console/e2e/topology/topology.spec.ts
     proves: The section is reachable from the rail and the palette, a filter survives a reload, and a relation leads to a declaration whose page shows the same edge reversed.
@@ -59,6 +66,11 @@ serves it, and the console reads it.
 /topology/aggregate/Reservation
 ```
 
+`/topology/map` draws the declarations left to right along their relations, tinted and
+labelled by kind group, and can be narrowed to some groups or to the declarations within one
+or two relations of a chosen one. An aggregate's page draws its state machine above the
+transitions table, and every declaration's page draws its direct neighbourhood.
+
 `/topology` shows which service and specification the host mounted (schema id, source,
 generator, the document's digest and size, and its member files with their digests), then
 every declaration grouped by kind with counts. A text filter and a kind filter are kept in the
@@ -84,7 +96,15 @@ The document's contract is `mori://shinzui/keiro/okf/user-documentation/concepts
   When they disagree twice in a row the section says the deployment is changing.
 - When a later read fails without a definite answer, the document verified earlier stays on
   screen with a notice that it may be out of date.
-- Declarations are text only here: no map and no machine diagram.
+- Every diagram repeats what a table already says; nothing is shown only as a picture. If a
+  diagram cannot be drawn the page says so and keeps its tables.
+- The map does not draw more than 80 declarations at once. A larger view asks for a kind
+  group or a declaration to start from.
+- Parallel relations between the same two declarations share one drawn line, and lines that
+  run the same way between columns can share a path; selecting a declaration highlights its
+  own relations.
+- Guards, register writes and output fields are not in the document, so a machine diagram
+  shows states, commands and events only.
 - Declarations do not link to live instances, and live screens do not link to declarations.
 - The host serves no specification source text, so a declaration's location is shown as
   `member:line` and cannot be opened.

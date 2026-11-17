@@ -117,7 +117,7 @@ Integration Points).
 |---|-------|------|-----------|-----------|--------|
 | 27 | Read and verify the served service topology in the Keiro client | docs/plans/27-read-and-verify-the-served-service-topology-in-the-keiro-client.md | None | None | Complete |
 | 28 | Browse a service's declared topology in the console | docs/plans/28-browse-a-service-s-declared-topology-in-the-console.md | EP-27 | None | Complete |
-| 29 | Draw the service map and aggregate state machines | docs/plans/29-draw-the-service-map-and-aggregate-state-machines.md | EP-28 | None | Not Started |
+| 29 | Draw the service map and aggregate state machines | docs/plans/29-draw-the-service-map-and-aggregate-state-machines.md | EP-28 | None | Complete |
 | 30 | Join topology declarations to live inspection screens | docs/plans/30-join-topology-declarations-to-live-inspection-screens.md | EP-28 | EP-29 | Not Started |
 
 Status values: Not Started, In Progress, Complete, Cancelled.
@@ -213,8 +213,8 @@ than show an error when it is absent.
 
 EP-27 is Complete (2026-11-17): the client reads and verifies the document, the default stack mounts
 one, and ADR-16 is recorded. EP-28 is Complete (2026-11-17): the Service Topology section browses the
-document as text, with every absent or unusable state named. EP-29 and EP-30 are both ready and
-independent of each other.
+document as text, with every absent or unusable state named. EP-29 is Complete (2026-11-17): the
+service map, declaration neighbourhoods and aggregate machine diagrams are drawn. EP-30 is ready.
 
 Integration gate, outside any single child: with all four children complete, the read-only live browser
 suite (`cd apps/console && KEIRO_UI_LIVE=1 bunx playwright test --config playwright.live.config.ts`)
@@ -263,6 +263,16 @@ real-service check was accepted, with a workflow declaration linking to live ins
 - 2026-11-17 (EP-28): a new `apps/console/e2e/<section>/` directory runs only when it is added to the
   `screens` project in `apps/console/playwright.config.ts`; `topology` is now listed, so EP-29 and
   EP-30 specs under `e2e/topology/` run.
+
+- 2026-11-17 (EP-29): the dagre approach held, so no diagram ADR was needed. `AggregateMachineSection`
+  now draws the diagram above its table with unchanged props, so EP-30's reuse on the live aggregate
+  screen gets it with no further work. A real document (mori: 152 declarations, 315 relations) lays out
+  in about 100 ms and confirmed the 80-node view threshold.
+
+- 2026-11-17 (EP-29): mori's real topology has no process, workflow or router nodes, only aggregates
+  and projection kinds. EP-30's real-service check against the mori profile can therefore prove the
+  aggregate and projection-owner joins, but not a workflow join as the integration gate hoped; the
+  workflow and process joins rest on the synthetic "joined" scenario.
 
 
 ## Decision Log

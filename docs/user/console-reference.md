@@ -1,5 +1,5 @@
 ---
-timestamp: 2026-11-17T22:40:00Z
+timestamp: 2026-11-17T23:10:00Z
 type: Reference
 title: Console reference
 description: Every section of the keiro runtime console with its URLs and the surfaces it reads, plus keyboard shortcuts and connection-profile fields.
@@ -20,7 +20,7 @@ filters, sort, and tabs in the URL, so a link reopens the same view.
 | Section                    | Routes                                                         | Surfaces read            |
 | -------------------------- | -------------------------------------------------------------- | ------------------------ |
 | Overview                   | `/`                                                            | all four                 |
-| Service Topology           | `/topology`, `/topology/<kind>/<name>`                         | keiro                    |
+| Service Topology           | `/topology`, `/topology/map`, `/topology/<kind>/<name>`        | keiro                    |
 | Aggregates                 | `/aggregates`, `/aggregates/<type>`, `/aggregates/<type>/<id>` | keiro, kiroku            |
 | Workflows                  | `/workflows`, `/workflows/<name>/<id>`                         | keiro, kiroku            |
 | Process Managers & Timers  | `/process-managers`, `/process-managers/<name>/<correlation>`, `/timers` | keiro          |
@@ -182,6 +182,13 @@ as `aggregate`, `read-model` or `projection-owner`. The page shows:
   machine's ownership is `legacy-hole`, the transitions are declared but the hand-written
   implementation is not proven to match them, and the page says so. A document from an older
   keiro-dsl has no machine, and the page says that instead.
+  Above the table the same machine is drawn left to right. An arrow into a state marks the
+  initial state and a double border marks a terminal state; both also carry the word under the
+  state's name. Each transition shows its command above the events it emits, or `no events`.
+  Transitions between the same two states share one arrow with their labels stacked. A
+  replay-only transition has `(replay only)` after its command, and its arrow is dashed when
+  every transition on it is replay-only. Selecting a transition in the diagram or a row in the
+  table highlights it in both.
 - **Relations**: outgoing and incoming, each naming the relation, the other declaration with a
   link to its page, and the relation's attributes. The other declaration's page shows the same
   relation from its side.
@@ -190,8 +197,38 @@ as `aggregate`, `read-model` or `projection-owner`. The page shows:
   models that observe or are backed by those targets. An owner that reads a whole category or
   every stream is not traced to one aggregate.
 
+- **Neighbourhood**: the declaration and the ones it relates to directly, drawn as on the map,
+  with a link that opens the map focused on it.
+
 A name that is not in the mounted document shows "No such declaration in the mounted
 document".
+
+**The map, `/topology/map`.** The service's declarations are drawn left to right along their
+relations. Each box shows the declaration's kind group and kind above its name, and is tinted
+by group: Messaging (contracts, intakes, emits, publishers), Coordination (processes, routers,
+workflows, operations), State (aggregates), Queues (dispatches, work queues) and Projections
+(projection owners, targets, revisions, rebuild groups, read models, external reads). Each
+line is labelled with its relation; several relations between the same two declarations share
+one line, and `×2` marks a relation that occurs twice.
+
+- **Groups** chips show or hide a kind group. **Focus** draws only the declarations within one
+  or two relations of a chosen declaration, in either direction. Both are kept in the URL
+  (`groups`, `focus`, `depth`), so a view can be shared and survives a reload.
+- Selecting a declaration (click, or Space when it has keyboard focus) highlights it and its
+  direct relations and shows its name with a link to its page. Double-click or Enter focuses
+  the map on it.
+- The line above the drawing says how many declarations and relations are drawn and how many
+  the current view hides, so a filtered drawing is not mistaken for the whole service.
+- Zoom out, zoom in, fit to width and 100% are buttons. Dragging the background pans. With a
+  box focused, the right and left arrow keys follow a relation forward and back, the up and
+  down arrows move through the boxes in drawing order, and Home and End go to the first and
+  last.
+- A view of more than 80 declarations is not drawn. The page says so and offers each kind
+  group and a search for a declaration to focus on.
+
+Nothing is shown only as a picture: the declarations list and each declaration's Relations
+tables carry the same information. If a diagram cannot be drawn, the page says so and keeps
+its tables.
 
 **When there is nothing to show**, the section says which of these applies:
 

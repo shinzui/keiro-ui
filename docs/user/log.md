@@ -1,6 +1,9 @@
 # Bundle Update Log
 
 ## 2026-11-17
+
+* **Update**: Document the service map, its groups, focus and keyboard controls, and the aggregate machine diagram's markers.
+
 * **Update**: Document the Service Topology section: the mounted document's header, the declarations inventory and its filters, a declaration's page, and every state in which there is nothing to show.
 
 ## 2026-11-05

@@ -8,6 +8,13 @@ import type { AnyRouter } from "@tanstack/react-router"
  */
 export const links = {
   overview: () => ({ to: "/" as const }),
+  /** The Service Topology section: the mounted document's header and declarations. */
+  topology: (search?: { q?: string; kind?: string }) => ({ to: "/topology" as const, search }),
+  /** One declaration of the mounted document, addressed by its kind and name. */
+  topologyNode: (kind: string, name: string) => ({
+    to: "/topology/$kind/$name" as const,
+    params: { kind, name },
+  }),
   aggregates: () => ({ to: "/aggregates" as const }),
   aggregateType: (type: string) => ({ to: "/aggregates/$type" as const, params: { type } }),
   aggregate: (type: string, id: string) => ({

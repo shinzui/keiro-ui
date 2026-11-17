@@ -6,6 +6,7 @@ import {
   GitBranch,
   Inbox,
   LayoutDashboard,
+  Network,
   Rows3,
   Settings,
   Workflow,
@@ -16,6 +17,7 @@ import type { EntityKind } from "./recent"
 
 export type SectionId =
   | "overview"
+  | "topology"
   | "aggregates"
   | "workflows"
   | "process-managers"
@@ -51,6 +53,14 @@ export const sections: readonly Section[] = [
     href: "/",
     matchPrefixes: [],
     pages: [{ id: "overview", title: "Overview", href: "/", icon: LayoutDashboard }],
+  },
+  {
+    id: "topology",
+    title: "Service Topology",
+    icon: Network,
+    href: "/topology",
+    matchPrefixes: ["/topology"],
+    pages: [{ id: "topology", title: "Declarations", href: "/topology", icon: Network }],
   },
   {
     id: "aggregates",

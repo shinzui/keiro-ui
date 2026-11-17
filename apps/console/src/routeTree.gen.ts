@@ -30,12 +30,14 @@ import { Route as ShellStreamsNameRouteImport } from './routes/_shell/streams/$n
 import { Route as ShellSubscriptionsIndexRouteImport } from './routes/_shell/subscriptions/index'
 import { Route as ShellSubscriptionsNameRouteImport } from './routes/_shell/subscriptions/$name'
 import { Route as ShellTimersIndexRouteImport } from './routes/_shell/timers/index'
+import { Route as ShellTopologyIndexRouteImport } from './routes/_shell/topology/index'
 import { Route as ShellWorkflowsIndexRouteImport } from './routes/_shell/workflows/index'
 import { Route as ShellAggregatesTypeIndexRouteImport } from './routes/_shell/aggregates/$type/index'
 import { Route as ShellAggregatesTypeIdRouteImport } from './routes/_shell/aggregates/$type/$id'
 import { Route as ShellProcessManagersNameIndexRouteImport } from './routes/_shell/process-managers/$name/index'
 import { Route as ShellProcessManagersNameCorrelationRouteImport } from './routes/_shell/process-managers/$name/$correlation'
 import { Route as ShellQueuesNameIndexRouteImport } from './routes/_shell/queues/$name/index'
+import { Route as ShellTopologyKindNameRouteImport } from './routes/_shell/topology/$kind/$name'
 import { Route as ShellWorkflowsNameIdRouteImport } from './routes/_shell/workflows/$name/$id'
 import { Route as ShellQueuesNameArchiveIdRouteImport } from './routes/_shell/queues/$name/archive/$id'
 import { Route as ShellQueuesNameMessagesIdRouteImport } from './routes/_shell/queues/$name/messages/$id'
@@ -146,6 +148,11 @@ const ShellTimersIndexRoute = ShellTimersIndexRouteImport.update({
   path: '/timers/',
   getParentRoute: () => ShellRoute,
 } as any)
+const ShellTopologyIndexRoute = ShellTopologyIndexRouteImport.update({
+  id: '/topology/',
+  path: '/topology/',
+  getParentRoute: () => ShellRoute,
+} as any)
 const ShellWorkflowsIndexRoute = ShellWorkflowsIndexRouteImport.update({
   id: '/workflows/',
   path: '/workflows/',
@@ -177,6 +184,11 @@ const ShellProcessManagersNameCorrelationRoute =
 const ShellQueuesNameIndexRoute = ShellQueuesNameIndexRouteImport.update({
   id: '/queues/$name/',
   path: '/queues/$name/',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellTopologyKindNameRoute = ShellTopologyKindNameRouteImport.update({
+  id: '/topology/$kind/$name',
+  path: '/topology/$kind/$name',
   getParentRoute: () => ShellRoute,
 } as any)
 const ShellWorkflowsNameIdRoute = ShellWorkflowsNameIdRouteImport.update({
@@ -218,9 +230,11 @@ export interface FileRoutesByFullPath {
   '/streams/': typeof ShellStreamsIndexRoute
   '/subscriptions/': typeof ShellSubscriptionsIndexRoute
   '/timers/': typeof ShellTimersIndexRoute
+  '/topology/': typeof ShellTopologyIndexRoute
   '/workflows/': typeof ShellWorkflowsIndexRoute
   '/aggregates/$type/$id': typeof ShellAggregatesTypeIdRoute
   '/process-managers/$name/$correlation': typeof ShellProcessManagersNameCorrelationRoute
+  '/topology/$kind/$name': typeof ShellTopologyKindNameRoute
   '/workflows/$name/$id': typeof ShellWorkflowsNameIdRoute
   '/aggregates/$type/': typeof ShellAggregatesTypeIndexRoute
   '/process-managers/$name/': typeof ShellProcessManagersNameIndexRoute
@@ -249,9 +263,11 @@ export interface FileRoutesByTo {
   '/streams': typeof ShellStreamsIndexRoute
   '/subscriptions': typeof ShellSubscriptionsIndexRoute
   '/timers': typeof ShellTimersIndexRoute
+  '/topology': typeof ShellTopologyIndexRoute
   '/workflows': typeof ShellWorkflowsIndexRoute
   '/aggregates/$type/$id': typeof ShellAggregatesTypeIdRoute
   '/process-managers/$name/$correlation': typeof ShellProcessManagersNameCorrelationRoute
+  '/topology/$kind/$name': typeof ShellTopologyKindNameRoute
   '/workflows/$name/$id': typeof ShellWorkflowsNameIdRoute
   '/aggregates/$type': typeof ShellAggregatesTypeIndexRoute
   '/process-managers/$name': typeof ShellProcessManagersNameIndexRoute
@@ -282,9 +298,11 @@ export interface FileRoutesById {
   '/_shell/streams/': typeof ShellStreamsIndexRoute
   '/_shell/subscriptions/': typeof ShellSubscriptionsIndexRoute
   '/_shell/timers/': typeof ShellTimersIndexRoute
+  '/_shell/topology/': typeof ShellTopologyIndexRoute
   '/_shell/workflows/': typeof ShellWorkflowsIndexRoute
   '/_shell/aggregates/$type/$id': typeof ShellAggregatesTypeIdRoute
   '/_shell/process-managers/$name/$correlation': typeof ShellProcessManagersNameCorrelationRoute
+  '/_shell/topology/$kind/$name': typeof ShellTopologyKindNameRoute
   '/_shell/workflows/$name/$id': typeof ShellWorkflowsNameIdRoute
   '/_shell/aggregates/$type/': typeof ShellAggregatesTypeIndexRoute
   '/_shell/process-managers/$name/': typeof ShellProcessManagersNameIndexRoute
@@ -315,9 +333,11 @@ export interface FileRouteTypes {
     | '/streams/'
     | '/subscriptions/'
     | '/timers/'
+    | '/topology/'
     | '/workflows/'
     | '/aggregates/$type/$id'
     | '/process-managers/$name/$correlation'
+    | '/topology/$kind/$name'
     | '/workflows/$name/$id'
     | '/aggregates/$type/'
     | '/process-managers/$name/'
@@ -346,9 +366,11 @@ export interface FileRouteTypes {
     | '/streams'
     | '/subscriptions'
     | '/timers'
+    | '/topology'
     | '/workflows'
     | '/aggregates/$type/$id'
     | '/process-managers/$name/$correlation'
+    | '/topology/$kind/$name'
     | '/workflows/$name/$id'
     | '/aggregates/$type'
     | '/process-managers/$name'
@@ -378,9 +400,11 @@ export interface FileRouteTypes {
     | '/_shell/streams/'
     | '/_shell/subscriptions/'
     | '/_shell/timers/'
+    | '/_shell/topology/'
     | '/_shell/workflows/'
     | '/_shell/aggregates/$type/$id'
     | '/_shell/process-managers/$name/$correlation'
+    | '/_shell/topology/$kind/$name'
     | '/_shell/workflows/$name/$id'
     | '/_shell/aggregates/$type/'
     | '/_shell/process-managers/$name/'
@@ -542,6 +566,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShellTimersIndexRouteImport
       parentRoute: typeof ShellRoute
     }
+    '/_shell/topology/': {
+      id: '/_shell/topology/'
+      path: '/topology'
+      fullPath: '/topology/'
+      preLoaderRoute: typeof ShellTopologyIndexRouteImport
+      parentRoute: typeof ShellRoute
+    }
     '/_shell/workflows/': {
       id: '/_shell/workflows/'
       path: '/workflows'
@@ -582,6 +613,13 @@ declare module '@tanstack/react-router' {
       path: '/queues/$name'
       fullPath: '/queues/$name/'
       preLoaderRoute: typeof ShellQueuesNameIndexRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/topology/$kind/$name': {
+      id: '/_shell/topology/$kind/$name'
+      path: '/topology/$kind/$name'
+      fullPath: '/topology/$kind/$name'
+      preLoaderRoute: typeof ShellTopologyKindNameRouteImport
       parentRoute: typeof ShellRoute
     }
     '/_shell/workflows/$name/$id': {
@@ -629,9 +667,11 @@ interface ShellRouteChildren {
   ShellStreamsIndexRoute: typeof ShellStreamsIndexRoute
   ShellSubscriptionsIndexRoute: typeof ShellSubscriptionsIndexRoute
   ShellTimersIndexRoute: typeof ShellTimersIndexRoute
+  ShellTopologyIndexRoute: typeof ShellTopologyIndexRoute
   ShellWorkflowsIndexRoute: typeof ShellWorkflowsIndexRoute
   ShellAggregatesTypeIdRoute: typeof ShellAggregatesTypeIdRoute
   ShellProcessManagersNameCorrelationRoute: typeof ShellProcessManagersNameCorrelationRoute
+  ShellTopologyKindNameRoute: typeof ShellTopologyKindNameRoute
   ShellWorkflowsNameIdRoute: typeof ShellWorkflowsNameIdRoute
   ShellAggregatesTypeIndexRoute: typeof ShellAggregatesTypeIndexRoute
   ShellProcessManagersNameIndexRoute: typeof ShellProcessManagersNameIndexRoute
@@ -661,10 +701,12 @@ const ShellRouteChildren: ShellRouteChildren = {
   ShellStreamsIndexRoute: ShellStreamsIndexRoute,
   ShellSubscriptionsIndexRoute: ShellSubscriptionsIndexRoute,
   ShellTimersIndexRoute: ShellTimersIndexRoute,
+  ShellTopologyIndexRoute: ShellTopologyIndexRoute,
   ShellWorkflowsIndexRoute: ShellWorkflowsIndexRoute,
   ShellAggregatesTypeIdRoute: ShellAggregatesTypeIdRoute,
   ShellProcessManagersNameCorrelationRoute:
     ShellProcessManagersNameCorrelationRoute,
+  ShellTopologyKindNameRoute: ShellTopologyKindNameRoute,
   ShellWorkflowsNameIdRoute: ShellWorkflowsNameIdRoute,
   ShellAggregatesTypeIndexRoute: ShellAggregatesTypeIndexRoute,
   ShellProcessManagersNameIndexRoute: ShellProcessManagersNameIndexRoute,

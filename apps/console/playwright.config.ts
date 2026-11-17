@@ -30,7 +30,7 @@ export default defineConfig({
     {
       name: "screens",
       testMatch:
-        /e2e\/(streams|queues|workflows|aggregates|process-managers|timers|projections|overview|actions)\/.*\.spec\.ts$/,
+        /e2e\/(streams|queues|workflows|aggregates|process-managers|timers|projections|overview|actions|topology)\/.*\.spec\.ts$/,
       // The *.live.spec.ts files run only through playwright.live.config.ts.
       testIgnore: /\.live\.spec\.ts$/,
       use: { ...devices["Desktop Chrome"], baseURL: mockURL },

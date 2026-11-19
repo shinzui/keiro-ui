@@ -2,6 +2,7 @@ import { useRouter } from "@tanstack/react-router"
 import { useMemo } from "react"
 
 import { navigateToHref } from "@/lib/href"
+import { useTargetSelection } from "@/settings/target-selection"
 
 import { type Command, useRegisterCommands } from "./commands"
 import { useLiveness } from "./liveness"
@@ -18,6 +19,9 @@ export function ShellCommands() {
   const { theme, setTheme } = useTheme()
   const { paused, pause, resume } = useLiveness()
   const { open: openSheet } = useRightSheet()
+  const selection = useTargetSelection()
+  const current = selection?.selected?.target
+  const applicationCount = selection?.entries.length ?? 0
 
   const pageCommands = useMemo<Command[]>(
     () =>
@@ -47,6 +51,19 @@ export function ShellCommands() {
       paused
         ? { id: "shell:liveness", group: "actions", label: "Resume live updates", run: resume }
         : { id: "shell:liveness", group: "actions", label: "Pause live updates", run: pause },
+      ...(applicationCount > 1
+        ? [
+            {
+              id: "shell:switch-application",
+              group: "actions" as const,
+              label: "Switch application…",
+              hint: current ? `${current.label} · ${current.environment}` : undefined,
+              keywords: ["app", "application", "target", "environment"],
+              // The palette handles this command by showing the application sub-list.
+              run: () => {},
+            },
+          ]
+        : []),
       {
         id: "shell:switch-profile",
         group: "actions",
@@ -71,7 +88,7 @@ export function ShellCommands() {
         run: () => openSheet({ kind: "about", ref: "console" }),
       },
     ],
-    [theme, setTheme, paused, pause, resume, openSheet],
+    [theme, setTheme, paused, pause, resume, openSheet, applicationCount, current],
   )
 
   useRegisterCommands(pageCommands)

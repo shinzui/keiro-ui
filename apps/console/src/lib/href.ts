@@ -10,7 +10,7 @@ export function splitHref(
   router: AnyRouter,
   href: string,
 ): { to: string; search: Record<string, unknown>; hash?: string } {
-  const url = new URL(href, "http://console.invalid")
+  const url = new URL(withoutBasepath(router, href), "http://console.invalid")
   const search = router.options.parseSearch(url.search) as Record<string, unknown>
   const current = router.state.location.search as Record<string, unknown>
   // A scoped recent/pinned href for another application must not inherit this app's worker.
@@ -18,6 +18,22 @@ export function splitHref(
     search.worker = undefined
   const hash = url.hash ? url.hash.slice(1) : undefined
   return hash ? { to: url.pathname, search, hash } : { to: url.pathname, search }
+}
+
+/**
+ * Removes the deployment's base path from an href that carries it. TanStack's
+ * `buildLocation().href` includes the base path, and recents and pins recorded before
+ * `hrefOf` stripped it are still stored with it; navigating such an href would apply the
+ * base path twice ("/console/console/streams/..."). Application routes never start with the
+ * base path's segment, so stripping it is unambiguous.
+ */
+export function withoutBasepath(router: AnyRouter, href: string): string {
+  const base = (router.basepath ?? "/").replace(/\/+$/, "")
+  if (!base || !href.startsWith(base)) return href
+  const rest = href.slice(base.length)
+  if (rest === "") return "/"
+  if (rest.startsWith("?") || rest.startsWith("#")) return `/${rest}`
+  return rest.startsWith("/") ? rest : href
 }
 
 export function navigateToHref(

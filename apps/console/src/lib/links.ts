@@ -1,6 +1,8 @@
 import type { WorkflowStatusClass } from "@keiro-ui/client-keiro"
 import type { AnyRouter } from "@tanstack/react-router"
 
+import { withoutBasepath } from "./href"
+
 /**
  * One typed builder per route in the MasterPlan's link map. Each result spreads into
  * `<Link {...links.x()}>` and is accepted by `navigate()`. Entity builders take positional
@@ -109,5 +111,5 @@ export function bindLinkRouter(router: AnyRouter): void {
 /** The internal href (no base path) of a link target, as stored in recents and pins. */
 export function hrefOf(target: LinkTarget): string {
   if (!boundRouter) throw new Error("hrefOf called before the router was created")
-  return boundRouter.buildLocation(target as never).href
+  return withoutBasepath(boundRouter, boundRouter.buildLocation(target as never).href)
 }

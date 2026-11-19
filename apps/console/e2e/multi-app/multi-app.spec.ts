@@ -466,3 +466,34 @@ test("a document is compared only with its own deployment's catalogue", async ({
   await expect(page.getByTestId("agreement-agrees")).toHaveCount(0)
   await request.post(fixture("orders", "/__control"), { data: { delayMs: 0 } })
 })
+
+test("the palette lists this app's recents, opens them once under the base path, and switches apps", async ({
+  page,
+}) => {
+  await page.goto("categories/order?target=prod-orders")
+  await expect(page.getByRole("region", { name: "Declared consumers" })).toContainText(
+    "orders-consumer",
+  )
+  await page.goto("?target=prod-billing")
+  await page.getByRole("button", { name: "Open command palette" }).click()
+  const palette = page.getByRole("menu", { name: "Commands" })
+  // Orders' recent category is not offered while Billing is selected.
+  await expect(palette.getByRole("menuitem", { name: /Switch application/ })).toBeVisible()
+  await expect(palette.getByRole("menuitem", { name: /^order\b/ })).toHaveCount(0)
+  await page.keyboard.press("Escape")
+
+  await page.goto("?target=prod-orders")
+  await page.getByRole("button", { name: "Open command palette" }).click()
+  await palette.getByRole("menuitem", { name: /^order\b/ }).click()
+  await expect(page).toHaveURL(/\/console\/categories\/order\?target=prod-orders/)
+  expect(new URL(page.url()).pathname).toBe("/console/categories/order")
+
+  await page.getByRole("button", { name: "Open command palette" }).click()
+  await page.keyboard.type("switch app")
+  await palette.getByRole("menuitem", { name: /Switch application/ }).click()
+  await page.keyboard.type("bill")
+  await expect(palette.getByRole("menuitem")).toHaveCount(1)
+  await page.keyboard.press("Enter")
+  await expect(page).toHaveURL(/\/console\/\?target=prod-billing$/)
+  await expect(page.getByRole("combobox", { name: "Application" })).toHaveValue("prod-billing")
+})

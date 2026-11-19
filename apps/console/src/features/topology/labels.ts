@@ -49,6 +49,31 @@ export const KIND_GROUPS = [
 ] as const satisfies readonly { id: string; label: string; kinds: readonly TopologyNodeKind[] }[]
 
 export type KindGroupId = (typeof KIND_GROUPS)[number]["id"]
+
+/**
+ * The group's hue in HTML (the map tints its SVG nodes with the same hues), each with a
+ * dark-theme variant. The group's name is always written next to it, so the hue is never
+ * the only signal.
+ */
+export const GROUP_ACCENT: Record<KindGroupId, { dot: string; band: string }> = {
+  messaging: { dot: "bg-sky-500 dark:bg-sky-400", band: "border-l-sky-500 dark:border-l-sky-400" },
+  coordination: {
+    dot: "bg-violet-500 dark:bg-violet-400",
+    band: "border-l-violet-500 dark:border-l-violet-400",
+  },
+  state: {
+    dot: "bg-emerald-500 dark:bg-emerald-400",
+    band: "border-l-emerald-500 dark:border-l-emerald-400",
+  },
+  queues: {
+    dot: "bg-amber-500 dark:bg-amber-400",
+    band: "border-l-amber-500 dark:border-l-amber-400",
+  },
+  projections: {
+    dot: "bg-rose-500 dark:bg-rose-400",
+    band: "border-l-rose-500 dark:border-l-rose-400",
+  },
+}
 export type KindGroup = (typeof KIND_GROUPS)[number]
 
 export const KIND_GROUP_IDS: readonly KindGroupId[] = KIND_GROUPS.map((group) => group.id)

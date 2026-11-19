@@ -198,25 +198,33 @@ test("a deployment without a keiro surface says so and sends no topology request
   expect(requests).toEqual({ summary: 0, show: 0 })
 })
 
-test("declarations are grouped by kind in the contract's order, with counts", async () => {
+test("declarations are grouped by the map's kind groups, then by kind in the contract's order", async () => {
   await renderRoute("/topology")
   const inventory = await screen.findByRole("region", { name: "Declarations" })
-  const headings = within(inventory)
-    .getAllByRole("heading", { level: 3 })
-    .map((heading) => heading.textContent)
-  expect(headings).toEqual([
-    "Aggregates 5",
-    "Processes 1",
-    "Workflows 1",
-    "Routers 1",
+  const headingsAt = (level: number) =>
+    within(inventory)
+      .getAllByRole("heading", { level })
+      .map((heading) => heading.textContent)
+  expect(headingsAt(3)).toEqual([
+    "Messaging4 declarations",
+    "Coordination5 declarations",
+    "State5 declarations",
+    "Queues2 declarations",
+    "Projections9 declarations",
+  ])
+  expect(headingsAt(4)).toEqual([
     "Contracts 1",
     "Intakes 1",
     "Emits 1",
     "Publishers 1",
+    "Processes 1",
+    "Workflows 1",
+    "Routers 1",
+    "Operations 2",
+    "Aggregates 5",
     "Work queues 1",
     "Dispatches 1",
     "Read models 4",
-    "Operations 2",
     "Projection targets 2",
     "Rebuild groups 1",
     "Projection owners 2",
@@ -244,12 +252,12 @@ test("the text filter matches names and stable names and lives in the URL", asyn
     .map((link) => link.textContent)
   // `HospitalTransferReservation` matches by name; its stable name would match too.
   expect(names).toEqual([
-    "Reservation",
     "HospitalTransferReservation",
-    "reservation_work",
-    "reservation_work_dispatch",
     "RunReservationWorkflow",
     "SignalReservationConfirmation",
+    "Reservation",
+    "reservation_work",
+    "reservation_work_dispatch",
   ])
   expect(screen.getByTestId("topology-shown")).toHaveTextContent("6 of 25 declarations match")
 })
@@ -270,7 +278,7 @@ test("the kind filter narrows to one kind and keeps the text filter", async () =
   const inventory = screen.getByRole("region", { name: "Declarations" })
   expect(
     within(inventory)
-      .getAllByRole("heading", { level: 3 })
+      .getAllByRole("heading", { level: 4 })
       .map((heading) => heading.textContent?.replace(/\s+\d+$/, "")),
   ).toEqual(["Read models"])
   expect(within(kinds).getByRole("link", { name: /^Read models/ })).toHaveAttribute(

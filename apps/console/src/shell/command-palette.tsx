@@ -81,6 +81,7 @@ export function CommandPalette() {
       onOpenChange={setOpen}
       title="Command palette"
       description="Jump to a page or entity, or run an action"
+      className="sm:max-w-xl"
     >
       {open && <PaletteBody close={() => setOpen(false)} />}
     </CommandDialog>
@@ -225,8 +226,13 @@ function PaletteBody({ close }: { close: () => void }) {
                 textValue={textValueOf(command)}
                 onAction={() => run(command)}
               >
-                <span className="truncate">{command.label}</span>
-                {command.hint && <CommandShortcut>{command.hint}</CommandShortcut>}
+                {/* The label keeps its room; a long hint (a path) truncates instead. */}
+                <span className="min-w-0 flex-1 truncate">{command.label}</span>
+                {command.hint && (
+                  <CommandShortcut className="max-w-1/2 min-w-0 truncate tracking-normal">
+                    {command.hint}
+                  </CommandShortcut>
+                )}
               </CommandItem>
             ))}
           </CommandGroup>

@@ -34,7 +34,8 @@ export function registerWorkflowsFeature(): void {
       id: `workflows:class:${statusClass}`,
       group: "pages" as const,
       label: `Workflows: ${statusClass}`,
-      hint: presetHref(statusClass),
+      // A readable path, not the percent-encoded href, so the hint scans and filters well.
+      hint: `/workflows?status_class=${statusClass}`,
       keywords: ["workflow", statusClass],
       run: ({ navigate }) =>
         void navigate(links.workflows({ status_class: [statusClass] }) as never),

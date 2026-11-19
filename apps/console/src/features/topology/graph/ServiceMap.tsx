@@ -176,6 +176,36 @@ export function ServiceMap({
   }, [active, view])
   const activeNode = active ? index.node(active) : undefined
 
+  // Passed to the canvas as its footer so it also shows under the maximized map.
+  const selection = activeNode && (
+    <div
+      role="status"
+      aria-label="Selected declaration"
+      className="flex flex-wrap items-center gap-3 rounded-md border px-3 py-2 text-sm"
+      data-testid="map-selection"
+    >
+      <span>
+        <span className="text-muted-foreground">{kindLabel(activeNode.kind)}</span>{" "}
+        <span className="font-medium">{activeNode.name}</span>
+      </span>
+      <Link
+        {...links.topologyNode(activeNode.kind, activeNode.name)}
+        className="underline-offset-2 hover:underline"
+      >
+        Open declaration
+      </Link>
+      {onFocus && active !== view.focus && (
+        <Button size="xs" variant="outline" onPress={() => onFocus(active!)}>
+          Focus the map on it
+        </Button>
+      )}
+      <span className="text-xs text-muted-foreground">
+        Its direct relations are highlighted. Double-click or press Enter on a declaration to focus
+        the map on it.
+      </span>
+    </div>
+  )
+
   const hiddenNodes = view.totalNodes - view.nodes.length
   const hiddenEdges = view.totalEdges - view.shownEdges
 
@@ -200,6 +230,7 @@ export function ServiceMap({
           label="Service map"
           description="Each declaration's page lists the same relations as tables."
           maxHeight={maxHeight}
+          footer={selection}
           selected={active}
           emphasis={emphasis}
           onSelect={(key) => setSelected((current) => (current === key ? undefined : key))}
@@ -260,34 +291,6 @@ export function ServiceMap({
             )
           }
         />
-      )}
-      {activeNode && (
-        <div
-          role="status"
-          aria-label="Selected declaration"
-          className="flex flex-wrap items-center gap-3 rounded-md border px-3 py-2 text-sm"
-          data-testid="map-selection"
-        >
-          <span>
-            <span className="text-muted-foreground">{kindLabel(activeNode.kind)}</span>{" "}
-            <span className="font-medium">{activeNode.name}</span>
-          </span>
-          <Link
-            {...links.topologyNode(activeNode.kind, activeNode.name)}
-            className="underline-offset-2 hover:underline"
-          >
-            Open declaration
-          </Link>
-          {onFocus && active !== view.focus && (
-            <Button size="xs" variant="outline" onPress={() => onFocus(active!)}>
-              Focus the map on it
-            </Button>
-          )}
-          <span className="text-xs text-muted-foreground">
-            Its direct relations are highlighted. Double-click or press Enter on a declaration to
-            focus the map on it.
-          </span>
-        </div>
       )}
     </div>
   )

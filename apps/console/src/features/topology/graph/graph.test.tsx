@@ -466,3 +466,23 @@ test("the map shows the topology's own state when there is no document", async (
   expect(await screen.findByTestId("topology-not-served")).toBeInTheDocument()
   expect(screen.queryByTestId("service-map")).not.toBeInTheDocument()
 })
+
+test("the map maximizes into a dialog that keeps the selection and restores in place", async () => {
+  await renderRoute("/topology/map")
+  const map = await screen.findByTestId("service-map")
+  fireEvent.click(within(map).getByRole("button", { name: "Maximize" }))
+
+  const dialog = await screen.findByRole("dialog", { name: "Service map" })
+  expect(within(map).queryByRole("button", { name: "Aggregate Surge" })).toBeNull()
+  fireEvent.click(within(dialog).getByRole("button", { name: "Aggregate Surge" }))
+  expect(within(dialog).getByTestId("map-selection")).toHaveTextContent("Aggregate Surge")
+  expect(within(dialog).getByRole("button", { name: "Fit to view" })).toBeInTheDocument()
+
+  fireEvent.click(within(dialog).getByRole("button", { name: "Restore" }))
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
+  expect(within(map).getByRole("button", { name: "Aggregate Surge" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  )
+  expect(within(map).getByTestId("map-selection")).toHaveTextContent("Aggregate Surge")
+})
